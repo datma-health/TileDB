@@ -36,6 +36,7 @@
 #include "array_schema_c.h"
 #include "metadata_schema_c.h"
 #include "hilbert_curve.h"
+#include "storage_fs.h"
 #include <limits>
 #include <string>
 #include <typeinfo>
@@ -89,7 +90,7 @@ class ArraySchema {
   /* ********************************* */
 
   /** Constructor. */
-  ArraySchema();
+  ArraySchema(StorageFS *fs);
   
   /** Destructor. */
   ~ArraySchema();  
@@ -100,6 +101,9 @@ class ArraySchema {
   /* ********************************* */
   /*             ACCESSORS             */
   /* ********************************* */
+
+  /** Returns the array workspace. */
+  const std::string& array_workspace() const;
 
   /** Returns the array name. */
   const std::string& array_name() const;
@@ -147,6 +151,9 @@ class ArraySchema {
 
   /** Returns the compression type of the attribute with the input id. */
   int compression(int attribute_id) const;
+
+  /** Returns the compression level of the input attribute */
+  int compression_level(int attribute_id) const;
 
   /** Returns the coordinates size. */
   size_t coords_size() const;
@@ -338,6 +345,9 @@ class ArraySchema {
    */
   int init(const MetadataSchemaC* metadata_schema_c);  
 
+  /** Sets the array workspace. */
+  void set_array_workspace(const char* array_workspace);
+
   /** Sets the array name. */
   void set_array_name(const char* array_name);
   
@@ -370,6 +380,9 @@ class ArraySchema {
 
   /** Sets the compression types. */
   int set_compression(int* compression);
+
+  /** Sets the compression levels. */
+  int set_compression_level(int* compression_level);
 
   /** Sets the proper flag to indicate if the array is dense. */
   void set_dense(int dense);
@@ -660,6 +673,10 @@ class ArraySchema {
   int tile_order_cmp(const T* coords_a, const T* coords_b) const;
 
 
+  /**
+   * Returns true if the schema has a version tag
+   */
+  bool version_tag_exists() const;
 
   /* ********************************* */
   /*        AUXILIARY ATTRIBUTES       */
@@ -675,7 +692,11 @@ class ArraySchema {
   /* ********************************* */
   /*         PRIVATE ATTRIBUTES        */
   /* ********************************* */
-
+  
+  /** 
+   * The array workspace directory.
+   */
+  std::string array_workspace_;
   /** 
    * The array name. It is a directory, whose parent must be a TileDB workspace,
    * or group.
@@ -723,6 +744,11 @@ class ArraySchema {
    *    - TILEDB_RLE 
    */
   std::vector<int> compression_;
+  /**
+   * The compression level for each attribute + 1 for coordinates. This level will be interpreted
+   * based on the compression type in compression_.
+   */
+  std::vector<int> compression_level_;
   /** Auxiliary variable used when calculating Hilbert ids. */
   int* coords_for_hilbert_;
   /** The size (in bytes) of the coordinates. */
@@ -796,7 +822,10 @@ class ArraySchema {
   std::vector<int> types_;
   /** Stores the size of every attribute type (plus coordinates in the end). */
   std::vector<size_t> type_sizes_;
-
+  /** Array schema version **/
+  unsigned version_tag_;
+  /** The Storage Filesystem */
+  StorageFS *fs_;
 
 
 

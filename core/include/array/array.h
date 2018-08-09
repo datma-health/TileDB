@@ -42,6 +42,9 @@
 #include "fragment.h"
 #include "storage_manager_config.h"
 #include "tiledb_constants.h"
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+#include "expression.h"
+#endif
 #include <pthread.h>
 #include <queue>
 
@@ -191,9 +194,48 @@ class Array {
    *     on an overflow flag which can be checked with function overflow(). The
    *     next invocation will resume for the point the previous one stopped,
    *     without inflicting a considerable performance penalty due to overflow.
+   * @param skip_counts Number of cells to skip before reading data into buffer.
+   *     This can be NULL (no skip). If non NULL, the number of entries in skip_counts
+   *     must be equal to the number of entries in buffer_sizes
    * @return TILEDB_AR_OK for success and TILEDB_AR_ERR for error.
    */
-  int read(void** buffers, size_t* buffer_sizes); 
+  int read(void** buffers, size_t* buffer_sizes, size_t* skip_counts=0);
+
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+  /**
+   * Performs a filter operation in an array, which must be initialized in filter 
+   * mode. The function retrieves the result cells that lie inside
+   * the subarray specified in init() or reset_subarray(). The results are
+   * written in input buffers provided by the user, which are also allocated by
+   * the user. Note that the results are written in the buffers in the same
+   * order as that specified by the user in the init() function. Also, regular
+   * array_read() will accept a subarray on dimensions and a list of attributes
+   * to return. However, filter expressions might have extra parameters which
+   * might not be included in the return buffer, but used in the condition.
+   * Hence, we add these extra conditional attributes to the list of attributes
+   * to be read into the buffers, and turn them all the values to the condition
+   * evaluate method to return the ones which meets the condition
+   * 
+   * @param buffers An array of buffers, one for each attribute. These must be
+   *     provided in the same order as the attributes specified in
+   *     init() or reset_attributes(). The case of variable-sized attributes is
+   *     special. Instead of providing a single buffer for such an attribute,
+   *     **two** must be provided: the second will hold the variable-sized cell
+   *     values, whereas the first holds the start offsets of each cell in the
+   *     second buffer.
+   * @param buffer_sizes The sizes (in bytes) allocated by the user for the
+   *     input buffers (there is a one-to-one correspondence). The function will
+   *     attempt to write as many results as can fit in the buffers, and
+   *     potentially alter the buffer size to indicate the size of the *useful*
+   *     data written in the buffer. If a buffer cannot hold all results, the
+   *     function will still succeed, writing as much data as it can and turning
+   *     on an overflow flag which can be checked with function overflow(). The
+   *     next invocation will resume for the point the previous one stopped,
+   *     without inflicting a considerable performance penalty due to overflow.
+   * @return TILEDB_AR_OK for success and TILEDB_AR_ERR for error.
+   */
+  int filter(void** buffers, size_t* buffer_sizes);
+#endif
 
   /**
    * Performs a read operation in an array, which must be initialized in read 
@@ -219,9 +261,12 @@ class Array {
    *     on an overflow flag which can be checked with function overflow(). The
    *     next invocation will resume for the point the previous one stopped,
    *     without inflicting a considerable performance penalty due to overflow.
+   * @param skip_counts Number of cells to skip before reading data into buffer.
+   *     This can be NULL (no skip). If non NULL, the number of entries in skip_counts
+   *     must be equal to the number of entries in buffer_sizes
    * @return TILEDB_AR_OK for success and TILEDB_AR_ERR for error.
    */
-  int read_default(void** buffers, size_t* buffer_sizes); 
+  int read_default(void** buffers, size_t* buffer_sizes, size_t* skip_counts=0);
 
   /** Returns true if the array is in read mode. */
   bool read_mode() const;
@@ -232,7 +277,8 @@ class Array {
   /** Returns true if the array is in write mode. */
   bool write_mode() const;
 
-
+  /** Returns true if the array is in filter mode. */
+  bool filter_mode() const;
 
 
   /* ********************************* */
@@ -275,6 +321,7 @@ class Array {
    * Initializes a TileDB array object.
    *
    * @param array_schema The array schema.
+   * @param array_path_used The path to the array as specified by the caller - might be different from the one in array_schema
    * @param fragment_names The names of the fragments of the array.
    * @param book_keeping The book-keeping structures of the fragments
    *     of the array.
@@ -302,6 +349,7 @@ class Array {
    */
   int init(
       const ArraySchema* array_schema, 
+      const std::string array_path_used,
       const std::vector<std::string>& fragment_names,
       const std::vector<BookKeeping*>& book_keeping,
       int mode,
@@ -436,6 +484,17 @@ class Array {
    */
   int write_default(const void** buffers, const size_t* buffer_sizes); 
 
+  /*
+   * Free array_schema_
+   */
+  void free_array_schema();
+
+  /**
+   * Get path used to open array - might be different from the one in the
+   * schema if the array is moved
+   */
+  const std::string& get_array_path_used() const;
+
  private:
   /* ********************************* */
   /*         PRIVATE ATTRIBUTES        */
@@ -492,7 +551,15 @@ class Array {
    */
   void* subarray_;
 
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+  /**
+   * The expression object which will be used to filter
+   * values
+   */
+  Expression* expression_;
+#endif
 
+  std::string array_path_used_;
 
 
   /* ********************************* */

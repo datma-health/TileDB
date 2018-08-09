@@ -35,6 +35,7 @@
 
 #include "array.h"
 #include "book_keeping.h"
+#include "codec.h"
 #include "fragment.h"
 #include <vector>
 
@@ -121,6 +122,16 @@ class ReadState {
   ~ReadState();
 
 
+  /* ********************************* */
+  /*              MUTATORS             */
+  /* ********************************* */
+
+  /**
+   * Finalizes the fragment.
+   *
+   * @return TILEDB_WS_OK for success and TILEDB_WS_ERR for error. 
+   */
+  int finalize();
 
 
   /* ********************************* */
@@ -196,6 +207,7 @@ class ReadState {
    * @param buffer_size The size (in bytes) of *buffer*.
    * @param buffer_offset The offset in *buffer* where the copy will start from.
    * @param cell_pos_range The cell position range to be copied.
+   * @param remaining_skip_count The number of cells to skip before copying
    * @return TILEDB_RS_OK on success and TILEDB_RS_ERR on error.
    */
   int copy_cells(
@@ -204,7 +216,8 @@ class ReadState {
       void* buffer,
       size_t buffer_size,
       size_t& buffer_offset,
-      const CellPosRange& cell_pos_range);
+      const CellPosRange& cell_pos_range,
+      size_t& remaining_skip_count);
 
   /**
    * Copies the cells of the input **variable-sized** attribute into the input
@@ -215,11 +228,13 @@ class ReadState {
    * @param buffer The offsets buffer to copy into - see Array::read().
    * @param buffer_size The size (in bytes) of *buffer*.
    * @param buffer_offset The offset in *buffer* where the copy will start from.
+   * @param remaining_skip_count The number of cells to skip before copying
    * @param buffer_var The variable-sized cell buffer to copy into - see 
    *     Array::read().
    * @param buffer_var_size The size (in bytes) of *buffer_var*.
    * @param buffer_var_offset The offset in *buffer_var* where the copy will
    *      start from.
+   * @param remaining_skip_count_var The number of cells to skip before copying for the var field
    * @param cell_pos_range The cell position range to be copied.
    * @return TILEDB_RS_OK on success and TILEDB_RS_ERR on error.
    */
@@ -229,9 +244,11 @@ class ReadState {
       void* buffer,
       size_t buffer_size,
       size_t& buffer_offset,
+      size_t& remaining_skip_count,
       void* buffer_var,
       size_t buffer_var_size,
       size_t& buffer_var_offset,
+      size_t& remaining_skip_count_var,
       const CellPosRange& cell_pos_range);
 
   /** 
@@ -394,6 +411,14 @@ class ReadState {
   BookKeeping* book_keeping_;
   /** The size of the array coordinates. */
   size_t coords_size_;
+
+  /** Internal buffers associated with the attribute files */
+  std::vector<Buffer *> file_buffer_;
+  std::vector<Buffer *> file_var_buffer_;
+  
+  /** Compression per attribute */
+  std::vector<Codec *> codec_;
+
   /** Indicates if the read operation on this fragment finished. */
   bool done_;
   /** Keeps track of which tile is in main memory for each attribute. */ 
@@ -494,6 +519,25 @@ class ReadState {
   /*          PRIVATE METHODS          */
   /* ********************************* */
 
+  std::string construct_filename(int attribute_id, bool is_var);
+
+  /**
+   * Resets all internal buffers associated with attribute files.
+   */
+  void reset_file_buffers();
+
+  /**
+   * Reads a segment from the file associated with the attribute,
+   * given an offset and size.
+   * @param attribute_id The id of the attribute.
+   * @param is_var Boolean to specify whether the attribute is var.
+   * @param offset The offset of the segment to be read from the file.
+   * @param segment Pointer to preallocated segment.
+   * @param length Length of the preallocated segment.
+   * @return TILEDB_RS_OK on success and TILEDB_RS_ERR on error.
+   */
+  int read_segment(int attribute_id, bool is_var, off_t offset, void *segment, size_t length);
+
   /**
    * Compares input coordinates to coordinates from the search tile.
    *
@@ -589,90 +633,6 @@ class ReadState {
    * @return TILEDB_RS_OK for success and TILEDB_RS_ERR for error.
    */
   int decompress_tile(
-      int attribute_id,
-      unsigned char* tile_compressed,
-      size_t tile_compressed_size,
-      unsigned char* tile,
-      size_t tile_size);
-
-  /**
-   * Decompresses a tile with GZIP.
-   * 
-   * @param tile_compressed The compressed tile to be decompressed.
-   * @param tile_compressed_size The size of the compressed tile.
-   * @param tile The resulting decompressed tile.
-   * @param tile_size The expected size of the decompressed tile (for checking 
-   *     for errors).
-   * @return TILEDB_RS_OK for success and TILEDB_RS_ERR for error.
-   */
-  int decompress_tile_gzip(
-      unsigned char* tile_compressed,
-      size_t tile_compressed_size,
-      unsigned char* tile,
-      size_t tile_size);
-
-  /**
-   * Decompresses a tile with Zstandard.
-   * 
-   * @param tile_compressed The compressed tile to be decompressed.
-   * @param tile_compressed_size The size of the compressed tile.
-   * @param tile The resulting decompressed tile.
-   * @param tile_size The expected size of the decompressed tile (for checking 
-   *     for errors).
-   * @return TILEDB_RS_OK for success and TILEDB_RS_ERR for error.
-   */
-  int decompress_tile_zstd(
-      unsigned char* tile_compressed,
-      size_t tile_compressed_size,
-      unsigned char* tile,
-      size_t tile_size);
-
-  /**
-   * Decompresses a tile with LZ4.
-   * 
-   * @param tile_compressed The compressed tile to be decompressed.
-   * @param tile_compressed_size The size of the compressed tile.
-   * @param tile The resulting decompressed tile.
-   * @param tile_size The expected size of the decompressed tile (for checking 
-   *     for errors).
-   * @return TILEDB_RS_OK for success and TILEDB_RS_ERR for error.
-   */
-  int decompress_tile_lz4(
-      unsigned char* tile_compressed,
-      size_t tile_compressed_size,
-      unsigned char* tile,
-      size_t tile_size);
-
-  /**
-   * Decompresses a tile with Blosc.
-   * 
-   * @param tile_compressed The compressed tile to be decompressed.
-   * @param tile_compressed_size The size of the compressed tile.
-   * @param tile The resulting decompressed tile.
-   * @param tile_size The expected size of the decompressed tile (for checking 
-   *     for errors).
-   * @param compressor The Blosc compressor to be used.
-   * @return TILEDB_RS_OK for success and TILEDB_RS_ERR for error.
-   */
-  int decompress_tile_blosc(
-      unsigned char* tile_compressed,
-      size_t tile_compressed_size,
-      unsigned char* tile,
-      size_t tile_size,
-      const char* compressor);
-
-  /**
-   * Decompresses a tile with RLE.
-   * 
-   * @param attribute_id The id of the attribute the tile belongs to.
-   * @param tile_compressed The compressed tile to be decompressed.
-   * @param tile_compressed_size The size of the compressed tile.
-   * @param tile The resulting decompressed tile.
-   * @param tile_size The expected size of the decompressed tile (for checking 
-   *     for errors).
-   * @return TILEDB_RS_OK for success and TILEDB_RS_ERR for error.
-   */
-  int decompress_tile_rle(
       int attribute_id,
       unsigned char* tile_compressed,
       size_t tile_compressed_size,

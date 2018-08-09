@@ -39,6 +39,7 @@
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 
 /* ****************************** */
 /*             MACROS             */
@@ -94,9 +95,10 @@ Array::~Array() {
     delete array_clone_;
     if(array_schema_ != NULL)
       delete array_schema_;
-    if(subarray_ != NULL)
-      free(subarray_);
   }
+  if(subarray_ != NULL)
+    free(subarray_);
+  subarray_ = NULL;
 }
 
 
@@ -269,7 +271,7 @@ bool Array::overflow(int attribute_id) const {
     return array_read_state_->overflow(attribute_id);
 }
 
-int Array::read(void** buffers, size_t* buffer_sizes) {
+int Array::read(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
   // Sanity checks
   if(!read_mode()) {
     std::string errmsg = "Cannot read from array; Invalid mode";
@@ -295,7 +297,11 @@ int Array::read(void** buffers, size_t* buffer_sizes) {
 
   // Handle sorted modes
   if(mode_ == TILEDB_ARRAY_READ_SORTED_COL ||
-     mode_ == TILEDB_ARRAY_READ_SORTED_ROW) { 
+     mode_ == TILEDB_ARRAY_READ_SORTED_ROW) {
+      if(skip_counts) {
+        tiledb_ar_errmsg = "skip counts only handled for TILDB_ARRAY_READ mode, unsupported for TILDB_ARRAY_READ_SORTED* modes";
+        return TILEDB_AR_ERR;
+      }
       if(array_sorted_read_state_->read(buffers, buffer_sizes) == 
          TILEDB_ASRS_OK) {
         return TILEDB_AR_OK;
@@ -304,12 +310,46 @@ int Array::read(void** buffers, size_t* buffer_sizes) {
         return TILEDB_AR_ERR;
       }
   } else { // mode_ == TILDB_ARRAY_READ 
-    return read_default(buffers, buffer_sizes);
+    return read_default(buffers, buffer_sizes, skip_counts);
   }
 }
 
-int Array::read_default(void** buffers, size_t* buffer_sizes) {
-  if(array_read_state_->read(buffers, buffer_sizes) != TILEDB_ARS_OK) {
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+int Array::filter(void** buffers, size_t* buffer_sizes) {
+  // Sanity checks
+  if(!filter_mode()) {
+    std::string errmsg = "Cannot read from array; Invalid mode";
+    PRINT_ERROR(errmsg);
+    tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
+    return TILEDB_AR_ERR;
+  }
+
+  // Check if there are no fragments 
+  int buffer_i = 0;
+  int attribute_id_num = attribute_ids_.size();
+  if(fragments_.size() == 0) {             
+    for(int i=0; i<attribute_id_num; ++i) {
+      // Update all sizes to 0
+      buffer_sizes[buffer_i] = 0; 
+      if(!array_schema_->var_size(attribute_ids_[i])) 
+        ++buffer_i;
+      else 
+        buffer_i += 2;
+    }
+    return TILEDB_AR_OK;
+  }
+
+  int rc = read_default(buffers, buffer_sizes);
+  if (rc == TILEDB_AR_ERR) {
+    return rc;
+  }
+
+  return expression_->evaluate(buffers, buffer_sizes);
+}
+#endif
+
+int Array::read_default(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
+  if(array_read_state_->read(buffers, buffer_sizes, skip_counts) != TILEDB_ARS_OK) {
     tiledb_ar_errmsg = tiledb_ars_errmsg;
     return TILEDB_AR_ERR;
   }
@@ -330,6 +370,9 @@ bool Array::write_mode() const {
   return array_write_mode(mode_);
 }
 
+bool Array::filter_mode() const {
+  return array_filter_mode(mode_);
+}
 
 
 /* ****************************** */
@@ -363,7 +406,7 @@ int Array::consolidate(
   // Consolidate on a per-attribute basis
   for(int i=0; i<array_schema_->attribute_num()+1; ++i) {
     if(consolidate(new_fragment, i) != TILEDB_AR_OK) {
-      delete_dir(new_fragment->fragment_name());
+      delete_dir(config_->get_filesystem(), new_fragment->fragment_name());
       delete new_fragment;
       return TILEDB_AR_ERR;
     }
@@ -377,7 +420,7 @@ int Array::consolidate(
   // Success
   return TILEDB_AR_OK;
 }
-
+    
 int Array::consolidate(
     Fragment* new_fragment,
     int attribute_id) {
@@ -395,6 +438,10 @@ int Array::consolidate(
   // Count the number of variable attributes
   int var_attribute_num = array_schema_->var_attribute_num();
 
+  // Cache the buffer indices associated with the attribute
+  int buffer_index = -1;
+  int buffer_var_index = -1;
+
   // Populate the buffers
   int buffer_num = attribute_num + 1 + var_attribute_num;
   buffers = (void**) malloc(buffer_num * sizeof(void*));
@@ -403,11 +450,11 @@ int Array::consolidate(
   for(int i=0; i<attribute_num+1; ++i) {
     if(i == attribute_id) {
       buffers[buffer_i] = malloc(TILEDB_CONSOLIDATION_BUFFER_SIZE);
-      buffer_sizes[buffer_i] = TILEDB_CONSOLIDATION_BUFFER_SIZE;
+      buffer_index = buffer_i;
       ++buffer_i;
       if(array_schema_->var_size(i)) {
         buffers[buffer_i] = malloc(TILEDB_CONSOLIDATION_BUFFER_SIZE);
-        buffer_sizes[buffer_i] = TILEDB_CONSOLIDATION_BUFFER_SIZE;
+        buffer_var_index = buffer_i;
         ++buffer_i;
       }
     } else {
@@ -426,6 +473,12 @@ int Array::consolidate(
   int rc_write = TILEDB_FG_OK; 
   int rc_read = TILEDB_FG_OK; 
   do {
+    // Set or reset buffer sizes as they are modified by the reads
+    buffer_sizes[buffer_index] = TILEDB_CONSOLIDATION_BUFFER_SIZE;
+    if (buffer_var_index != -1) {
+      buffer_sizes[buffer_var_index] = TILEDB_CONSOLIDATION_BUFFER_SIZE;
+    }
+    
     // Read
     rc_read = read(buffers, buffer_sizes);
     if(rc_read != TILEDB_FG_OK)
@@ -535,6 +588,7 @@ int Array::finalize() {
 
 int Array::init(
     const ArraySchema* array_schema,
+    const std::string array_path_used,
     const std::vector<std::string>& fragment_names,
     const std::vector<BookKeeping*>& book_keeping,
     int mode,
@@ -545,6 +599,9 @@ int Array::init(
     Array* array_clone) {
   // Set mode
   mode_ = mode;
+
+  //Set path used to access array - might be different from the one in the schema
+  array_path_used_ = array_path_used;
 
   // Set array clone
   array_clone_ = array_clone;
@@ -606,7 +663,7 @@ int Array::init(
     if(sparse                   && 
        array_clone == NULL      && 
        !coords_found            && 
-       !is_metadata(array_schema->array_name()))
+       !is_metadata(config_->get_filesystem(), get_array_path_used()))
       attributes_vec.push_back(TILEDB_COORDS);
   }
 
@@ -732,9 +789,10 @@ int Array::reset_attributes(
 
   // Set attribute ids
   if(array_schema_->get_attribute_ids(attributes_vec, attribute_ids_) 
-         != TILEDB_AS_OK)
+         != TILEDB_AS_OK) {
     tiledb_ar_errmsg = tiledb_as_errmsg;
     return TILEDB_AR_ERR;
+  }
 
   // Reset subarray so that the read/write states are flushed
   if(reset_subarray(subarray_) != TILEDB_AR_OK) 
@@ -768,7 +826,7 @@ int Array::reset_subarray(const void* subarray) {
   if(subarray == NULL) 
     memcpy(subarray_, array_schema_->domain(), subarray_size);
   else 
-    memcpy(subarray_, subarray, subarray_size);
+    memmove(subarray_, subarray, subarray_size); //subarray_ and subarray might be the same memory area - see line 780
 
   // Re-set or re-initialize fragments
   if(write_mode()) {  // WRITE MODE 
@@ -1217,19 +1275,31 @@ std::string Array::new_fragment_name() const {
   memcpy(&tid, &self, std::min(sizeof(self), sizeof(tid)));
   char fragment_name[TILEDB_NAME_MAX_LEN];
 
+#ifdef USE_MAC_ADDRESS_IN_FRAGMENT_NAMES
   // Get MAC address
   std::string mac = get_mac_addr();
   if(mac == "")
     return "";
+#else
+  //Use uuids
+  uuid_t value;
+  uuid_generate(value);
+  char uuid_str[40];
+  uuid_unparse(value, uuid_str);
+  std::string mac = uuid_str;
+#endif
 
-  // Generate fragment name
-  int n = sprintf(
-              fragment_name, 
-              "%s/.__%s%llu_%llu", 
-              array_schema_->array_name().c_str(), 
-              mac.c_str(),
-              tid, 
-              ms);
+  // Generate fragment name. Note that the cloud based filesystems have
+  // fragment names generated "in-place", there will be no rename associated
+  // with those fragments.
+  int n;
+  if (is_hdfs_path(get_array_path_used()) || is_gcs_path(get_array_path_used())) {
+    n = sprintf(fragment_name, "%s/__%s%" PRIu64"_%" PRIu64,
+              get_array_path_used().c_str(), mac.c_str(), tid, ms);  
+  } else {
+      n = sprintf(fragment_name, "%s/.__%s%" PRIu64"_%" PRIu64,
+          get_array_path_used().c_str(), mac.c_str(), tid, ms);
+  }
 
   // Handle error
   if(n<0) 
@@ -1261,3 +1331,14 @@ int Array::open_fragments(
   return TILEDB_AR_OK;
 }
 
+void Array::free_array_schema()
+{
+  if(array_schema_)
+    delete array_schema_;
+  array_schema_ = NULL;
+}
+
+const std::string& Array::get_array_path_used() const
+{
+  return array_path_used_;
+}

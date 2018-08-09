@@ -123,6 +123,7 @@ int SparseArrayTestFixture::create_sparse_array_2D(
            cell_order,
            NULL,
            compression,
+	   NULL,
            dense,
            dimensions,
            2,

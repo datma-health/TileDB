@@ -27,20 +27,20 @@
 
 project(TileDB)
 cmake_minimum_required(VERSION 2.8)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
-# Set the cmake Module path
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
-# Set shared library suffix
-if(APPLE)
-  set(SHARED_LIB_SUFFIX ".dylib")
-else()
-  set(SHARED_LIB_SUFFIX ".so")
-endif()
+set(ENABLE_LZ4 False CACHE BOOL "Enable lz4 compression")
+set(ENABLE_BLOSC False CACHE BOOL "Enable lz4 compression")
+set(ENABLE_ZSTD False CACHE BOOL "Enable lz4 compression")
+set(ENABLE_MUPARSERX_EXPRESSIONS False CACHE BOOL "Enable MuparserX expression parsing")
+set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
+set(ENABLE_MASTER_CATALOG True CACHE BOOL "Enable master catalog")
+set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 
 # Only for Mac OS X warnings
 if(APPLE)
-  set(CMAKE_MACOSX_RPATH 1)
+  set(CMAKE_MACOSX_RPATH True CACHE BOOL "Set rpath on OSX")
+  set(CMAKE_FIND_FRAMEWORK NEVER CACHE STRING "Never try to find frameworks on Mac OS X")
 endif()
 
 # Default user definitions
@@ -51,10 +51,12 @@ else()
   set(USE_OPENMP True CACHE BOOL "Enables OpenMP")
 endif()
 set(TILEDB_VERBOSE False CACHE BOOL "Prints TileDB errors with verbosity")
+set(TILEDB_TRACE False CACHE BOOL "Trace TileDB C API")
 set(MAC_ADDRESS_INTERFACE "" 
     CACHE STRING "The interface carrying the MAC address of the machine."
 )
 set(USE_PARALLEL_SORT False CACHE BOOL "Enables parallel sorting.")
+set(USE_HDFS True CACHE BOOL "Enables HDFS support")
 set(GTEST_FILTER "*" CACHE STRING "Filters for the Google unit tests.")
 set(COMPRESSION_LEVEL_GZIP "" CACHE STRING "Compression level for GZIP.")
 set(COMPRESSION_LEVEL_ZSTD "" CACHE STRING "Compression level for Zstandard.")
@@ -63,19 +65,36 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+if(ENABLE_MASTER_CATALOG)
+    add_definitions(-DENABLE_MASTER_CATALOG)
+endif()
+
 # Find required library dependencies
 find_package(ZLIB REQUIRED)
 include_directories(${ZLIB_INCLUDE_DIR})
-set(TILEDB_LIB_DEPENDENCIES ${ZLIB_LIBRARIES})
-find_package(LZ4 REQUIRED)
-include_directories(${LZ4_INCLUDE_DIR})
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
-find_package(BLOSC REQUIRED)
-include_directories(${BLOSC_INCLUDE_DIR})
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${BLOSC_LIBRARIES})
-find_package(ZSTD REQUIRED)
-include_directories(${ZSTD_INCLUDE_DIR})
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZSTD_LIBRARIES})
+
+find_package(libuuid REQUIRED)
+include_directories(${LIBUUID_INCLUDE_DIR})
+
+set(TILEDB_LIB_DEPENDENCIES ${ZLIB_LIBRARIES} ${LIBUUID_LIBRARY})
+if(ENABLE_LZ4)
+    find_package(LZ4 REQUIRED)
+    include_directories(${LZ4_INCLUDE_DIR})
+    set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
+    add_definitions(-DENABLE_LZ4)
+endif()
+if(ENABLE_BLOSC)
+    find_package(BLOSC REQUIRED)
+    include_directories(${BLOSC_INCLUDE_DIR})
+    set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${BLOSC_LIBRARIES})
+    add_definitions(-DENABLE_BLOSC)
+endif()
+if(ENABLE_ZSTD)
+    find_package(ZSTD REQUIRED)
+    include_directories(${ZSTD_INCLUDE_DIR})
+    set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZSTD_LIBRARIES})
+    add_definitions(-DENABLE_ZSTD)
+endif()
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
@@ -92,12 +111,29 @@ if(USE_OPENMP AND NOT APPLE)
   find_package(OpenMP REQUIRED)
 endif()
 
-# Add pthread library to dependencies
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} pthread)
+# Add HDFS support
+if(USE_HDFS)
+  find_package(HDFS REQUIRED)
+  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${JAVA_JVM_LIBRARY})
+endif()
 
+#Add pthreads as a dependency
+set(CMAKE_THREAD_PREFER_PTHREAD True)
+find_package(Threads REQUIRED)
+if(DEFINED CMAKE_THREAD_LIBS_INIT AND (CMAKE_USE_PTHREADS_INIT OR CMAKE_HP_PTHREADS_INIT))
+  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_THREAD_LIBS_INIT})
+endif()
 
 # Set C++ 2011 flag
 include(SetCXX2011Flag)
+
+if(ENABLE_MUPARSERX_EXPRESSIONS)
+    # Build MuParserX source code added as a dependency
+    include(MuParserX)
+    add_definitions(-DENABLE_MUPARSERX_EXPRESSIONS)
+endif()
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
 # Set compiler flags
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3 -Wall -fvisibility=hidden")
@@ -106,9 +142,7 @@ set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
 if(NOT APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")
 endif()
-if(USE_MPI)
-  set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
-endif()
+
 if(USE_OPENMP AND NOT APPLE)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
@@ -124,6 +158,14 @@ endif()
 if(TILEDB_VERBOSE)
   add_definitions(-DTILEDB_VERBOSE)
   message(STATUS "The TileDB library is compiled with verbosity.")
+endif()
+if(TILEDB_TRACE)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+     add_definitions(-DTILEDB_TRACE)
+     message(STATUS "The TileDB library is compiled with trace.")
+  else()
+     message(STATUS "TileDB in release mode cannot have trace. CMAKE_BUILD_TYPE=" ${CMAKE_BUILD_TYPE})
+  endif()
 endif()
 if(MAC_ADDRESS_INTERFACE)
   add_definitions(-DTILEDB_MAC_ADDRESS_INTERFACE=${MAC_ADDRESS_INTERFACE})
@@ -157,9 +199,11 @@ add_subdirectory(core)
 # Build examples
 add_subdirectory(examples)
 
-# Build unit tests
-if(GTEST_FOUND)
-  add_subdirectory(test)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    # Build unit tests
+    if(GTEST_FOUND)
+        add_subdirectory(test)
+    endif()
 endif()
 
 # Doxygen documentation

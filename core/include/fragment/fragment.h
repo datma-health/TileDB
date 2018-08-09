@@ -227,9 +227,6 @@ class Fragment {
    */
   int write(const void** buffers, const size_t* buffer_sizes);
 
-
-
-   
  private:
   /* ********************************* */
   /*        PRIVATE ATTRIBUTES         */

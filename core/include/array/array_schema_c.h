@@ -38,6 +38,10 @@
 /** Specifies the array schema. */
 typedef struct ArraySchemaC {
   /** 
+   * The array workspace directory.
+   */
+  char* array_workspace_;
+  /** 
    * The array name. It is a directory, whose parent must be a TileDB workspace,
    * or group.
    */
@@ -81,6 +85,8 @@ typedef struct ArraySchemaC {
    *    - TILEDB_RLE 
    */
   int* compression_;
+  /** The level of compression for each attribute */
+  int* compression_level_;
   /** 
    * Specifies if the array is dense (1) or sparse (0). If the array is dense, 
    * then the user must specify tile extents (see below).

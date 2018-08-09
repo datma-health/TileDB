@@ -83,9 +83,6 @@ extern "C" {
 /** Stores potential error messages. */
 extern char tiledb_errmsg[TILEDB_ERRMSG_MAX_LEN];
 
-
-
-
 /* ********************************* */
 /*              CONFIG               */
 /* ********************************* */
@@ -121,6 +118,10 @@ typedef struct TileDB_Config {
    *      TileDB will use MPI-IO write. 
    */
   int write_method_;
+  /*
+   * Disables file locking even if the underlying storage system supports it
+   */
+  bool disable_file_locking_;
 } TileDB_Config; 
 
 
@@ -204,6 +205,10 @@ typedef struct TileDB_Array TileDB_Array;
 
 /** The array schema. */
 typedef struct TileDB_ArraySchema {
+  /**
+   * The TileDB workspace. It is a directory.
+   */
+  char* array_workspace_;
   /** 
    * The array name. It is a directory, whose parent must be a TileDB workspace,
    * or group.
@@ -251,6 +256,8 @@ typedef struct TileDB_ArraySchema {
    * attributes.
    */
   int* compression_;
+  /** Specifies the compression level */
+  int* compression_level_;
   /** 
    * Specifies if the array is dense (1) or sparse (0). If the array is dense, 
    * then the user must specify tile extents (see below).
@@ -308,6 +315,7 @@ typedef struct TileDB_ArraySchema {
  * @param cell_val_num The number of values per attribute per cell.
  * @param compression The compression type for each attribute (plus an extra one
  *     in the end for the coordinates).
+ * @param compression_level The compression level associated with the compression type per attribute
  * @param dense Specifies if the array is dense (1) or sparse (0).
  * @param dimensions The dimension names.
  * @param dim_num The number of dimensions.
@@ -329,6 +337,7 @@ TILEDB_EXPORT int tiledb_array_set_schema(
     int cell_order,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     int dense,
     const char** dimensions,
     int dim_num,
@@ -546,6 +555,58 @@ TILEDB_EXPORT int tiledb_array_read(
     size_t* buffer_sizes);
 
 /**
+ * Identical to tiledb_array_read, but skips N cells for each attribute
+ * before reading data into the buffer. An example where this is useful is
+ * as follows - user queries fields/attributes [ F0, F1, F2 ], but is only
+ * interested in cells where F0 > C. So, a good query would read blocks of F0
+ * data, determine which cells are needed and would only fetch data from F1
+ * and F2 for the required cells. This can be achieved by skipping over the
+ * discarded cells
+ * @params - identical to tiledb_array_read()
+ * @param skip_counts The number of cells to skip over for each buffer/attribute.
+ * @return TILEDB_OK for success and TILEDB_ERR for error.
+ */
+TILEDB_EXPORT int tiledb_array_skip_and_read(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes,
+    size_t* skip_counts);
+
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+/**
+ * Performs a filter operation on an array.
+ * The array must be initialized in one of the following read mode:
+ *    - TILEDB_ARRAY_FILTER: \n
+ *      In this mode, the cell values are read into the read buffer
+ *      as provided and values are filtered out based on the expression
+ *      provided during array initialization
+ * 
+ * @param tiledb_array The TileDB array.
+ * @param buffers An array of buffers, one for each attribute. These must be
+ *     provided in the same order as the attributes specified in
+ *     tiledb_array_init() or tiledb_array_reset_attributes(). The case of
+ *     variable-sized attributes is special. Instead of providing a single
+ *     buffer for such an attribute, **two** must be provided: the second
+ *     will hold the variable-sized cell values, whereas the first holds the
+ *     start offsets of each cell in the second buffer.
+ * @param buffer_sizes The sizes (in bytes) allocated by the user for the input
+ *     buffers (there is a one-to-one correspondence). The function will attempt
+ *     to write as many results as can fit in the buffers, and potentially
+ *     alter the buffer size to indicate the size of the *useful* data written
+ *     in the buffer. If a buffer cannot hold all results, the function will
+ *     still succeed, writing as much data as it can and turning on an overflow
+ *     flag which can be checked with function tiledb_array_overflow(). The
+ *     next invocation will resume from the point the previous one stopped,
+ *     without inflicting a considerable performance penalty due to overflow.
+ * @return TILEDB_OK for success and TILEDB_ERR for error.
+ */
+TILEDB_EXPORT int tiledb_array_filter(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes);
+#endif
+
+/**
  * Checks if a read operation for a particular attribute resulted in a
  * buffer overflow.
  * 
@@ -662,7 +723,24 @@ TILEDB_EXPORT int tiledb_array_iterator_init(
     void** buffers,
     size_t* buffer_sizes);
 
-/** 
+/**
+ * Resets the subarray used upon initialization of the iterator. This is useful
+ * when the array is used for reading, and the user wishes to change the
+ * query subarray without having to finalize and re-initialize the array.
+ *
+ * @param tiledb_array_it The TileDB iterator.
+ * @param subarray The new subarray. It should be a sequence of [low, high]
+ *     pairs (one pair per dimension), whose type should be the same as that of
+ *     the coordinates. If it is NULL, then the subarray is set to the entire
+ *     array domain. For the case of writes, this is meaningful only for
+ *     dense arrays, and specifically dense writes.
+ * @return TILEDB_OK on success, and TILEDB_ERR on error.
+ */
+TILEDB_EXPORT int tiledb_array_iterator_reset_subarray(
+    TileDB_ArrayIterator* tiledb_array_it,
+    const void* subarray);
+
+/**
  * Retrieves the current cell value for a particular attribute.
  *
  * @param tiledb_array_it The TileDB array iterator.
@@ -764,6 +842,7 @@ typedef struct TileDB_MetadataSchema {
    * attributes.
    */
   int* compression_;
+  int* compression_level_;
   /** 
    * The attribute types.
    * The attribute type can be one of the following: 
@@ -802,6 +881,7 @@ TILEDB_EXPORT int tiledb_metadata_set_schema(
     int64_t capacity,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     const int* types);
 
 /**
@@ -1289,7 +1369,6 @@ TILEDB_EXPORT int tiledb_array_aio_read(
 TILEDB_EXPORT int tiledb_array_aio_write( 
     const TileDB_Array* tiledb_array,
     TileDB_AIO_Request* tiledb_aio_request);
-
 
 #undef TILEDB_EXPORT
 #ifdef __cplusplus

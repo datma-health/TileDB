@@ -32,12 +32,21 @@
 
 #include "aio_request.h"
 #include "tiledb.h"
+#include "tiledb_utils.h"
 #include "array_schema_c.h"
 #include "storage_manager.h"
 #include "storage_manager_config.h"
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+#include "expression.h"
+#endif
+#include "utils.h"
+#include "trace.h"
+
 #include <cassert>
 #include <cstring>
 #include <iostream>
+
+#include <dirent.h>
 
 /* ****************************** */
 /*             MACROS             */
@@ -72,6 +81,19 @@ typedef struct TileDB_CTX {
 int tiledb_ctx_init(
     TileDB_CTX** tiledb_ctx, 
     const TileDB_Config* tiledb_config) {
+  if (tiledb_config && tiledb_config->home_) {
+    TRACE_FN_ARG("Home=" << tiledb_config->home_);
+    std::string home = std::string(tiledb_config->home_, strlen(tiledb_config->home_));
+    if (TileDBUtils::is_cloud_path(home)) {
+      if (!is_hdfs_path(home) && !is_gcs_path(home)) {
+	std::string errmsg = "No TileDB support for URL=" + home;
+	PRINT_ERROR(errmsg);
+	strcpy(tiledb_errmsg, errmsg.c_str());
+	return TILEDB_ERR;
+      }
+    }
+  }
+
   // Initialize error message to empty
   strcpy(tiledb_errmsg, "");
 
@@ -89,13 +111,17 @@ int tiledb_ctx_init(
   // Initialize a Config object
   StorageManagerConfig* config = new StorageManagerConfig();
   if(tiledb_config != NULL)
-    config->init(
+    if (config->init(
         tiledb_config->home_, 
 #ifdef HAVE_MPI
         tiledb_config->mpi_comm_, 
 #endif
         tiledb_config->read_method_, 
-        tiledb_config->write_method_);
+        tiledb_config->write_method_,
+        tiledb_config->disable_file_locking_) == TILEDB_SMC_ERR) {
+      strcpy(tiledb_errmsg, tiledb_smc_errmsg.c_str());
+      return TILEDB_ERR;
+    }
 
   // Create storage manager
   (*tiledb_ctx)->storage_manager_ = new StorageManager();
@@ -109,6 +135,7 @@ int tiledb_ctx_init(
 }
 
 int tiledb_ctx_finalize(TileDB_CTX* tiledb_ctx) {
+
   // Trivial case
   if(tiledb_ctx == NULL)
     return TILEDB_OK;
@@ -139,7 +166,7 @@ int tiledb_ctx_finalize(TileDB_CTX* tiledb_ctx) {
 /*          SANITY CHECKS         */
 /* ****************************** */
 
-bool sanity_check(const TileDB_CTX* tiledb_ctx) {
+inline bool sanity_check(const TileDB_CTX* tiledb_ctx) {
   if(tiledb_ctx == NULL || tiledb_ctx->storage_manager_ == NULL) {
     std::string errmsg = "Invalid TileDB context";
     PRINT_ERROR(errmsg);
@@ -150,7 +177,7 @@ bool sanity_check(const TileDB_CTX* tiledb_ctx) {
   }
 }
 
-bool sanity_check(const TileDB_Array* tiledb_array) {
+inline bool sanity_check(const TileDB_Array* tiledb_array) {
   if(tiledb_array == NULL) {
     std::string errmsg = "Invalid TileDB array";
     PRINT_ERROR(errmsg);
@@ -161,7 +188,7 @@ bool sanity_check(const TileDB_Array* tiledb_array) {
   }
 }
 
-bool sanity_check(const TileDB_ArrayIterator* tiledb_array_it) {
+inline bool sanity_check(const TileDB_ArrayIterator* tiledb_array_it) {
   if(tiledb_array_it == NULL) {
     std::string errmsg = "Invalid TileDB array iterator";
     PRINT_ERROR(errmsg);
@@ -172,7 +199,7 @@ bool sanity_check(const TileDB_ArrayIterator* tiledb_array_it) {
   }
 }
 
-bool sanity_check(const TileDB_Metadata* tiledb_metadata) {
+inline bool sanity_check(const TileDB_Metadata* tiledb_metadata) {
   if(tiledb_metadata == NULL) {
     std::string errmsg = "Invalid TileDB metadata";
     PRINT_ERROR(errmsg);
@@ -183,7 +210,7 @@ bool sanity_check(const TileDB_Metadata* tiledb_metadata) {
   }
 }
 
-bool sanity_check(const TileDB_MetadataIterator* tiledb_metadata_it) {
+inline bool sanity_check(const TileDB_MetadataIterator* tiledb_metadata_it) {
   if(tiledb_metadata_it == NULL) {
     std::string errmsg = "Invalid TileDB metadata iterator";
     PRINT_ERROR(errmsg);
@@ -271,6 +298,12 @@ typedef struct TileDB_Array {
   const TileDB_CTX* tiledb_ctx_;
 } TileDB_Array;
 
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+typedef struct TileDB_Expression {
+  Expression* expression_;
+} TileDB_Expression;
+#endif
+
 int tiledb_array_set_schema(
     TileDB_ArraySchema* tiledb_array_schema,
     const char* array_name,
@@ -280,6 +313,7 @@ int tiledb_array_set_schema(
     int cell_order,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     int dense,
     const char** dimensions, 
     int dim_num,
@@ -296,6 +330,9 @@ int tiledb_array_set_schema(
     strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
     return TILEDB_ERR;
   }
+
+  //Nullify workspace
+  tiledb_array_schema->array_workspace_ = NULL;
 
   // Set array name
   size_t array_name_len = strlen(array_name); 
@@ -387,6 +424,16 @@ int tiledb_array_set_schema(
       tiledb_array_schema->compression_[i] = compression[i];
   }
 
+  // Set compression levels
+  if (compression_level == NULL) {
+    tiledb_array_schema->compression_level_ = NULL;
+  } else {
+    tiledb_array_schema->compression_level_ = 
+      (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i)
+      tiledb_array_schema->compression_level_[i] = compression_level[i];
+  }
+
   // Success
   return TILEDB_OK;
 }
@@ -407,6 +454,7 @@ int tiledb_array_create(
   array_schema_c.cell_order_ = array_schema->cell_order_;
   array_schema_c.cell_val_num_ = array_schema->cell_val_num_;
   array_schema_c.compression_ = array_schema->compression_;
+  array_schema_c.compression_level_ = array_schema->compression_level_;
   array_schema_c.dense_ = array_schema->dense_;
   array_schema_c.dimensions_ = array_schema->dimensions_;
   array_schema_c.dim_num_ = array_schema->dim_num_;
@@ -456,8 +504,8 @@ int tiledb_array_init(
   int rc = tiledb_ctx->storage_manager_->array_init(
                (*tiledb_array)->array_,
                array,
-               mode, 
-               subarray, 
+               mode,
+               subarray,
                attributes,
                attribute_num);
 
@@ -526,6 +574,7 @@ int tiledb_array_get_schema(
   tiledb_array_schema->cell_order_ = array_schema_c.cell_order_;
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
+  tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -565,6 +614,7 @@ int tiledb_array_load_schema(
   array_schema->array_schema_export(&array_schema_c);
 
   // Copy the array schema C struct to the output
+  tiledb_array_schema->array_workspace_ = array_schema_c.array_workspace_;
   tiledb_array_schema->array_name_ = array_schema_c.array_name_;
   tiledb_array_schema->attributes_ = array_schema_c.attributes_; 
   tiledb_array_schema->attribute_num_ = array_schema_c.attribute_num_;
@@ -572,6 +622,7 @@ int tiledb_array_load_schema(
   tiledb_array_schema->cell_order_ = array_schema_c.cell_order_;
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
+  tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -592,6 +643,10 @@ int tiledb_array_free_schema(
   // Trivial case
   if(tiledb_array_schema == NULL)
     return TILEDB_OK;
+
+  // Free workspace
+  if(tiledb_array_schema->array_workspace_ != NULL)
+    free(tiledb_array_schema->array_workspace_);
 
   // Free array name
   if(tiledb_array_schema->array_name_ != NULL)
@@ -629,9 +684,15 @@ int tiledb_array_free_schema(
   if(tiledb_array_schema->compression_ != NULL)
     free(tiledb_array_schema->compression_);
 
+  // Free compression level
+  if(tiledb_array_schema->compression_level_ != NULL) 
+    free(tiledb_array_schema->compression_level_);
+
   // Free cell val num
   if(tiledb_array_schema->cell_val_num_ != NULL)
     free(tiledb_array_schema->cell_val_num_);
+
+  memset(tiledb_array_schema, 0, sizeof(TileDB_ArraySchema));
 
   // Success
   return TILEDB_OK;
@@ -659,12 +720,20 @@ int tiledb_array_read(
     const TileDB_Array* tiledb_array,
     void** buffers,
     size_t* buffer_sizes) {
+  return tiledb_array_skip_and_read(tiledb_array, buffers, buffer_sizes, 0); //no skip counts
+}
+
+int tiledb_array_skip_and_read(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes,
+    size_t* skip_counts) {
   // Sanity check
   if(!sanity_check(tiledb_array))
     return TILEDB_ERR;
 
   // Read
-  if(tiledb_array->array_->read(buffers, buffer_sizes) != TILEDB_AR_OK) {
+  if(tiledb_array->array_->read(buffers, buffer_sizes, skip_counts) != TILEDB_AR_OK) {
     strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
     return TILEDB_ERR;
   }
@@ -672,6 +741,26 @@ int tiledb_array_read(
   // Success
   return TILEDB_OK;
 }
+
+#ifdef ENABLE_MUPARSERX_EXPRESSIONS
+int tiledb_array_filter(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes) {
+  // Sanity check
+  if(!sanity_check(tiledb_array))
+    return TILEDB_ERR;
+
+  // Read
+  if(tiledb_array->array_->filter(buffers, buffer_sizes) != TILEDB_AR_OK) {
+    strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
+    return TILEDB_ERR;
+  }
+
+  // Success
+  return TILEDB_OK;
+}
+#endif
 
 int tiledb_array_overflow(
     const TileDB_Array* tiledb_array,
@@ -817,6 +906,22 @@ int tiledb_array_iterator_init(
   return TILEDB_OK;
 }
 
+int tiledb_array_iterator_reset_subarray(
+    TileDB_ArrayIterator* tiledb_array_it,
+    const void* subarray) {
+
+  int rc = tiledb_array_it->array_it_->reset_subarray(subarray);
+
+  // Error
+  if(rc != TILEDB_AIT_OK) {
+    strcpy(tiledb_errmsg, tiledb_ait_errmsg.c_str());
+    return TILEDB_ERR;
+  }
+
+  // Success
+  return TILEDB_OK;
+}
+
 int tiledb_array_iterator_get_value(
     TileDB_ArrayIterator* tiledb_array_it,
     int attribute_id,
@@ -908,6 +1013,7 @@ int tiledb_metadata_set_schema(
     int64_t capacity,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     const int* types) {
   // Sanity check
   if(tiledb_metadata_schema == NULL) {
@@ -973,6 +1079,16 @@ int tiledb_metadata_set_schema(
       tiledb_metadata_schema->compression_[i] = compression[i];
   }
 
+ // Set compression level
+  if(compression_level == NULL) {
+    tiledb_metadata_schema->compression_level_ = NULL; 
+  } else {
+    tiledb_metadata_schema->compression_level_ = 
+        (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i)
+      tiledb_metadata_schema->compression_level_[i] = compression_level[i];
+  }
+
   // Return
   return TILEDB_OK;
 }
@@ -992,6 +1108,7 @@ int tiledb_metadata_create(
   metadata_schema_c.capacity_ = metadata_schema->capacity_;
   metadata_schema_c.cell_val_num_ = metadata_schema->cell_val_num_;
   metadata_schema_c.compression_ = metadata_schema->compression_;
+  metadata_schema_c.compression_level_ = metadata_schema->compression_level_;
   metadata_schema_c.types_ = metadata_schema->types_;
 
   // Create the metadata
@@ -1077,6 +1194,7 @@ int tiledb_metadata_get_schema(
   tiledb_metadata_schema->capacity_ = metadata_schema_c.capacity_;
   tiledb_metadata_schema->cell_val_num_ = metadata_schema_c.cell_val_num_;
   tiledb_metadata_schema->compression_ = metadata_schema_c.compression_;
+  tiledb_metadata_schema->compression_level_ = metadata_schema_c.compression_level_;
   tiledb_metadata_schema->types_ = metadata_schema_c.types_;
 
   // Success
@@ -1117,6 +1235,7 @@ int tiledb_metadata_load_schema(
   tiledb_metadata_schema->capacity_ = metadata_schema_c.capacity_;
   tiledb_metadata_schema->cell_val_num_ = metadata_schema_c.cell_val_num_;
   tiledb_metadata_schema->compression_ = metadata_schema_c.compression_;
+  tiledb_metadata_schema->compression_level_ = metadata_schema_c.compression_level_;
   tiledb_metadata_schema->types_ = metadata_schema_c.types_;
 
   // Clean up
@@ -1151,6 +1270,10 @@ int tiledb_metadata_free_schema(
   // Free compression
   if(tiledb_metadata_schema->compression_ != NULL)
     free(tiledb_metadata_schema->compression_);
+
+  // Free compression level
+  if(tiledb_metadata_schema->compression_level_ != NULL)
+    free(tiledb_metadata_schema->compression_level_);
 
   // Free cell val num
   if(tiledb_metadata_schema->cell_val_num_ != NULL)
@@ -1623,3 +1746,132 @@ int tiledb_array_aio_write(
   // Success
   return TILEDB_OK;
 }
+
+/* *********************************************************************** */
+/*        Expose some filesystem functionality implemented in TileDB       */
+/* *********************************************************************** */
+
+inline bool sanity_check_fs(const TileDB_CTX* tiledb_ctx) {
+  if (tiledb_ctx && tiledb_ctx->storage_manager_
+      && tiledb_ctx->storage_manager_->get_config()
+      &&  tiledb_ctx->storage_manager_->get_config()->get_filesystem()) {
+    return true;
+  }
+
+  std::string errmsg = "TileDB configured incorrectly";
+  PRINT_ERROR(errmsg);
+  strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
+
+  return false;
+}
+
+inline bool invoke_bool_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, bool (*fn)(StorageFS*, const std::string&)) {
+  if (sanity_check_fs(tiledb_ctx)) {
+    tiledb_fs_errmsg.clear(); 
+    bool rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
+    if (!tiledb_fs_errmsg.empty())
+      strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
+    return rc;
+  }
+  return false;
+}
+
+bool is_workspace(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  return invoke_bool_fs_fn(tiledb_ctx, dir, &is_workspace);
+}
+
+bool is_group(const TileDB_CTX* tiledb_ctx, const std::string& dir)  {
+  return invoke_bool_fs_fn(tiledb_ctx, dir, &is_group);
+}
+
+bool is_array(const TileDB_CTX* tiledb_ctx, const std::string& dir)  {
+  return invoke_bool_fs_fn(tiledb_ctx, dir, &is_array);
+}
+
+bool is_fragment(TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  return invoke_bool_fs_fn(tiledb_ctx, dir, &is_fragment);
+}
+
+bool is_metadata(const TileDB_CTX* tiledb_ctx, const std::string& dir)  {
+  return invoke_bool_fs_fn(tiledb_ctx, dir, &is_metadata);
+}
+
+bool is_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  return invoke_bool_fs_fn(tiledb_ctx, dir, &is_dir);
+}
+
+bool is_file(const TileDB_CTX* tiledb_ctx, const std::string& file) {
+  return invoke_bool_fs_fn(tiledb_ctx, file, &is_file);
+}
+
+std::string parent_dir(const std::string& path) {
+  return parent_dir(NULL, path);
+}
+
+size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
+  if (sanity_check_fs(tiledb_ctx)) {;
+    return file_size(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), file);
+  }
+  return 0;
+}
+
+inline bool invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {
+  if (sanity_check_fs(tiledb_ctx)) {
+    tiledb_fs_errmsg.clear(); 
+    bool rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
+    if (!tiledb_fs_errmsg.empty())
+      strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
+    return rc;
+  }
+  return false;
+}
+
+int create_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  return invoke_int_fs_fn(tiledb_ctx, dir, &create_dir);
+}
+
+int delete_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  return invoke_int_fs_fn(tiledb_ctx, dir, &delete_dir);
+}
+
+std::vector<std::string> get_dirs(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  if (sanity_check_fs(tiledb_ctx)) {;
+    return get_dirs(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
+  }
+  return std::vector<std::string>{};
+}
+ 
+std::vector<std::string> get_files(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  if (sanity_check_fs(tiledb_ctx)) {;
+    return get_files(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
+  }
+  return std::vector<std::string>{};
+
+}
+
+int read_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, off_t offset, void *buffer, size_t length) {
+  if (sanity_check_fs(tiledb_ctx)) {
+    if (!read_from_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, offset, buffer, length))
+       strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str());
+    return TILEDB_OK;
+  }
+  return TILEDB_ERR;
+}
+
+int write_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, const void *buffer, size_t buffer_size) {
+  if (sanity_check(tiledb_ctx)) {
+    if (!write_to_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, buffer, buffer_size))
+      strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
+    return TILEDB_OK;
+  }
+  return TILEDB_ERR;
+}
+
+int delete_file(const TileDB_CTX* tiledb_ctx, const std::string& filename) {
+  return invoke_int_fs_fn(tiledb_ctx, filename, &delete_file);
+}
+
+int close_file(const TileDB_CTX* tiledb_ctx, const std::string& filename) {
+  return invoke_int_fs_fn(tiledb_ctx, filename, &close_file);
+}
+

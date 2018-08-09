@@ -35,6 +35,7 @@
 
 #include <float.h>
 #include <limits.h>
+#include <zlib.h>
 
 /** Version. */
 #define TILEDB_VERSION                          "0.5.2"
@@ -54,6 +55,7 @@
 #define TILEDB_ARRAY_WRITE_SORTED_COL               4
 #define TILEDB_ARRAY_WRITE_SORTED_ROW               5
 #define TILEDB_ARRAY_WRITE_UNSORTED                 6
+#define TILEDB_ARRAY_FILTER                         7
 /**@}*/
 
 /**@{*/
@@ -94,7 +96,7 @@
 /**@}*/
 
 /** The maximum length for the names of TileDB objects. */
-#define TILEDB_NAME_MAX_LEN                        256
+#define TILEDB_NAME_MAX_LEN                        4096
 
 /** Size of the buffer used during consolidation. */
 #define TILEDB_CONSOLIDATION_BUFFER_SIZE      10000000 // ~10 MB
