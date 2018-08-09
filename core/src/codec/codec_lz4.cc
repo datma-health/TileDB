@@ -32,10 +32,10 @@
 
 #ifdef ENABLE_LZ4
 
-#include "codec_zstd.h"
+#include "codec_lz4.h"
 #include <lz4.h>
 
-int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, size_t& tile_compressed_size) {
+int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
     // Allocate space to store the compressed tile
   size_t compress_bound = LZ4_compressBound(tile_size);
   if(tile_compressed_ == NULL) {
@@ -50,17 +50,24 @@ int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, size_t& tile_
   }
 
   // Compress tile
-  int lz4_size = 
+  int lz4_size =
+#if LZ4_VERSION_NUMBER >= 10705
+      LZ4_compress_default(
+          (const char*) tile,
+          (char*) tile_compressed_, 
+          tile_size,
+          compress_bound);
+#else
       LZ4_compress(
-          (const char*) tile, 
+          (const char*) tile,
           (char*) tile_compressed_, 
           tile_size);
+#endif
   if(lz4_size < 0) {
-    std::string errmsg = "Failed compressing with LZ4";
-    PRINT_ERROR(errmsg);
-    tiledb_cd_errmsg = TILEDB_CD_ERRMSG + errmsg;
-    return TILEDB_CD_ERR;
+    return print_errmsg("Failed compressing with LZ4");
   }
+
+  *tile_compressed = tile_compressed_;
   tile_compressed_size = lz4_size;
 
   // Success
@@ -73,11 +80,8 @@ int CodecLZ4::decompress_tile(unsigned char* tile_compressed,  size_t tile_compr
          (const char*) tile_compressed, 
          (char*) tile,
          tile_compressed_size,
-         tile_size) < 0) { 
-    std::string errmsg = "LZ4 decompression failed";
-    PRINT_ERROR(errmsg);
-    tiledb_cd_errmsg = TILEDB_CD_ERRMSG + errmsg;
-    return TILEDB_CD_ERR;
+         tile_size) < 0) {
+    return print_errmsg("LZ4 decompression failed");
   }
 
   // Success

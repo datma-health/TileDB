@@ -1,6 +1,6 @@
 # TileDB
 
-[![Travis](https://img.shields.io/travis/Intel-HLS/TileDB.svg?maxAge=2592000)]
+[![Travis](https://img.shields.io/travis/OmicsDataAutomation/TileDB.svg?maxAge=2592000)]
 (https://travis-ci.org/OmicsDataAutomation/TileDB)
 
 The installation guide for TileDB can be found at this [Github

@@ -101,7 +101,7 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
 #endif
 #ifdef ENABLE_LZ4
     case TILEDB_LZ4:
-      return new CodecLZ4(compresssion_level);
+      return new CodecLZ4(compression_level);
 #endif
 #ifdef ENABLE_BLOSC
     case TILEDB_BLOSC:
@@ -110,7 +110,7 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
     case TILEDB_BLOSC_SNAPPY:
     case TILEDB_BLOSC_ZLIB:
     case TILEDB_BLOSC_ZSTD: {
-      size_t typesize = array_schema->type_size(attribute_id);
+      size_t type_size = array_schema->type_size(attribute_id);
       return new CodecBlosc(compression_level, get_blosc_compressor(compression_type), type_size);
     }
 #endif
