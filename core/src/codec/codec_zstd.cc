@@ -35,7 +35,7 @@
 #include "codec_zstd.h"
 #include <zstd.h>
 
-int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, size_t& tile_compressed_size) {
+int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
    // Allocate space to store the compressed tile
   size_t compress_bound = ZSTD_compressBound(tile_size);
   if(tile_compressed_ == NULL) {
@@ -49,24 +49,19 @@ int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, size_t&
     tile_compressed_ = realloc(tile_compressed_, compress_bound);
   }
 
-  // For easy reference
-  unsigned char* tile_compressed = 
-      static_cast<unsigned char*>(tile_compressed_);
-
   // Compress tile
   size_t zstd_size = 
       ZSTD_compress(
-          tile_compressed, 
+           static_cast<unsigned char*>(tile_compressed_), 
           tile_compressed_allocated_size_,
           tile, 
           tile_size,
-          TILEDB_COMPRESSION_LEVEL_ZSTD);
+          compression_level_);
   if(ZSTD_isError(zstd_size)) {
-    std::string errmsg = "Failed compressing with Zstandard";
-    PRINT_ERROR(errmsg);
-    tiledb_cd_errmsg = TILEDB_CD_ERRMSG + errmsg;
-    return TILEDB_CD_ERR;
+    return print_errmsg("Failed compressing with Zstandard");
   }
+
+  *tile_compressed = tile_compressed_;
   tile_compressed_size = zstd_size;
 
   // Success
@@ -81,11 +76,8 @@ int CodecZStandard::decompress_tile(unsigned char* tile_compressed,  size_t tile
           tile_size,
           tile_compressed, 
           tile_compressed_size);
-  if(ZSTD_isError(zstd_size)) { 
-    std::string errmsg = "Zstandard decompression failed";
-    PRINT_ERROR(errmsg);
-    tiledb_cd_errmsg = TILEDB_CD_ERRMSG + errmsg;
-    return TILEDB_CD_ERR;
+  if(ZSTD_isError(zstd_size)) {
+    return print_errmsg("Zstandard decompression failed");
   }
 
   // Success

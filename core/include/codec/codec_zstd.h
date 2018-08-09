@@ -1,4 +1,4 @@
-@@/**
+/**
  * @file codec_zstd.h
  *
  * @section LICENSE
@@ -40,7 +40,7 @@ class CodecZStandard : public Codec {
  public:
   using Codec::Codec;
   
-  int compress_tile(unsigned char* tile, size_t tile_size, size_t& tile_compressed_size);
+  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);
 
   int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
   

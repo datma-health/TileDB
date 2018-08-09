@@ -62,7 +62,11 @@ int main(int argc, char *argv[]) {
   const int compression[] = 
   { 
         TILEDB_GZIP,              // a1 
+#ifdef ENABLE_BLOSC
+	TILEDB_BLOSC,             // a2
+#else
         TILEDB_GZIP,              // a2
+#endif
         TILEDB_NO_COMPRESSION,    // a3
         TILEDB_NO_COMPRESSION     // coordinates
   };

@@ -35,7 +35,7 @@
 #include "codec_blosc.h"
 #include <blosc.h>
 
-int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, size_t& tile_compressed_size) {
+int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
   // Allocate space to store the compressed tile
   size_t compress_bound = tile_size + BLOSC_MAX_OVERHEAD;
   if(tile_compressed_ == NULL) {
@@ -53,36 +53,28 @@ int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, size_t& til
   blosc_init();
 
   // Set the appropriate compressor
-  if(blosc_set_compressor(compressor_) < 0) {
-    std::string errmsg = "Failed to set Blosc compressor";
-    PRINT_ERROR(errmsg);
-    tiledb_cd_errmsg = TILEDB_CD_ERRMSG + errmsg;
+  if(blosc_set_compressor(compressor_.c_str()) < 0) {
     blosc_destroy();
-    return TILEDB_CD_ERR;
+    return print_errmsg("Failed to set Blosc compressor");
   } 
-
-  // For easy reference
-  unsigned char* tile_compressed = 
-      static_cast<unsigned char*>(tile_compressed_);
 
   // Compress tile
   int blosc_size = 
       blosc_compress(
           compression_level_, //clevel
           1, //doshuffle
-          type_size_; //typesize
+          type_size_, //typesize
           tile_size, //nbytes
           tile, //src
-          tile_compressed, //dest 
+          static_cast<unsigned char*>(tile_compressed_), //dest 
           tile_compressed_allocated_size_ //dest_size
                      );
   if(blosc_size < 0) {
-    std::string errmsg = "Failed compressing with Blosc";
-    PRINT_ERROR(errmsg);
-    tiledb_cd_errmsg = TILEDB_CD_ERRMSG + errmsg;
     blosc_destroy();
-    return TILEDB_CD_ERR;
+    return print_errmsg("Failed compressing with Blosc");
   }
+
+  *tile_compressed = tile_compressed_;
   tile_compressed_size = blosc_size;
 
   // Clean up
@@ -101,11 +93,8 @@ int CodecBlosc::decompress_tile(unsigned char* tile_compressed,  size_t tile_com
          (const char*) tile_compressed, 
          (char*) tile,
          tile_size) < 0) { 
-    std::string errmsg = "Blosc decompression failed";
-    PRINT_ERROR(errmsg);
-    tiledb_cd_errmsg = TILEDB_CD_ERRMSG + errmsg;
     blosc_destroy();
-    return TILEDB_CD_ERR;
+    return print_errmsg("Blosc decompression failed");
   }
 
   // Clean up
