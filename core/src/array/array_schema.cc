@@ -186,10 +186,12 @@ void ArraySchema::array_schema_export(ArraySchemaC* array_schema_c) const {
   array_schema_c->capacity_ = capacity_;
 
   // Set compression
-  array_schema_c->compression_ = 
-      (int*) malloc((attribute_num_+1)*sizeof(int));
-  for(int i=0; i<attribute_num_+1; ++i)
+  array_schema_c->compression_ = (int*) malloc((attribute_num_+1)*sizeof(int));
+  array_schema_c->compression_level_ = (int*) malloc((attribute_num_+1)*sizeof(int));
+  for(int i=0; i<attribute_num_+1; ++i) {
     array_schema_c->compression_[i] = compression_[i];
+    array_schema_c->compression_level_[i] = compression_level_[i];
+  }
 }
 
 void ArraySchema::array_schema_export(
@@ -229,10 +231,13 @@ void ArraySchema::array_schema_export(
   metadata_schema_c->capacity_ = capacity_;
 
   // Set compression
-  metadata_schema_c->compression_ = 
-      (int*) malloc(attribute_num_*sizeof(int));
-  for(int i=0; i<attribute_num_; ++i)
+  metadata_schema_c->compression_ = (int*) malloc(attribute_num_*sizeof(int));
+  metadata_schema_c->compression_level_ = (int*) malloc(attribute_num_*sizeof(int));
+  for(int i=0; i<attribute_num_; ++i) {
     metadata_schema_c->compression_[i] = compression_[i];
+    metadata_schema_c->compression_[i] = compression_level_[i];
+  }
+
 }
 
 const std::string& ArraySchema::attribute(int attribute_id) const {
@@ -306,6 +311,17 @@ int ArraySchema::compression(int attribute_id) const {
     attribute_id = attribute_num_;
 
   return compression_[attribute_id];
+}
+
+int ArraySchema::compression_level(int attribute_id) const {
+  assert(attribute_id >= 0 && attribute_id <= attribute_num_+1);
+
+  // Special case for the "search tile", which is essentially the
+  // coordinates tile
+  if(attribute_id == attribute_num_+1)
+    attribute_id = attribute_num_;
+
+  return compression_level_[attribute_id];
 }
 
 size_t ArraySchema::coords_size() const {
@@ -564,6 +580,9 @@ void ArraySchema::print() const {
     std::cout << "\tCoordinates: RLE\n";
   else if(compression_[attribute_num_] == TILEDB_NO_COMPRESSION)
     std::cout << "\tCoordinates: NONE\n";
+
+  // Compression level
+  std::cout << "Compression level: " << compression_level_[attribute_num_] << "\n";
 }
 
 // ===== FORMAT =====
@@ -712,8 +731,17 @@ int ArraySchema::serialize(
     memcpy(buffer + offset, &compression, sizeof(char));
     offset += sizeof(char);
   }
-  assert(offset == buffer_size);
 
+  char compression_level;
+  for(int i=0; i<=attribute_num_; ++i) {
+    compression_level = compression_level_[i];
+    assert(offset + sizeof(char) <= buffer_size);
+    memcpy(buffer + offset, &compression_level, sizeof(char));
+    offset += sizeof(char);
+  }
+  
+  assert(offset == buffer_size);
+  
   // Success
   return TILEDB_AS_OK;
 }
@@ -1083,6 +1111,20 @@ int ArraySchema::deserialize(
     offset += sizeof(char);
     compression_.push_back(static_cast<int>(compression));
   }
+  // Load compression_level_
+  char compression_level;
+  for(int i=0; i<=attribute_num_; ++i) {
+    if (offset == buffer_size) {
+      // Backward compatibility when compression levels are not found in the schema
+      // TODO Assert schema version less than supported
+      compression_level_.push_back(compression_[i]);
+    } else {
+      assert(offset + sizeof(char) <= buffer_size);
+      memcpy(&compression_level, buffer + offset, sizeof(char));
+      offset += sizeof(char);
+      compression_level_.push_back(static_cast<int>(compression_level));
+    }
+  }
   assert(offset == buffer_size); 
   // Add extra coordinate attribute
   attributes_.push_back(TILEDB_COORDS);
@@ -1134,6 +1176,9 @@ int ArraySchema::init(const ArraySchemaC* array_schema_c) {
     return TILEDB_AS_ERR;
   // Set compression
   if(set_compression(array_schema_c->compression_) != TILEDB_AS_OK)
+    return TILEDB_AS_ERR;
+  // Set compression_level
+  if(set_compression_level(array_schema_c->compression_level_) != TILEDB_AS_OK)
     return TILEDB_AS_ERR;
   // Set dense
   set_dense(array_schema_c->dense_);
@@ -1252,14 +1297,16 @@ int ArraySchema::init(const MetadataSchemaC* metadata_schema_c) {
   array_schema_c.cell_val_num_ = cell_val_num;
 
   // Set compression
-  int* compression = 
-      (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
+  int* compression = (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
+  int* compression_level = (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
   if(metadata_schema_c->compression_ == NULL) {
     for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i)
       compression[i] = TILEDB_NO_COMPRESSION;
   } else {
-    for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i)
+    for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i) {
       compression[i] = metadata_schema_c->compression_[i];
+      compression_level[i] = metadata_schema_c->compression_level_[i];
+    }
   }
   compression[metadata_schema_c->attribute_num_+1] = TILEDB_NO_COMPRESSION;
   array_schema_c.compression_ = compression;
@@ -1277,6 +1324,7 @@ int ArraySchema::init(const MetadataSchemaC* metadata_schema_c) {
   free(domain);
   free(types);
   free(compression);
+  free(compression_level);
   free(cell_val_num);
 
   // Success
@@ -1420,6 +1468,34 @@ int ArraySchema::set_compression(int* compression) {
         return TILEDB_AS_ERR;
       }
       compression_.push_back(compression[i]);
+    }
+  }
+
+  // Success
+  return TILEDB_AS_OK;
+}
+
+static int get_codec_default_level(int compression) {
+  switch(compression) {
+  case TILEDB_GZIP:
+    return TILEDB_COMPRESSION_LEVEL_GZIP;
+  case TILEDB_ZSTD:
+    return TILEDB_COMPRESSION_LEVEL_ZSTD;
+  case TILEDB_BLOSC:
+    return TILEDB_COMPRESSION_LEVEL_BLOSC;
+  default:
+    return 0;
+  }
+}
+
+int ArraySchema::set_compression_level(int* compression_level) {
+  for(int i=0; i<attribute_num_+1; ++i) {
+    if (compression_level == NULL) {
+      // Set defaults based on codec
+      assert(compression_.size() >= (unsigned)i && "set_compression should be called before set_compression_level");
+      compression_level_.push_back(get_codec_default_level(compression_[i]));
+    } else {
+      compression_level_.push_back(compression_level[i]);
     }
   }
 
@@ -2250,6 +2326,8 @@ size_t ArraySchema::compute_bin_size() const {
   // Size for cell_val_num_
   bin_size += attribute_num_ * sizeof(int);
   // Size for compression_
+  bin_size += (attribute_num_+1) * sizeof(char);
+  // Size for compression_level_
   bin_size += (attribute_num_+1) * sizeof(char);
 
   return bin_size;

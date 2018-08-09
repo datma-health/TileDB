@@ -34,11 +34,10 @@
 #define __WRITE_STATE_H__
 
 #include "book_keeping.h"
+#include "codec.h"
 #include "fragment.h"
 #include <vector>
 #include <iostream>
-
-
 
 
 /* ********************************* */
@@ -157,12 +156,6 @@ class WriteState {
       const void** buffers, 
       const size_t* buffer_sizes);
 
-  /**
-   * Set zlib compression level
-   * @param level zlib compression level
-   */
-  void set_zlib_compression_level(const int level);
-
  private:
   /* ********************************* */
   /*         PRIVATE ATTRIBUTES        */
@@ -183,6 +176,9 @@ class WriteState {
   /** Internal buffers associated with the attribute files */
   std::vector<Buffer *> file_buffer_;
   std::vector<Buffer *> file_var_buffer_;
+
+  /** Compression per attribute */
+  std::vector<Codec *> codec_;
 
   /**  
    * The current offsets of the variable-sized attributes in their 
@@ -207,14 +203,8 @@ class WriteState {
    * tiles. 
    */
   std::vector<size_t> tiles_var_sizes_;
-  /** Internal buffer used in the case of compression. */
-  void* tile_compressed_;
-  /** Allocated size for internal buffer used in the case of compression. */
-  size_t tile_compressed_allocated_size_;
   /** Offsets to the internal tile buffers used in compression. */
   std::vector<size_t> tile_offsets_;
-  /** zlib compression level. */
-  int zlib_compression_level_;
 
   /** The Storage Filesystem */
   StorageFS *fs_;
@@ -232,6 +222,7 @@ class WriteState {
    * @param attribute_id The id of the attribute the tile belongs to.
    * @param tile The tile buffer to be compressed.
    * @param tile_size The size of the tile buffer in bytes.
+   * @param tile_compressed The compressed tile
    * @param tile_compressed_size The size of the resulting compressed tile.
    * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
    */
@@ -239,82 +230,7 @@ class WriteState {
       int attribute_id,
       unsigned char* tile,
       size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with GZIP the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_gzip(
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with Zstandard the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_zstd(
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with LZ4 the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_lz4(
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with Blosc the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param attribute_id The id of the attribute the tile belongs to.
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @param compressor  The Blosc compressor.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_blosc(
-      int attribute_id,
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size,
-      const char* compressor);
-
-  /**
-   * Compresses with RLE the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param attribute_id The id of the attribute the tile belongs to.
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_rle(
-      int attribute_id,
-      unsigned char* tile,
-      size_t tile_size,
+      void** tile_compressed,
       size_t& tile_compressed_size);
 
   /**

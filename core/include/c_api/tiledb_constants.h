@@ -35,6 +35,7 @@
 
 #include <float.h>
 #include <limits.h>
+#include <zlib.h>
 
 /** Version. */
 #define TILEDB_VERSION                          "0.5.2"

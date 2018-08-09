@@ -77,6 +77,7 @@ typedef struct MetadataSchemaC {
    *    - TILEDB_RLE 
    */
   int* compression_;
+  int* compression_level_;
   /** 
    * The attribute types.
    * The attribute type can be one of the following: 

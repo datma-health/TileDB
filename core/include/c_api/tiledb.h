@@ -256,6 +256,8 @@ typedef struct TileDB_ArraySchema {
    * attributes.
    */
   int* compression_;
+  /** Specifies the compression level */
+  int* compression_level_;
   /** 
    * Specifies if the array is dense (1) or sparse (0). If the array is dense, 
    * then the user must specify tile extents (see below).
@@ -313,6 +315,7 @@ typedef struct TileDB_ArraySchema {
  * @param cell_val_num The number of values per attribute per cell.
  * @param compression The compression type for each attribute (plus an extra one
  *     in the end for the coordinates).
+ * @param compression_level The compression level associated with the compression type per attribute
  * @param dense Specifies if the array is dense (1) or sparse (0).
  * @param dimensions The dimension names.
  * @param dim_num The number of dimensions.
@@ -334,6 +337,7 @@ TILEDB_EXPORT int tiledb_array_set_schema(
     int cell_order,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     int dense,
     const char** dimensions,
     int dim_num,
@@ -838,6 +842,7 @@ typedef struct TileDB_MetadataSchema {
    * attributes.
    */
   int* compression_;
+  int* compression_level_;
   /** 
    * The attribute types.
    * The attribute type can be one of the following: 
@@ -876,6 +881,7 @@ TILEDB_EXPORT int tiledb_metadata_set_schema(
     int64_t capacity,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     const int* types);
 
 /**
@@ -1363,15 +1369,6 @@ TILEDB_EXPORT int tiledb_array_aio_read(
 TILEDB_EXPORT int tiledb_array_aio_write( 
     const TileDB_Array* tiledb_array,
     TileDB_AIO_Request* tiledb_aio_request);
-
-/**
- * Set zlib compression level
- * @param tiledb_array An initialized TileDB array
- * @param compression level
- */
-TILEDB_EXPORT void tiledb_array_set_zlib_compression_level(
-    TileDB_Array* tiledb_array,
-    const int level);
 
 #undef TILEDB_EXPORT
 #ifdef __cplusplus
