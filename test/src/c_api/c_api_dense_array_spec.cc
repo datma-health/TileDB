@@ -165,6 +165,7 @@ int DenseArrayTestFixture::create_dense_array_2D(
            cell_order,
            NULL,
            compression,
+	   NULL,
            dense,
            dimensions,
            2,

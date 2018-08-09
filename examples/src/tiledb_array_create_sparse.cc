@@ -32,10 +32,17 @@
 
 #include "tiledb.h"
 
-int main() {
-  // Initialize context with the default configuration parameters
+int main(int argc, char *argv[]) {
+  // Initialize context with home dir if specified in command line, else
+  // initialize with the default configuration parameters
   TileDB_CTX* tiledb_ctx;
-  tiledb_ctx_init(&tiledb_ctx, NULL);
+  if (argc > 1) {
+    TileDB_Config tiledb_config;
+    tiledb_config.home_ = argv[1];
+    tiledb_ctx_init(&tiledb_ctx, &tiledb_config);
+  } else {
+    tiledb_ctx_init(&tiledb_ctx, NULL);
+  }
 
   // Prepare parameters for array schema
   const char* array_name = "my_workspace/sparse_arrays/my_array_B";
@@ -55,7 +62,11 @@ int main() {
   const int compression[] = 
   { 
         TILEDB_GZIP,              // a1 
+#ifdef ENABLE_BLOSC
+	TILEDB_BLOSC,             // a2
+#else
         TILEDB_GZIP,              // a2
+#endif
         TILEDB_NO_COMPRESSION,    // a3
         TILEDB_NO_COMPRESSION     // coordinates
   };
@@ -83,6 +94,7 @@ int main() {
       TILEDB_ROW_MAJOR,           // Cell order 
       cell_val_num,               // Number of cell values per attribute  
       compression,                // Compression
+      NULL,                       // Compression level - Use defaults
       0,                          // Sparse array
       dimensions,                 // Dimensions
       2,                          // Number of dimensions

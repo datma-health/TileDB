@@ -34,11 +34,10 @@
 #define __WRITE_STATE_H__
 
 #include "book_keeping.h"
+#include "codec.h"
 #include "fragment.h"
 #include <vector>
 #include <iostream>
-
-
 
 
 /* ********************************* */
@@ -157,18 +156,30 @@ class WriteState {
       const void** buffers, 
       const size_t* buffer_sizes);
 
-
-
-
  private:
   /* ********************************* */
   /*         PRIVATE ATTRIBUTES        */
   /* ********************************* */
 
+  /** The array the fragment belongs to. */
+  const Array* array_;
+  /** The array schema. */
+  const ArraySchema* array_schema_;
+      /** The number of array attributes. */
+  int attribute_num_;
+  
   /** The book-keeping structure of the fragment the write state belongs to. */
   BookKeeping* book_keeping_;
   /** The first and last coordinates of the tile currently being populated. */
   void* bounding_coords_;
+
+  /** Internal buffers associated with the attribute files */
+  std::vector<Buffer *> file_buffer_;
+  std::vector<Buffer *> file_var_buffer_;
+
+  /** Compression per attribute */
+  std::vector<Codec *> codec_;
+
   /**  
    * The current offsets of the variable-sized attributes in their 
    * respective files, or alternatively, the current file size of each
@@ -192,13 +203,11 @@ class WriteState {
    * tiles. 
    */
   std::vector<size_t> tiles_var_sizes_;
-  /** Internal buffer used in the case of compression. */
-  void* tile_compressed_;
-  /** Allocated size for internal buffer used in the case of compression. */
-  size_t tile_compressed_allocated_size_;
   /** Offsets to the internal tile buffers used in compression. */
   std::vector<size_t> tile_offsets_;
 
+  /** The Storage Filesystem */
+  StorageFS *fs_;
 
 
 
@@ -213,6 +222,7 @@ class WriteState {
    * @param attribute_id The id of the attribute the tile belongs to.
    * @param tile The tile buffer to be compressed.
    * @param tile_size The size of the tile buffer in bytes.
+   * @param tile_compressed The compressed tile
    * @param tile_compressed_size The size of the resulting compressed tile.
    * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
    */
@@ -220,82 +230,7 @@ class WriteState {
       int attribute_id,
       unsigned char* tile,
       size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with GZIP the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_gzip(
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with Zstandard the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_zstd(
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with LZ4 the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_lz4(
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size);
-
-  /**
-   * Compresses with Blosc the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param attribute_id The id of the attribute the tile belongs to.
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @param compressor  The Blosc compressor.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_blosc(
-      int attribute_id,
-      unsigned char* tile,
-      size_t tile_size,
-      size_t& tile_compressed_size,
-      const char* compressor);
-
-  /**
-   * Compresses with RLE the input tile buffer, and stores it inside 
-   * tile_compressed_ member attribute. 
-   * 
-   * @param attribute_id The id of the attribute the tile belongs to.
-   * @param tile The tile buffer to be compressed.
-   * @param tile_size The size of the tile buffer in bytes.
-   * @param tile_compressed_size The size of the resulting compressed tile.
-   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
-   */
-  int compress_tile_rle(
-      int attribute_id,
-      unsigned char* tile,
-      size_t tile_size,
+      void** tile_compressed,
       size_t& tile_compressed_size);
 
   /**
@@ -403,6 +338,31 @@ class WriteState {
    */
   template<class T>
   void update_book_keeping(const void* buffer, size_t buffer_size);
+
+  std::string construct_filename(int attribute_id, bool is_var);
+
+  /**
+   * Set up memory buffers to cache bytes to be ultimately written out
+   * to the files
+   */
+  void init_file_buffers();
+
+  /**
+   * Persist the bytes in the memory buffers to the associated files
+   *
+   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
+   */ 
+  int write_file_buffers();
+
+  /**
+   * Writes a segment from the file associated with the attribute.
+   * @param attribute_id The id of the attribute.
+   * @param is_var Boolean to specify whether the attribute is var.
+   * @param segment Pointer to segment to be written out.
+   * @param length Length of the segment to be written out.
+   * @return TILEDB_WS_OK on success and TILEDB_WS_ERR on error.
+   */
+  int write_segment(int attribute_id, bool is_var, const void *segment, size_t length);
 
   /**
    * Takes the appropriate actions for writing the very last tile of this write

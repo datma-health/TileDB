@@ -31,6 +31,7 @@
  */
 
 #include "c_api_array_schema_spec.h"
+#include "storage_posixfs.h"
 #include "utils.h"
 #include <unistd.h>
 
@@ -114,6 +115,8 @@ int ArraySchemaTestFixture::create_dense_array() {
       NULL,
       // Compression
       compression,
+      // Compression level, NULL will get defaults
+      NULL,
       // Dense array
       1,
       // Dimensions
@@ -176,11 +179,12 @@ TEST_F(ArraySchemaTestFixture, test_array_schema) {
       static_cast<int64_t*>(array_schema_.tile_extents_);
 
   // Get real array path
-  std::string array_name_real = real_dir(array_name_);
+  std::string array_name_real = real_dir(new PosixFS(), array_name_);
   ASSERT_STRNE(array_name_real.c_str(), "");
 
   // Tests
-  ASSERT_STREQ(array_schema_disk.array_name_, array_name_real.c_str());
+  //absolute path isn't relevant anymore
+  //ASSERT_STREQ(array_schema_disk.array_name_, array_name_real.c_str());
   ASSERT_EQ(array_schema_disk.attribute_num_, array_schema_.attribute_num_);
   ASSERT_EQ(array_schema_disk.dim_num_, array_schema_.dim_num_);
   ASSERT_EQ(array_schema_disk.capacity_, array_schema_.capacity_);

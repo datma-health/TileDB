@@ -28,6 +28,7 @@
 # Function that builds an executable per example
 function(build_TileDB_example TARGET)
   add_executable(${TARGET} EXCLUDE_FROM_ALL src/${TARGET}.cc)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ldl" )
   target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES})
 endfunction()
 
@@ -43,9 +44,7 @@ set(EXAMPLE_BINS)
 # Iterate over all example sources and call the build function
 foreach(EXAMPLE_SOURCE ${TILEDB_EXAMPLE_SOURCES})
   # Get the binary name
-  STRING(REGEX REPLACE "^${CMAKE_SOURCE_DIR}/examples/src/" "" 
-         EXAMPLE_STRIPPED ${EXAMPLE_SOURCE}
-  )
+  get_filename_component(EXAMPLE_STRIPPED ${EXAMPLE_SOURCE} NAME)
   STRING(REGEX REPLACE ".cc$" "" EXAMPLE_BIN ${EXAMPLE_STRIPPED})
   set(EXAMPLE_BINS ${EXAMPLE_BINS} ${EXAMPLE_BIN})
 

@@ -52,7 +52,11 @@
 #  define PRINT_ERROR(x) do { } while(0) 
 #endif
 
+//First 4 bytes of the array schema
+//To avoid conflicts with array size value in older schema, version tags are really large values
+#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0xFFFFFFFFu
 
+#define TILEDB_ARRAY_SCHEMA_MIN_VERSION_TAG 0xFFFFFFF0u
 
 
 /* ****************************** */
@@ -68,7 +72,7 @@ std::string tiledb_as_errmsg = "";
 /*   CONSTRUCTORS & DESTRUCTORS   */
 /* ****************************** */
 
-ArraySchema::ArraySchema() {
+ArraySchema::ArraySchema(StorageFS *fs) {
   cell_num_per_tile_ = -1;
   coords_for_hilbert_ = NULL;
   domain_ = NULL;
@@ -76,6 +80,8 @@ ArraySchema::ArraySchema() {
   tile_extents_ = NULL;
   tile_domain_ = NULL;
   tile_coords_aux_ = NULL;
+  version_tag_ = TILEDB_ARRAY_SCHEMA_VERSION_TAG;
+  fs_ = fs;
 }
 
 ArraySchema::~ArraySchema() {
@@ -105,11 +111,20 @@ ArraySchema::~ArraySchema() {
 /*            ACCESSORS           */
 /* ****************************** */
 
+const std::string& ArraySchema::array_workspace() const {
+  return array_workspace_;
+}
+
 const std::string& ArraySchema::array_name() const {
   return array_name_;
 }
 
 void ArraySchema::array_schema_export(ArraySchemaC* array_schema_c) const {
+  // Set array workspace
+  size_t array_workspace_len = array_workspace_.size();
+  array_schema_c->array_workspace_ = (char*) malloc(array_workspace_len+1);
+  strcpy(array_schema_c->array_workspace_, array_workspace_.c_str());
+
   // Set array name
   size_t array_name_len = array_name_.size(); 
   array_schema_c->array_name_ = (char*) malloc(array_name_len+1);
@@ -171,14 +186,21 @@ void ArraySchema::array_schema_export(ArraySchemaC* array_schema_c) const {
   array_schema_c->capacity_ = capacity_;
 
   // Set compression
-  array_schema_c->compression_ = 
-      (int*) malloc((attribute_num_+1)*sizeof(int));
-  for(int i=0; i<attribute_num_+1; ++i)
+  array_schema_c->compression_ = (int*) malloc((attribute_num_+1)*sizeof(int));
+  array_schema_c->compression_level_ = (int*) malloc((attribute_num_+1)*sizeof(int));
+  for(int i=0; i<attribute_num_+1; ++i) {
     array_schema_c->compression_[i] = compression_[i];
+    array_schema_c->compression_level_[i] = compression_level_[i];
+  }
 }
 
 void ArraySchema::array_schema_export(
     MetadataSchemaC* metadata_schema_c) const {
+  // Set metadata workspace
+  size_t array_workspace_len = array_workspace_.size();
+  metadata_schema_c->metadata_workspace_ = (char*) malloc(array_workspace_len+1);
+  strcpy(metadata_schema_c->metadata_name_, array_workspace_.c_str());
+
   // Set metadata name
   size_t array_name_len = array_name_.size(); 
   metadata_schema_c->metadata_name_ = (char*) malloc(array_name_len+1);
@@ -209,10 +231,13 @@ void ArraySchema::array_schema_export(
   metadata_schema_c->capacity_ = capacity_;
 
   // Set compression
-  metadata_schema_c->compression_ = 
-      (int*) malloc(attribute_num_*sizeof(int));
-  for(int i=0; i<attribute_num_; ++i)
+  metadata_schema_c->compression_ = (int*) malloc(attribute_num_*sizeof(int));
+  metadata_schema_c->compression_level_ = (int*) malloc(attribute_num_*sizeof(int));
+  for(int i=0; i<attribute_num_; ++i) {
     metadata_schema_c->compression_[i] = compression_[i];
+    metadata_schema_c->compression_[i] = compression_level_[i];
+  }
+
 }
 
 const std::string& ArraySchema::attribute(int attribute_id) const {
@@ -286,6 +311,17 @@ int ArraySchema::compression(int attribute_id) const {
     attribute_id = attribute_num_;
 
   return compression_[attribute_id];
+}
+
+int ArraySchema::compression_level(int attribute_id) const {
+  assert(attribute_id >= 0 && attribute_id <= attribute_num_+1);
+
+  // Special case for the "search tile", which is essentially the
+  // coordinates tile
+  if(attribute_id == attribute_num_+1)
+    attribute_id = attribute_num_;
+
+  return compression_level_[attribute_id];
 }
 
 size_t ArraySchema::coords_size() const {
@@ -362,6 +398,8 @@ bool ArraySchema::is_contained_in_tile_slab_row(const void* range) const {
 }
 
 void ArraySchema::print() const {
+  // Array workspace
+  std::cout << "Array workspace:\n\t" << array_workspace_ << "\n";
   // Array name
   std::cout << "Array name:\n\t" << array_name_ << "\n";
   // Dimension names
@@ -542,9 +580,14 @@ void ArraySchema::print() const {
     std::cout << "\tCoordinates: RLE\n";
   else if(compression_[attribute_num_] == TILEDB_NO_COMPRESSION)
     std::cout << "\tCoordinates: NONE\n";
+
+  // Compression level
+  std::cout << "Compression level: " << compression_level_[attribute_num_] << "\n";
 }
 
 // ===== FORMAT =====
+// array_workspace_size(int)
+//     array_workspace(string)
 // array_name_size(int) 
 //     array_name(string)
 // dense(bool)
@@ -582,6 +625,18 @@ int ArraySchema::serialize(
   size_t buffer_size = array_schema_bin_size;
   size_t offset = 0;
 
+  //Write version tag
+  memcpy(buffer + offset, &version_tag_, sizeof(version_tag_));
+  offset += sizeof(unsigned);
+
+  // Copy array_workspace_
+  int array_workspace_size = array_workspace_.size();
+  assert(offset + sizeof(int) < buffer_size);
+  memcpy(buffer + offset, &array_workspace_size, sizeof(int));
+  offset += sizeof(int);
+  assert(offset + array_workspace_size < buffer_size);
+  memcpy(buffer + offset, &array_workspace_[0], array_workspace_size);
+  offset += array_workspace_size;
   // Copy array_name_
   int array_name_size = array_name_.size();
   assert(offset + sizeof(int) < buffer_size);
@@ -676,8 +731,17 @@ int ArraySchema::serialize(
     memcpy(buffer + offset, &compression, sizeof(char));
     offset += sizeof(char);
   }
-  assert(offset == buffer_size);
 
+  char compression_level;
+  for(int i=0; i<=attribute_num_; ++i) {
+    compression_level = compression_level_[i];
+    assert(offset + sizeof(char) <= buffer_size);
+    memcpy(buffer + offset, &compression_level, sizeof(char));
+    offset += sizeof(char);
+  }
+  
+  assert(offset == buffer_size);
+  
   // Success
   return TILEDB_AS_OK;
 }
@@ -884,6 +948,8 @@ bool ArraySchema::var_size(int attribute_id) const {
 /* ****************************** */
 
 // ===== FORMAT =====
+// array_workspace_size(int)
+//     array_workspace(string)
 // array_name_size(int) 
 //     array_name(string)
 // dense(bool)
@@ -915,6 +981,28 @@ int ArraySchema::deserialize(
   size_t buffer_size = array_schema_bin_size;
   size_t offset = 0;
 
+  //Check if version tag exists
+  //The latest version of TileDB adds a version tag. The older schema doesn't have any.
+  //By doing a quick check of the version tag, previously loaded arrays can be queried by
+  //the newer version
+  assert(offset + sizeof(unsigned) < buffer_size);
+  memcpy(&version_tag_, buffer + offset, sizeof(unsigned));
+  
+  //The older version of TileDB does NOT have workspace information
+  if(version_tag_exists())
+  {
+    //Move past version tag
+    offset += sizeof(unsigned);
+    // Load array_workspace_
+    int array_workspace_size;
+    assert(offset + sizeof(int) < buffer_size);
+    memcpy(&array_workspace_size, buffer + offset, sizeof(int));
+    offset += sizeof(int);
+    array_workspace_.resize(array_workspace_size);
+    assert(offset + array_workspace_size < buffer_size);
+    memcpy(&array_workspace_[0], buffer + offset, array_workspace_size);
+    offset += array_workspace_size;
+  }
   // Load array_name_ 
   int array_name_size;
   assert(offset + sizeof(int) < buffer_size);
@@ -924,6 +1012,7 @@ int ArraySchema::deserialize(
   assert(offset + array_name_size < buffer_size);
   memcpy(&array_name_[0], buffer + offset, array_name_size);
   offset += array_name_size;
+
   // Load dense_
   assert(offset + sizeof(bool) < buffer_size);
   memcpy(&dense_, buffer + offset, sizeof(bool));
@@ -1022,6 +1111,20 @@ int ArraySchema::deserialize(
     offset += sizeof(char);
     compression_.push_back(static_cast<int>(compression));
   }
+  // Load compression_level_
+  char compression_level;
+  for(int i=0; i<=attribute_num_; ++i) {
+    if (offset == buffer_size) {
+      // Backward compatibility when compression levels are not found in the schema
+      // TODO Assert schema version less than supported
+      compression_level_.push_back(compression_[i]);
+    } else {
+      assert(offset + sizeof(char) <= buffer_size);
+      memcpy(&compression_level, buffer + offset, sizeof(char));
+      offset += sizeof(char);
+      compression_level_.push_back(static_cast<int>(compression_level));
+    }
+  }
   assert(offset == buffer_size); 
   // Add extra coordinate attribute
   attributes_.push_back(TILEDB_COORDS);
@@ -1054,6 +1157,9 @@ int ArraySchema::deserialize(
 }
 
 int ArraySchema::init(const ArraySchemaC* array_schema_c) {
+  // Set array workspace
+  //KG: useless function - more trouble than worth fixing
+  //set_array_workspace(array_schema_c->array_workspace_);
   // Set array name
   set_array_name(array_schema_c->array_name_);
   // Set attributes
@@ -1070,6 +1176,9 @@ int ArraySchema::init(const ArraySchemaC* array_schema_c) {
     return TILEDB_AS_ERR;
   // Set compression
   if(set_compression(array_schema_c->compression_) != TILEDB_AS_OK)
+    return TILEDB_AS_ERR;
+  // Set compression_level
+  if(set_compression_level(array_schema_c->compression_level_) != TILEDB_AS_OK)
     return TILEDB_AS_ERR;
   // Set dense
   set_dense(array_schema_c->dense_);
@@ -1115,6 +1224,7 @@ int ArraySchema::init(const ArraySchemaC* array_schema_c) {
 int ArraySchema::init(const MetadataSchemaC* metadata_schema_c) {
   // Create an array schema C struct and populate it
   ArraySchemaC array_schema_c;
+  array_schema_c.array_workspace_ = metadata_schema_c->metadata_workspace_;
   array_schema_c.array_name_ = metadata_schema_c->metadata_name_;
   array_schema_c.capacity_ = metadata_schema_c->capacity_;
   array_schema_c.cell_order_ = TILEDB_ROW_MAJOR;
@@ -1187,14 +1297,16 @@ int ArraySchema::init(const MetadataSchemaC* metadata_schema_c) {
   array_schema_c.cell_val_num_ = cell_val_num;
 
   // Set compression
-  int* compression = 
-      (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
+  int* compression = (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
+  int* compression_level = (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
   if(metadata_schema_c->compression_ == NULL) {
     for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i)
       compression[i] = TILEDB_NO_COMPRESSION;
   } else {
-    for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i)
+    for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i) {
       compression[i] = metadata_schema_c->compression_[i];
+      compression_level[i] = metadata_schema_c->compression_level_[i];
+    }
   }
   compression[metadata_schema_c->attribute_num_+1] = TILEDB_NO_COMPRESSION;
   array_schema_c.compression_ = compression;
@@ -1212,18 +1324,38 @@ int ArraySchema::init(const MetadataSchemaC* metadata_schema_c) {
   free(domain);
   free(types);
   free(compression);
+  free(compression_level);
   free(cell_val_num);
 
   // Success
   return TILEDB_AS_OK;
 }
 
+void ArraySchema::set_array_workspace(const char* array_workspace) {
+  if(array_workspace)
+  {
+    // Get real array workspace
+    std::string array_workspace_real = real_dir(fs_, array_workspace);
+
+    // Set array workspace
+    array_workspace_ = array_workspace_real;
+  }
+  else
+    array_workspace_ = current_dir(fs_);
+}
+
 void ArraySchema::set_array_name(const char* array_name) {
   // Get real array name
-  std::string array_name_real = real_dir(array_name);
+  // Changed by Kushal - array names are only logical
+  // now and will not contain the entire path so that
+  // the entire array can be copied to a different
+  // location
+  //std::string array_name_real = real_dir(array_name);
 
   // Set array name
-  array_name_ = array_name_real;
+  //array_name_ = array_name_real;
+  if(array_name)
+    array_name_ = array_name;
 }
 
 int ArraySchema::set_attributes(
@@ -1336,6 +1468,34 @@ int ArraySchema::set_compression(int* compression) {
         return TILEDB_AS_ERR;
       }
       compression_.push_back(compression[i]);
+    }
+  }
+
+  // Success
+  return TILEDB_AS_OK;
+}
+
+static int get_codec_default_level(int compression) {
+  switch(compression) {
+  case TILEDB_GZIP:
+    return TILEDB_COMPRESSION_LEVEL_GZIP;
+  case TILEDB_ZSTD:
+    return TILEDB_COMPRESSION_LEVEL_ZSTD;
+  case TILEDB_BLOSC:
+    return TILEDB_COMPRESSION_LEVEL_BLOSC;
+  default:
+    return 0;
+  }
+}
+
+int ArraySchema::set_compression_level(int* compression_level) {
+  for(int i=0; i<attribute_num_+1; ++i) {
+    if (compression_level == NULL) {
+      // Set defaults based on codec
+      assert(compression_.size() >= (unsigned)i && "set_compression should be called before set_compression_level");
+      compression_level_.push_back(get_codec_default_level(compression_[i]));
+    } else {
+      compression_level_.push_back(compression_level[i]);
     }
   }
 
@@ -2136,6 +2296,11 @@ size_t ArraySchema::compute_bin_size() const {
   // Initialization
   size_t bin_size = 0;
 
+  //Size for version tag
+  bin_size += sizeof(unsigned);
+
+  // Size for array_workspace_
+  bin_size += sizeof(int) + array_workspace_.size();
   // Size for array_name_ 
   bin_size += sizeof(int) + array_name_.size();
   // Size for dense_
@@ -2161,6 +2326,8 @@ size_t ArraySchema::compute_bin_size() const {
   // Size for cell_val_num_
   bin_size += attribute_num_ * sizeof(int);
   // Size for compression_
+  bin_size += (attribute_num_+1) * sizeof(char);
+  // Size for compression_level_
   bin_size += (attribute_num_+1) * sizeof(char);
 
   return bin_size;
@@ -2667,6 +2834,10 @@ int64_t ArraySchema::tile_slab_row_cell_num(const T* subarray) const {
 }
 
 
+bool ArraySchema::version_tag_exists() const
+{
+  return (version_tag_ >= TILEDB_ARRAY_SCHEMA_MIN_VERSION_TAG);
+}
 
 
 // Explicit template instantiations

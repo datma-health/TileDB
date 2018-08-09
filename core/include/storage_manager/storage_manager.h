@@ -135,7 +135,11 @@ class StorageManager {
    */
   int init(StorageManagerConfig* config);
 
-
+  /** 
+   * Retrieve the configuration associated with the storage manager.
+   * @return pointer to StorageManagerConfig.
+   */
+  StorageManagerConfig* get_config();
 
 
   /* ********************************* */
@@ -250,7 +254,7 @@ class StorageManager {
    *    - TILEDB_ARRAY_WRITE_UNSORTED 
    *    - TILEDB_ARRAY_READ 
    *    - TILEDB_ARRAY_READ_SORTED_COL 
-   *    - TILEDB_ARRAY_READ_SORTED_ROW 
+   *    - TILEDB_ARRAY_READ_SORTED_ROW
    * @param subarray The subarray in which the array read/write will be
    *     constrained on. If it is NULL, then the subarray is set to the entire
    *     array domain. For the case of writes, this is meaningful only for
@@ -265,7 +269,7 @@ class StorageManager {
   int array_init(
       Array*& array,
       const char* array_dir,
-      int mode, 
+      int mode,
       const void* subarray,
       const char** attributes,
       int attribute_num);
@@ -510,6 +514,14 @@ class StorageManager {
    */
   int ls_c(const char* parent_dir, int& dir_num) const;
 
+  /**
+   * Clears all TileDB objects contained in the directory.
+   *
+   * @param parent_dir The parent directory of the TileDB objects to be deleted.
+   * @return TILEDB_SM_OK for success and TILEDB_SM_ERR for error.
+   */
+  int clear_contained_artifacts(const std::string& parent_dir) const;
+
 
   /**
    * Clears a TileDB directory. The corresponding TileDB object (workspace,
@@ -545,6 +557,8 @@ class StorageManager {
 
   /** The TileDB configuration parameters. */
   StorageManagerConfig* config_;
+  /** The Filesystem associated with this configuration */
+  StorageFS* fs_;
   /** The directory of the master catalog. */
   std::string master_catalog_dir_;
   /** OpneMP mutex for creating/deleting an OpenArray object. */
@@ -562,6 +576,16 @@ class StorageManager {
   /*         PRIVATE METHODS           */
   /* ********************************* */
 
+  /**
+   * Re-initialize tiledb_home_ and master_catalog for filestorage systems based on the input dir
+   * if they are different from what was initialized initially via tiledb_context_init.
+   * The assumption is that once these are set, the rest of the calls for that context uses the
+   * same file system.
+   * @param dir
+   * return TILEDB_SM_OK for success and TILEDB_SM_ERR for error.
+   */
+  int filesystem_reinit(const std::string& dir);
+      
   /**
    * Clears a TileDB array. The array will still exist after the execution of
    * the function, but it will be empty (i.e., as if it was just created).
@@ -607,11 +631,13 @@ class StorageManager {
    *
    * @param array The array name.
    * @param open_array The open array entry to be returned.
+   * @param flag that's set to true if this array is opened for the first time in this object
    * @return TILEDB_SM_OK for success and TILEDB_SM_ERR for error.
    */
   int array_get_open_array_entry(
       const std::string& array,
-      OpenArray*& open_array);
+      OpenArray*& open_array,
+      bool& opened_first_time);
 
   /**
    * Loads the book-keeping structures of all the fragments of an array from the

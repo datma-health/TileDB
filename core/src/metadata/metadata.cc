@@ -148,6 +148,8 @@ int Metadata::consolidate(
 int Metadata::finalize() {
   int rc = array_->finalize();
 
+  array_->free_array_schema(); //~Array() doesn't free schema because clone == NULL inside array_
+
   delete array_;
   array_ = NULL;
 
@@ -224,9 +226,10 @@ int Metadata::init(
   array_ = new Array();
   int rc = array_->init(
               array_schema, 
+              array_schema->array_name(),
               fragment_names,
               book_keeping,
-              array_mode, 
+              array_mode,
               (const char**) array_attributes, 
               array_attribute_num, 
               NULL,

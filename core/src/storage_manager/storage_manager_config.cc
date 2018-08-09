@@ -30,13 +30,28 @@
  * This file implements the StorageManagerConfig class.
  */
 
-
-
 #include "storage_manager_config.h"
 #include "tiledb_constants.h"
+#include "utils.h"
+
+#include <assert.h>
+#include <iostream>
+#include <string.h>
+
+#include <system_error>
+
+/* ****************************** */
+/*             MACROS             */
+/* ****************************** */
+
+#define PRINT_ERROR(x) std::cerr << TILEDB_SMC_ERRMSG << x << ".\n"
 
 
+/* ****************************** */
+/*        GLOBAL VARIABLES        */
+/* ****************************** */
 
+std::string tiledb_smc_errmsg = "";
 
 /* ****************************** */
 /*   CONSTRUCTORS & DESTRUCTORS   */
@@ -44,6 +59,7 @@
 
 StorageManagerConfig::StorageManagerConfig() {
   // Default values
+  fs_ = new PosixFS();
   home_ = "";
   read_method_ = TILEDB_IO_MMAP;
   write_method_ = TILEDB_IO_WRITE;
@@ -53,27 +69,59 @@ StorageManagerConfig::StorageManagerConfig() {
 }
 
 StorageManagerConfig::~StorageManagerConfig() {
+  if (fs_ != NULL) {
+    delete fs_;
+  }
 }
-
-
-
 
 /* ****************************** */
 /*             MUTATORS           */
 /* ****************************** */
 
-void StorageManagerConfig::init(
+int StorageManagerConfig::init(
     const char* home,
 #ifdef HAVE_MPI
     MPI_Comm* mpi_comm,
 #endif
     int read_method,
-    int write_method) {
+    int write_method,
+    const bool disable_file_locking) {
   // Initialize home
-  if(home == NULL)
-    home_ = "";
-  else
-    home_ = home;
+  if (strstr(home, "://")) {
+     if (fs_ != NULL)
+       delete fs_;
+     home_ = std::string(home, strlen(home));
+     if (is_hdfs_path(home) || is_gcs_path(home)) {
+       try {
+#ifdef USE_HDFS
+	 fs_ = new HDFS(home_);
+#else
+	 throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TileDB built with HDFS support disabled.");
+#endif
+       } catch(std::system_error& ex) {
+	 PRINT_ERROR(ex.what());
+	 tiledb_smc_errmsg = "HDFS intialization failed for home=" + home_;
+	 return TILEDB_SMC_ERR;
+       }
+     } else {
+       tiledb_smc_errmsg = "No TileDB support for home=" + home_;
+       PRINT_ERROR(tiledb_smc_errmsg);
+       return TILEDB_SMC_ERR;
+     }
+
+     read_method_ = TILEDB_IO_READ;
+     write_method_ = TILEDB_IO_WRITE;
+     return TILEDB_SMC_OK;
+   }
+
+   if (fs_ == NULL)
+     fs_ = new PosixFS();
+
+   if(home == NULL) {
+     home_ = "";
+   } else {
+     home_ = std::string(home, strlen(home));
+   } 
 
 #ifdef HAVE_MPI
   // Initialize MPI communicator
@@ -92,9 +140,11 @@ void StorageManagerConfig::init(
   if(write_method_ != TILEDB_IO_WRITE &&
      write_method_ != TILEDB_IO_MPI)
     write_method_ = TILEDB_IO_WRITE;  // Use default 
+
+  fs_->set_disable_file_locking(disable_file_locking);
+
+  return TILEDB_SMC_OK;
 }
-
-
 
 
 /* ****************************** */
@@ -117,4 +167,8 @@ int StorageManagerConfig::read_method() const {
 
 int StorageManagerConfig::write_method() const {
   return write_method_;
+}
+
+StorageFS* StorageManagerConfig::get_filesystem() const {
+  return fs_;
 }
