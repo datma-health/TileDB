@@ -67,11 +67,7 @@
 
 char tiledb_errmsg[TILEDB_ERRMSG_MAX_LEN];
 
-/** Stores global flag to determine sync writes or not */
-int g_TileDB_enable_SYNC_write = 0;
 
-/** Stores the global compression level value */
-int g_TileDB_compression_level = 6;
 
 
 /* ****************************** */
@@ -317,6 +313,7 @@ int tiledb_array_set_schema(
     int cell_order,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     int dense,
     const char** dimensions, 
     int dim_num,
@@ -427,6 +424,16 @@ int tiledb_array_set_schema(
       tiledb_array_schema->compression_[i] = compression[i];
   }
 
+  // Set compression levels
+  if (compression_level == NULL) {
+    tiledb_array_schema->compression_level_ = NULL;
+  } else {
+    tiledb_array_schema->compression_level_ = 
+      (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i)
+      tiledb_array_schema->compression_level_[i] = compression_level[i];
+  }
+
   // Success
   return TILEDB_OK;
 }
@@ -447,6 +454,7 @@ int tiledb_array_create(
   array_schema_c.cell_order_ = array_schema->cell_order_;
   array_schema_c.cell_val_num_ = array_schema->cell_val_num_;
   array_schema_c.compression_ = array_schema->compression_;
+  array_schema_c.compression_level_ = array_schema->compression_level_;
   array_schema_c.dense_ = array_schema->dense_;
   array_schema_c.dimensions_ = array_schema->dimensions_;
   array_schema_c.dim_num_ = array_schema->dim_num_;
@@ -566,6 +574,7 @@ int tiledb_array_get_schema(
   tiledb_array_schema->cell_order_ = array_schema_c.cell_order_;
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
+  tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -613,6 +622,7 @@ int tiledb_array_load_schema(
   tiledb_array_schema->cell_order_ = array_schema_c.cell_order_;
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
+  tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -673,6 +683,10 @@ int tiledb_array_free_schema(
   // Free compression
   if(tiledb_array_schema->compression_ != NULL)
     free(tiledb_array_schema->compression_);
+
+  // Free compression level
+  if(tiledb_array_schema->compression_level_ != NULL) 
+    free(tiledb_array_schema->compression_level_);
 
   // Free cell val num
   if(tiledb_array_schema->cell_val_num_ != NULL)
@@ -999,6 +1013,7 @@ int tiledb_metadata_set_schema(
     int64_t capacity,
     const int* cell_val_num,
     const int* compression,
+    const int* compression_level,
     const int* types) {
   // Sanity check
   if(tiledb_metadata_schema == NULL) {
@@ -1064,6 +1079,16 @@ int tiledb_metadata_set_schema(
       tiledb_metadata_schema->compression_[i] = compression[i];
   }
 
+ // Set compression level
+  if(compression_level == NULL) {
+    tiledb_metadata_schema->compression_level_ = NULL; 
+  } else {
+    tiledb_metadata_schema->compression_level_ = 
+        (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i)
+      tiledb_metadata_schema->compression_level_[i] = compression_level[i];
+  }
+
   // Return
   return TILEDB_OK;
 }
@@ -1083,6 +1108,7 @@ int tiledb_metadata_create(
   metadata_schema_c.capacity_ = metadata_schema->capacity_;
   metadata_schema_c.cell_val_num_ = metadata_schema->cell_val_num_;
   metadata_schema_c.compression_ = metadata_schema->compression_;
+  metadata_schema_c.compression_level_ = metadata_schema->compression_level_;
   metadata_schema_c.types_ = metadata_schema->types_;
 
   // Create the metadata
@@ -1168,6 +1194,7 @@ int tiledb_metadata_get_schema(
   tiledb_metadata_schema->capacity_ = metadata_schema_c.capacity_;
   tiledb_metadata_schema->cell_val_num_ = metadata_schema_c.cell_val_num_;
   tiledb_metadata_schema->compression_ = metadata_schema_c.compression_;
+  tiledb_metadata_schema->compression_level_ = metadata_schema_c.compression_level_;
   tiledb_metadata_schema->types_ = metadata_schema_c.types_;
 
   // Success
@@ -1208,6 +1235,7 @@ int tiledb_metadata_load_schema(
   tiledb_metadata_schema->capacity_ = metadata_schema_c.capacity_;
   tiledb_metadata_schema->cell_val_num_ = metadata_schema_c.cell_val_num_;
   tiledb_metadata_schema->compression_ = metadata_schema_c.compression_;
+  tiledb_metadata_schema->compression_level_ = metadata_schema_c.compression_level_;
   tiledb_metadata_schema->types_ = metadata_schema_c.types_;
 
   // Clean up
@@ -1242,6 +1270,10 @@ int tiledb_metadata_free_schema(
   // Free compression
   if(tiledb_metadata_schema->compression_ != NULL)
     free(tiledb_metadata_schema->compression_);
+
+  // Free compression level
+  if(tiledb_metadata_schema->compression_level_ != NULL)
+    free(tiledb_metadata_schema->compression_level_);
 
   // Free cell val num
   if(tiledb_metadata_schema->cell_val_num_ != NULL)
@@ -1713,18 +1745,6 @@ int tiledb_array_aio_write(
 
   // Success
   return TILEDB_OK;
-}
-
-/**
- * Set zlib compression level
- * @param tiledb_array An initialized TileDB array
- * @param compression level
- */
-void tiledb_array_set_zlib_compression_level(
-    TileDB_Array* tiledb_array,
-    const int level)
-{
-  tiledb_array->array_->set_zlib_compression_level(level);
 }
 
 /* *********************************************************************** */

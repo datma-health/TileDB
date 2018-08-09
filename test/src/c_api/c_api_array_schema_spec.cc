@@ -115,6 +115,8 @@ int ArraySchemaTestFixture::create_dense_array() {
       NULL,
       // Compression
       compression,
+      // Compression level, NULL will get defaults
+      NULL,
       // Dense array
       1,
       // Dimensions

@@ -90,6 +90,7 @@ int main(int argc, char *argv[]) {
       TILEDB_ROW_MAJOR,           // Cell order 
       cell_val_num,               // Number of cell values per attribute  
       compression,                // Compression
+      NULL,                       // Compression level - Use defaults
       0,                          // Sparse array
       dimensions,                 // Dimensions
       2,                          // Number of dimensions

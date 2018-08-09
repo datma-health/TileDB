@@ -152,6 +152,9 @@ class ArraySchema {
   /** Returns the compression type of the attribute with the input id. */
   int compression(int attribute_id) const;
 
+  /** Returns the compression level of the input attribute */
+  int compression_level(int attribute_id) const;
+
   /** Returns the coordinates size. */
   size_t coords_size() const;
 
@@ -377,6 +380,9 @@ class ArraySchema {
 
   /** Sets the compression types. */
   int set_compression(int* compression);
+
+  /** Sets the compression levels. */
+  int set_compression_level(int* compression_level);
 
   /** Sets the proper flag to indicate if the array is dense. */
   void set_dense(int dense);
@@ -738,6 +744,11 @@ class ArraySchema {
    *    - TILEDB_RLE 
    */
   std::vector<int> compression_;
+  /**
+   * The compression level for each attribute + 1 for coordinates. This level will be interpreted
+   * based on the compression type in compression_.
+   */
+  std::vector<int> compression_level_;
   /** Auxiliary variable used when calculating Hilbert ids. */
   int* coords_for_hilbert_;
   /** The size (in bytes) of the coordinates. */
@@ -811,8 +822,6 @@ class ArraySchema {
   std::vector<int> types_;
   /** Stores the size of every attribute type (plus coordinates in the end). */
   std::vector<size_t> type_sizes_;
-  /** Stores the compression level of the array */
-  int compression_level;
   /** Array schema version **/
   unsigned version_tag_;
   /** The Storage Filesystem */

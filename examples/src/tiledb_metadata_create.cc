@@ -74,6 +74,7 @@ int main(int argc, char *argv[]) {
       4,                           // Capacity
       cell_val_num,                // Number of cell values per attribute  
       compression,                 // Compression
+      NULL,                        // Compression level - use defaults
       types                        // Types
   );
 
