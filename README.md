@@ -1,7 +1,6 @@
 # TileDB
 
-[![Travis](https://img.shields.io/travis/OmicsDataAutomation/TileDB.svg?maxAge=2592000)]
-(https://travis-ci.org/OmicsDataAutomation/TileDB)
+[![Travis](https://travis-ci.org/OmicsDataAutomation/TileDB.svg?branch=master)](https://travis-ci.org/OmicsDataAutomation/TileDB)
 [![Coverage Status](https://coveralls.io/repos/github/OmicsDataAutomation/TileDB/badge.svg?branch=master)](https://coveralls.io/github/OmicsDataAutomation/TileDB?branch=master)
 
 The installation guide for TileDB can be found at this [Github
