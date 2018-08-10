@@ -29,6 +29,14 @@ project(TileDB)
 cmake_minimum_required(VERSION 2.8)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
+# Update git submodules
+execute_process(COMMAND git submodule update --recursive --init
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE submodule_update_exit_code)
+if(NOT(submodule_update_exit_code EQUAL 0))
+  message(FATAL_ERROR "Failure to recursively update git submodules")
+endif()
+
 set(ENABLE_LZ4 False CACHE BOOL "Enable lz4 compression")
 set(ENABLE_BLOSC False CACHE BOOL "Enable lz4 compression")
 set(ENABLE_ZSTD False CACHE BOOL "Enable lz4 compression")
