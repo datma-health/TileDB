@@ -34,8 +34,12 @@
 #define __CODEC_H__
 
 #include "array_schema.h"
-#include <string>
 
+#include <errno.h>
+#include <dlfcn.h>
+#include <mutex>
+#include <string>
+#include <system_error>
 
 /* ********************************* */
 /*             CONSTANTS             */
@@ -95,6 +99,40 @@ class Codec {
   /*              MUTATORS             */
   /* ********************************* */
 
+  // Clears old error conditions
+  void clear_dlerror() {
+    dl_error_ = std::string("");
+    dlerror();
+  }
+
+  void set_dlerror() {
+    dl_error_ = dlerror();
+  }
+
+  void *get_dlopen_handle(const std::string& name) {
+    clear_dlerror();
+
+    const char *lib_name;
+#ifdef __APPLE__    
+    lib_name = std::string("lib"+name+".dylib").c_str();
+#elif __linux__
+    lib_name = std::string("lib"+name+".so").c_str();
+#else
+#  error "This platform is currently not supported"
+#endif
+    void *handle = dlopen(lib_name, RTLD_NOLOAD|RTLD_NOW);
+    if (!handle) {
+      clear_dlerror();
+      handle = dlopen(lib_name, RTLD_LOCAL|RTLD_NOW);
+    }
+    if (!handle) {
+      dl_error_ = std::string(dlerror());
+    }
+    return handle;
+  }
+
+#define BIND_SYMBOL(H, X, Y, Z)  clear_dlerror(); X = Z dlsym(H, Y); if (!X) { set_dlerror(); throw std::system_error(ECANCELED, std::generic_category(), dl_error_); }
+
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
@@ -115,6 +153,8 @@ class Codec {
   void* tile_compressed_ = NULL;
   /** Allocated size for internal buffer used in the case of compression. */
   size_t tile_compressed_allocated_size_ = 0;
+  void *dl_handle_ = NULL;
+  std::string dl_error_;
 
 };
 

@@ -677,80 +677,87 @@ int Array::init(
   // Set array schema
   array_schema_ = array_schema;
 
-  // Initialize new fragment if needed
-  if(write_mode()) { // WRITE MODE
-    // Get new fragment name
-    std::string new_fragment_name = this->new_fragment_name();
-    if(new_fragment_name == "") {
-      std::string errmsg = "Cannot produce new fragment name";
+  try {
+    // Initialize new fragment if needed
+    if(write_mode()) { // WRITE MODE
+      // Get new fragment name
+      std::string new_fragment_name = this->new_fragment_name();
+      if(new_fragment_name == "") {
+        std::string errmsg = "Cannot produce new fragment name";
+        PRINT_ERROR(errmsg);
+        tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
+        return TILEDB_AR_ERR;
+      }
+
+      // Create new fragment
+      Fragment* fragment = new Fragment(this);
+      fragments_.push_back(fragment);
+      if(fragment->init(new_fragment_name, mode_, subarray) != TILEDB_FG_OK) {
+        array_schema_ = NULL;
+        tiledb_ar_errmsg = tiledb_fg_errmsg;
+        return TILEDB_AR_ERR;
+      }
+
+      // Create ArraySortedWriteState
+      if(mode_ == TILEDB_ARRAY_WRITE_SORTED_COL ||
+         mode_ == TILEDB_ARRAY_WRITE_SORTED_ROW) { 
+        array_sorted_write_state_ = new ArraySortedWriteState(this);
+        if(array_sorted_write_state_->init() != TILEDB_ASWS_OK) {
+          tiledb_ar_errmsg = tiledb_asws_errmsg;
+          delete array_sorted_write_state_;
+          array_sorted_write_state_ = NULL;
+          return TILEDB_AR_ERR; 
+        }
+      } else {
+        array_sorted_write_state_ = NULL;
+      }
+    } else {           // READ MODE
+      // Open fragments
+      if(open_fragments(fragment_names, book_keeping) != TILEDB_AR_OK) {
+        array_schema_ = NULL;
+        return TILEDB_AR_ERR;
+      }
+    
+      // Create ArrayReadState
+      array_read_state_ = new ArrayReadState(this);
+
+      // Create ArraySortedReadState
+      if(mode_ != TILEDB_ARRAY_READ) { 
+        array_sorted_read_state_ = new ArraySortedReadState(this);
+        if(array_sorted_read_state_->init() != TILEDB_ASRS_OK) {
+          tiledb_ar_errmsg = tiledb_asrs_errmsg;
+          delete array_sorted_read_state_;
+          array_sorted_read_state_ = NULL;
+          return TILEDB_AR_ERR; 
+        }
+      } else {
+        array_sorted_read_state_ = NULL;
+      }
+    } 
+
+    // Initialize the AIO-related members
+    aio_cond_ = PTHREAD_COND_INITIALIZER; 
+    if(pthread_mutex_init(&aio_mtx_, NULL)) {
+      std::string errmsg = "Cannot initialize AIO mutex";
       PRINT_ERROR(errmsg);
       tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
       return TILEDB_AR_ERR;
     }
-
-    // Create new fragment
-    Fragment* fragment = new Fragment(this);
-    fragments_.push_back(fragment);
-    if(fragment->init(new_fragment_name, mode_, subarray) != TILEDB_FG_OK) {
-      array_schema_ = NULL;
-      tiledb_ar_errmsg = tiledb_fg_errmsg;
+    if(pthread_cond_init(&aio_cond_, NULL)) {
+      std::string errmsg = "Cannot initialize AIO mutex condition";
+      PRINT_ERROR(errmsg);
+      tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
       return TILEDB_AR_ERR;
     }
-
-    // Create ArraySortedWriteState
-    if(mode_ == TILEDB_ARRAY_WRITE_SORTED_COL ||
-       mode_ == TILEDB_ARRAY_WRITE_SORTED_ROW) { 
-      array_sorted_write_state_ = new ArraySortedWriteState(this);
-      if(array_sorted_write_state_->init() != TILEDB_ASWS_OK) {
-        tiledb_ar_errmsg = tiledb_asws_errmsg;
-        delete array_sorted_write_state_;
-        array_sorted_write_state_ = NULL;
-        return TILEDB_AR_ERR; 
-      }
-    } else {
-      array_sorted_write_state_ = NULL;
-    }
-  } else {           // READ MODE
-    // Open fragments
-    if(open_fragments(fragment_names, book_keeping) != TILEDB_AR_OK) {
-      array_schema_ = NULL;
-      return TILEDB_AR_ERR;
-    }
-    
-    // Create ArrayReadState
-    array_read_state_ = new ArrayReadState(this);
-
-    // Create ArraySortedReadState
-    if(mode_ != TILEDB_ARRAY_READ) { 
-      array_sorted_read_state_ = new ArraySortedReadState(this);
-      if(array_sorted_read_state_->init() != TILEDB_ASRS_OK) {
-        tiledb_ar_errmsg = tiledb_asrs_errmsg;
-        delete array_sorted_read_state_;
-        array_sorted_read_state_ = NULL;
-        return TILEDB_AR_ERR; 
-      }
-    } else {
-      array_sorted_read_state_ = NULL;
-    }
-  } 
-
-  // Initialize the AIO-related members
-  aio_cond_ = PTHREAD_COND_INITIALIZER; 
-  if(pthread_mutex_init(&aio_mtx_, NULL)) {
-    std::string errmsg = "Cannot initialize AIO mutex";
-    PRINT_ERROR(errmsg);
-    tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
+    aio_thread_canceled_ = false;
+    aio_thread_created_ = false;
+    aio_last_handled_request_ = -1;
+  } catch(std::system_error& ex) {
+    PRINT_ERROR(ex.what());
+    tiledb_ar_errmsg = "Array initialization failed";
+    PRINT_ERROR(tiledb_ar_errmsg);
     return TILEDB_AR_ERR;
   }
-  if(pthread_cond_init(&aio_cond_, NULL)) {
-    std::string errmsg = "Cannot initialize AIO mutex condition";
-    PRINT_ERROR(errmsg);
-    tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
-    return TILEDB_AR_ERR;
-  }
-  aio_thread_canceled_ = false;
-  aio_thread_created_ = false;
-  aio_last_handled_request_ = -1;
 
   // Return
   return TILEDB_AR_OK;

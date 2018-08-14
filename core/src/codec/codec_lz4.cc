@@ -32,8 +32,8 @@
 
 #ifdef ENABLE_LZ4
 
+#define LZ4_EXTERN_DECL extern
 #include "codec_lz4.h"
-#include <lz4.h>
 
 int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
     // Allocate space to store the compressed tile
@@ -50,19 +50,11 @@ int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, void** tile_c
   }
 
   // Compress tile
-  int lz4_size =
-#if LZ4_VERSION_NUMBER >= 10705
-      LZ4_compress_default(
+  int lz4_size = LZ4_compress_default(
           (const char*) tile,
           (char*) tile_compressed_, 
           tile_size,
           compress_bound);
-#else
-      LZ4_compress(
-          (const char*) tile,
-          (char*) tile_compressed_, 
-          tile_size);
-#endif
   if(lz4_size < 0) {
     return print_errmsg("Failed compressing with LZ4");
   }
