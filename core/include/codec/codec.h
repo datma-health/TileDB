@@ -109,22 +109,29 @@ class Codec {
     dl_error_ = dlerror();
   }
 
-  void *get_dlopen_handle(const std::string& name) {
-    clear_dlerror();
+ void *get_dlopen_handle(const std::string& name) {
+    return get_dlopen_handle(name, "");
+  }
 
-    const char *lib_name;
-#ifdef __APPLE__    
-    lib_name = std::string("lib"+name+".dylib").c_str();
+  void *get_dlopen_handle(const std::string& name, const std::string& version) {
+    void *handle;
+    std::string prefix("lib");
+#ifdef __APPLE__
+    std::string suffix(".dylib");
 #elif __linux__
-    lib_name = std::string("lib"+name+".so").c_str();
+    std::string suffix(".so");
 #else
-#  error "This platform is currently not supported"
+#  error Platform not supported
 #endif
-    void *handle = dlopen(lib_name, RTLD_NOLOAD|RTLD_NOW);
-    if (!handle) {
+    
+    for (std::string dl_path : dl_paths_) {
       clear_dlerror();
-      handle = dlopen(lib_name, RTLD_LOCAL|RTLD_NOW);
+      handle = dlopen((dl_path+prefix+name+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+      if (handle) {
+        return handle;
+      }
     }
+
     if (!handle) {
       dl_error_ = std::string(dlerror());
     }
@@ -155,7 +162,14 @@ class Codec {
   size_t tile_compressed_allocated_size_ = 0;
   void *dl_handle_ = NULL;
   std::string dl_error_;
-
+#ifdef __APPLE__
+  std::vector<std::string> dl_paths_ = {"/usr/local/Cellar/lib", "/usr/local/lib", "/usr/lib", ""};
+#elif __linux__
+  std::vector<std::string> dl_paths_ = {"/usr/lib64", "/usr/lib", ""};
+#else
+#  error Platform not supported
+#endif
+  
 };
 
 #endif /*__CODEC_H__*/
