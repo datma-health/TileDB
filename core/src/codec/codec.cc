@@ -91,44 +91,69 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
   int compression_level = array_schema->compression_level(attribute_id);
   
   switch (compression_type) {
-    case TILEDB_NO_COMPRESSION:
-      return NULL;
-    case TILEDB_GZIP:
-      return new CodecGzip(compression_level);
+  case TILEDB_NO_COMPRESSION:
+    return NULL;
+  case TILEDB_GZIP:
+    return new CodecGzip(compression_level);
 #ifdef ENABLE_ZSTD
-    case TILEDB_ZSTD:
-      return new CodecZStandard(compression_level);
+  case TILEDB_ZSTD:
+    return new CodecZStandard(compression_level);
 #endif
 #ifdef ENABLE_LZ4
-    case TILEDB_LZ4:
-      return new CodecLZ4(compression_level);
+  case TILEDB_LZ4:
+    return new CodecLZ4(compression_level);
 #endif
 #ifdef ENABLE_BLOSC
-    case TILEDB_BLOSC:
-    case TILEDB_BLOSC_LZ4:
-    case TILEDB_BLOSC_LZ4HC:
-    case TILEDB_BLOSC_SNAPPY:
-    case TILEDB_BLOSC_ZLIB:
-    case TILEDB_BLOSC_ZSTD: {
-      size_t type_size = array_schema->type_size(attribute_id);
-      return new CodecBlosc(compression_level, get_blosc_compressor(compression_type), type_size);
-    }
+  case TILEDB_BLOSC:
+  case TILEDB_BLOSC_LZ4:
+  case TILEDB_BLOSC_LZ4HC:
+  case TILEDB_BLOSC_SNAPPY:
+  case TILEDB_BLOSC_ZLIB:
+  case TILEDB_BLOSC_ZSTD: {
+    size_t type_size = array_schema->type_size(attribute_id);
+    return new CodecBlosc(compression_level, get_blosc_compressor(compression_type), type_size);
+  }
 #endif
-    case TILEDB_RLE: {
-      int attribute_num = array_schema->attribute_num();
-      int dim_num = array_schema->dim_num();
-      int cell_order = array_schema->cell_order();
-      bool is_coords = (attribute_id == attribute_num);
-      size_t value_size = 
+  case TILEDB_RLE: {
+    int attribute_num = array_schema->attribute_num();
+    int dim_num = array_schema->dim_num();
+    int cell_order = array_schema->cell_order();
+    bool is_coords = (attribute_id == attribute_num);
+    size_t value_size = 
       (array_schema->var_size(attribute_id) || is_coords) ? 
-          array_schema->type_size(attribute_id) :
-          array_schema->cell_size(attribute_id);
-      return new CodecRLE(attribute_num, dim_num, cell_order, is_coords, value_size);
-    }
-    default:
-      // TODO throw exception
-      std::cerr << "Unsupported compression type:" << compression_type << "\n";
-      return NULL;
+      array_schema->type_size(attribute_id) :
+      array_schema->cell_size(attribute_id);
+    return new CodecRLE(attribute_num, dim_num, cell_order, is_coords, value_size);
+  }
+  default:
+    // TODO throw exception
+    std::cerr << "Unsupported compression type:" << compression_type << "\n";
+    return NULL;
+  }
+}
+
+int Codec::get_default_level(int compression_type) {
+  switch(compression_type) {
+  case TILEDB_GZIP:
+    return TILEDB_COMPRESSION_LEVEL_GZIP;
+  case TILEDB_ZSTD:
+    return TILEDB_COMPRESSION_LEVEL_ZSTD;
+  case TILEDB_BLOSC:
+    return TILEDB_COMPRESSION_LEVEL_BLOSC;
+  default:
+    return -1;
+  }
+}
+
+int Codec::normalize_level(const int compression_type, const int compression_level) {
+  switch (compression_type) {
+    case TILEDB_GZIP:
+      if (compression_level < Z_DEFAULT_COMPRESSION || compression_level > Z_BEST_COMPRESSION) {
+	 return Z_DEFAULT_COMPRESSION;
+      }
+  default:
+    // TODO: Implement normalize compression levels in the individual codecs.
+    return compression_level;
   }
 }
 

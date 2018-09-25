@@ -32,8 +32,8 @@
 
 #ifdef ENABLE_ZSTD
 
+#define ZSTD_EXTERN_DECL extern
 #include "codec_zstd.h"
-#include <zstd.h>
 
 int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
    // Allocate space to store the compressed tile

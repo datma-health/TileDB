@@ -36,11 +36,54 @@
 
 #include "codec.h"
 
+// Function Pointers for blosc
+#if !defined(BLOSC_EXTERN_DECL)
+#  define BLOSC_EXTERN_DECL
+#endif
+
+BLOSC_EXTERN_DECL void (*blosc_init)();
+BLOSC_EXTERN_DECL void (*blosc_destroy)();
+BLOSC_EXTERN_DECL int (*blosc_set_compressor)(const char *);
+BLOSC_EXTERN_DECL int (*blosc_compress)(int, int, size_t, size_t, const void *, void *, size_t);
+BLOSC_EXTERN_DECL int (*blosc_decompress)(const void *, void *, size_t);
+
 class CodecBlosc : public Codec {
  public:
-  CodecBlosc(int compression_level, std::string compressor, size_t type_size):Codec(compression_level){
+
+  CodecBlosc(int compression_level, std::string compressor, size_t type_size):Codec(compression_level) {
+    static bool loaded = false;
+    static std::mutex loading;
+    
     compressor_ = compressor;
     type_size_ = type_size;
+
+    if (!loaded) {
+      loading.lock();
+
+      if (!loaded) {
+        dl_handle_ = get_dlopen_handle("blosc");
+        if (dl_handle_ != NULL) {
+	  BIND_SYMBOL(dl_handle_, blosc_init, "blosc_init", (void (*)()));
+	  BIND_SYMBOL(dl_handle_, blosc_destroy, "blosc_destroy", (void (*)()));
+	  BIND_SYMBOL(dl_handle_, blosc_set_compressor, "blosc_set_compressor", (int (*)(const char *)));
+	  BIND_SYMBOL(dl_handle_, blosc_compress, "blosc_compress", (int (*)(int, int, size_t, size_t, const void *, void *, size_t)));
+	  BIND_SYMBOL(dl_handle_, blosc_decompress, "blosc_decompress", (int (*)(const void *, void *, size_t)));
+	  loaded = true;
+        }
+      }
+
+      loading.unlock();
+
+      if (dl_handle_ == NULL || !loaded) {
+	if (dl_handle_ == NULL) {
+	  char *error = dlerror();
+	  if (error) {
+	    std::cerr << dlerror() << std::endl << std::flush;
+	  }
+	}
+        throw std::system_error(ECANCELED, std::generic_category(), "Blosc library not found. Install Blosc and setup library paths.");
+      }
+    }
   }
   
   int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);

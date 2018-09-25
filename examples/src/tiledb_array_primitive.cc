@@ -30,8 +30,7 @@
  * It shows how to initialize/finalize an array, and explore its schema.
  */
 
-#include "tiledb.h"
-#include <cstdio>
+#include "examples.h"
 
 // Prints some schema info (you can enhance this to print the entire schema)
 void print_some_array_schema_info(const TileDB_ArraySchema* array_schema);
@@ -43,53 +42,53 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     TileDB_Config tiledb_config;
     tiledb_config.home_ = argv[1];
-    tiledb_ctx_init(&tiledb_ctx, &tiledb_config);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
   } else {
-    tiledb_ctx_init(&tiledb_ctx, NULL);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
   }
 
   // ----- Dense array ----- //
 
   // Load array schema when the array is not initialized
   TileDB_ArraySchema array_schema;
-  tiledb_array_load_schema(
+  CHECK_RC(tiledb_array_load_schema(
       tiledb_ctx,                               // Context 
       "my_workspace/dense_arrays/my_array_A",   // Array name
-      &array_schema);                           // Array schema struct
+      &array_schema));                           // Array schema struct
 
   // Print some array schema info
   print_some_array_schema_info(&array_schema);
 
   // Free array schema
-  tiledb_array_free_schema(&array_schema);
+  CHECK_RC(tiledb_array_free_schema(&array_schema));
 
   // ----- Sparse array ----- //
 
   // Initialize array
   TileDB_Array* tiledb_array;
-  tiledb_array_init(
+  CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                // Context 
       &tiledb_array,                             // Array object
       "my_workspace/sparse_arrays/my_array_B",   // Array name
       TILEDB_ARRAY_READ,                         // Mode
       NULL,                                      // Subarray (whole domain)
       NULL,                                      // Attributes (all attributes)
-      0);                                        // Number of attributes
+      0));                                       // Number of attributes
 
   // Get array schema when the array is initialized
-  tiledb_array_get_schema(tiledb_array, &array_schema); 
+  CHECK_RC(tiledb_array_get_schema(tiledb_array, &array_schema)); 
 
   // Print some schema info
   print_some_array_schema_info(&array_schema);
 
   // Free array schema
-  tiledb_array_free_schema(&array_schema);
+  CHECK_RC(tiledb_array_free_schema(&array_schema));
 
   // Finalize array
-  tiledb_array_finalize(tiledb_array);
+  CHECK_RC(tiledb_array_finalize(tiledb_array));
 
   // Finalize context
-  tiledb_ctx_finalize(tiledb_ctx);
+  CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
   return 0;
 }

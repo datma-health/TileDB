@@ -32,11 +32,12 @@
 
 #ifdef ENABLE_BLOSC
 
+#define BLOSC_EXTERN_DECL extern
 #include "codec_blosc.h"
-#include <blosc.h>
 
 int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
   // Allocate space to store the compressed tile
+#define BLOSC_MAX_OVERHEAD 16
   size_t compress_bound = tile_size + BLOSC_MAX_OVERHEAD;
   if(tile_compressed_ == NULL) {
     tile_compressed_allocated_size_ = compress_bound; 
