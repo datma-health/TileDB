@@ -30,7 +30,7 @@
  * It shows how to create a dense array.
  */
 
-#include "tiledb.h"
+#include "examples.h"
 
 int main(int argc, char *argv[]) {
   // Initialize context with home dir if specified in command line, else
@@ -39,9 +39,9 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     TileDB_Config tiledb_config;
     tiledb_config.home_ = argv[1];
-    tiledb_ctx_init(&tiledb_ctx, &tiledb_config);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
   } else {
-    tiledb_ctx_init(&tiledb_ctx, NULL);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
   }
 
   // Prepare parameters for array schema
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 
   // Set array schema
   TileDB_ArraySchema array_schema;
-  tiledb_array_set_schema( 
+  CHECK_RC(tiledb_array_set_schema(
       &array_schema,              // Array schema struct 
       array_name,                 // Array name 
       attributes,                 // Attributes 
@@ -109,16 +109,16 @@ int main(int argc, char *argv[]) {
       2*sizeof(int64_t),          // Tile extents length in bytes 
       TILEDB_ROW_MAJOR,           // Tile order
       types                       // Types
-  );
+				   ));
 
   // Create array
-  tiledb_array_create(tiledb_ctx, &array_schema); 
+  CHECK_RC(tiledb_array_create(tiledb_ctx, &array_schema));
 
   // Free array schema
-  tiledb_array_free_schema(&array_schema);
+  CHECK_RC(tiledb_array_free_schema(&array_schema));
 
   /* Finalize context. */
-  tiledb_ctx_finalize(tiledb_ctx);
+  CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
   return 0;
 }

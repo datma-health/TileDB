@@ -62,20 +62,26 @@ class CodecBlosc : public Codec {
 
       if (!loaded) {
         dl_handle_ = get_dlopen_handle("blosc");
-        if (dl_handle_ == NULL) {
-          throw std::system_error(ECANCELED, std::generic_category(), "Blosc library not found. Install Blosc and setup library paths.");
+        if (dl_handle_ != NULL) {
+	  BIND_SYMBOL(dl_handle_, blosc_init, "blosc_init", (void (*)()));
+	  BIND_SYMBOL(dl_handle_, blosc_destroy, "blosc_destroy", (void (*)()));
+	  BIND_SYMBOL(dl_handle_, blosc_set_compressor, "blosc_set_compressor", (int (*)(const char *)));
+	  BIND_SYMBOL(dl_handle_, blosc_compress, "blosc_compress", (int (*)(int, int, size_t, size_t, const void *, void *, size_t)));
+	  BIND_SYMBOL(dl_handle_, blosc_decompress, "blosc_decompress", (int (*)(const void *, void *, size_t)));
+	  loaded = true;
         }
+      }
 
-        BIND_SYMBOL(dl_handle_, blosc_init, "blosc_init", (void (*)()));
-        BIND_SYMBOL(dl_handle_, blosc_destroy, "blosc_destroy", (void (*)()));
-        BIND_SYMBOL(dl_handle_, blosc_set_compressor, "blosc_set_compressor", (int (*)(const char *)));
-        BIND_SYMBOL(dl_handle_, blosc_compress, "blosc_compress", (int (*)(int, int, size_t, size_t, const void *, void *, size_t)));
-        BIND_SYMBOL(dl_handle_, blosc_decompress, "blosc_decompress", (int (*)(const void *, void *, size_t)));
-        
-        loading.unlock();
-        loaded = true;
-      } else {
-        // TODO: throw exception
+      loading.unlock();
+
+      if (dl_handle_ == NULL || !loaded) {
+	if (dl_handle_ == NULL) {
+	  char *error = dlerror();
+	  if (error) {
+	    std::cerr << dlerror() << std::endl << std::flush;
+	  }
+	}
+        throw std::system_error(ECANCELED, std::generic_category(), "Blosc library not found. Install Blosc and setup library paths.");
       }
     }
   }

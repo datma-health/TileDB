@@ -57,18 +57,24 @@ class CodecLZ4 : public Codec {
       
       if (!loaded) {
         dl_handle_ = get_dlopen_handle("lz4");
-        if (dl_handle_ == NULL) {
-          throw std::system_error(ECANCELED, std::generic_category(), "LZ4 library not found. Install LZ4 and setup library paths.");
-        }
+        if (dl_handle_ != NULL) {
+	  BIND_SYMBOL(dl_handle_, LZ4_compressBound, "LZ4_compressBound", (int(*)(int)));
+	  BIND_SYMBOL(dl_handle_, LZ4_compress_default, "LZ4_compress_default", (size_t(*)(const char *, char *, int, int)));
+	  BIND_SYMBOL(dl_handle_, LZ4_decompress_safe, "LZ4_decompress_safe", (size_t(*)(const char *, char *, int, int)));
+	  loaded = true;
+	}
+      }
 
-        BIND_SYMBOL(dl_handle_, LZ4_compressBound, "LZ4_compressBound", (int(*)(int)));
-        BIND_SYMBOL(dl_handle_, LZ4_compress_default, "LZ4_compress_default", (size_t(*)(const char *, char *, int, int)));
-        BIND_SYMBOL(dl_handle_, LZ4_decompress_safe, "LZ4_decompress_safe", (size_t(*)(const char *, char *, int, int)));
-        
-        loading.unlock();
-        loaded = true;
-      } else {
-        // TODO: throw exception
+      loading.unlock();
+
+      if (dl_handle_ == NULL || !loaded) {
+	if (dl_handle_ == NULL) {
+	  char *error = dlerror();
+	  if (error) {
+	    std::cerr << dlerror() << std::endl << std::flush;
+	  }
+	}
+	throw std::system_error(ECANCELED, std::generic_category(), "LZ4 library not found. Install LZ4 and setup library paths.");
       }
     }
   }

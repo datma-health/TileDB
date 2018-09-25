@@ -59,22 +59,28 @@ class CodecZStandard : public Codec {
 
       if (!loaded) {
         dl_handle_ = get_dlopen_handle("zstd");
-        if (dl_handle_ == NULL) {
-          throw std::system_error(ECANCELED, std::generic_category(), "ZStd library not found. Install ZStandard and setup library paths.");
-        }
-
-        BIND_SYMBOL(dl_handle_, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
-        BIND_SYMBOL(dl_handle_, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
-        BIND_SYMBOL(dl_handle_, ZSTD_maxCLevel, "ZSTD_maxCLevel", (int(*)(void)));
-        BIND_SYMBOL(dl_handle_, ZSTD_compress, "ZSTD_compress", (size_t(*)(void *, size_t, const void *, size_t, int)));
-        BIND_SYMBOL(dl_handle_, ZSTD_decompress, "ZSTD_decompress", (size_t(*)(void *, size_t, const void *, size_t)));
-        
-        loading.unlock();
-        loaded = true;
-      } else {
-        // TODO: throw exception
+        if (dl_handle_ != NULL) {
+	  BIND_SYMBOL(dl_handle_, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
+	  BIND_SYMBOL(dl_handle_, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
+	  BIND_SYMBOL(dl_handle_, ZSTD_maxCLevel, "ZSTD_maxCLevel", (int(*)(void)));
+	  BIND_SYMBOL(dl_handle_, ZSTD_compress, "ZSTD_compress", (size_t(*)(void *, size_t, const void *, size_t, int)));
+	  BIND_SYMBOL(dl_handle_, ZSTD_decompress, "ZSTD_decompress", (size_t(*)(void *, size_t, const void *, size_t)));
+	  loaded = true;
+	}
       }
-    }
+
+      loading.unlock();
+
+      if (dl_handle_ == NULL || !loaded) {
+	  if (dl_handle_ == NULL) {
+	    char *error = dlerror();
+	    if (error) {
+	      std::cerr << dlerror() << std::endl << std::flush;
+	    }
+	  }
+	  throw std::system_error(ECANCELED, std::generic_category(), "ZStd library not found. Install ZStandard and setup library paths.");
+        }
+     }
   }
   
   int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);

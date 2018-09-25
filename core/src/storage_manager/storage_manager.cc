@@ -600,6 +600,7 @@ int StorageManager::array_init(
     array = NULL;
     if(array_read_mode(mode)) 
       array_close(full_array_path);
+    tiledb_sm_errmsg = tiledb_ar_errmsg;
     return TILEDB_SM_ERR;
   } 
 
@@ -624,7 +625,7 @@ int StorageManager::array_init(
     array = NULL;
     if(array_read_mode(mode)) 
       array_close(full_array_path);
-    tiledb_sm_errmsg = tiledb_as_errmsg;
+    tiledb_sm_errmsg = tiledb_ar_errmsg;
     return TILEDB_SM_ERR;
   }
 

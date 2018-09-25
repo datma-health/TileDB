@@ -30,7 +30,7 @@
  * It creates a workspace and two groups.
  */
 
-#include "tiledb.h"
+#include "examples.h"
 
 int main(int argc, char *argv[]) {
   // Initialize context with home dir if specified in command line, else
@@ -39,22 +39,22 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     TileDB_Config tiledb_config;
     tiledb_config.home_ = argv[1];
-    tiledb_ctx_init(&tiledb_ctx, &tiledb_config);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
   } else {
-    tiledb_ctx_init(&tiledb_ctx, NULL);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
   }
 
   // Create a workspace
-  tiledb_workspace_create(tiledb_ctx, "my_workspace");
+  CHECK_RC(tiledb_workspace_create(tiledb_ctx, "my_workspace"));
 
   // Create a group in the worskpace
-  tiledb_group_create(tiledb_ctx, "my_workspace/dense_arrays");
+  CHECK_RC(tiledb_group_create(tiledb_ctx, "my_workspace/dense_arrays"));
 
   // Create two groups in the worskpace
-  tiledb_group_create(tiledb_ctx, "my_workspace/sparse_arrays");
+  CHECK_RC(tiledb_group_create(tiledb_ctx, "my_workspace/sparse_arrays"));
 
   // Finalize context
-  tiledb_ctx_finalize(tiledb_ctx);
+  CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
   return 0;
 }

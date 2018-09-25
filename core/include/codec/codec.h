@@ -71,6 +71,10 @@ class Codec {
   
   static Codec* create(const ArraySchema* array_schema, const int attribute_id);
 
+  static int get_default_level(const int compression_type);
+
+  static int normalize_level(const int compression_type, const int compression_level);
+
   static int print_errmsg(const std::string& msg);
   
   /* ********************************* */
@@ -138,7 +142,15 @@ class Codec {
     return handle;
   }
 
-#define BIND_SYMBOL(H, X, Y, Z)  clear_dlerror(); X = Z dlsym(H, Y); if (!X) { set_dlerror(); throw std::system_error(ECANCELED, std::generic_category(), dl_error_); }
+#define BIND_SYMBOL(H, X, Y, Z)  \
+  do {                           \
+    clear_dlerror();             \
+    X = Z dlsym(H, Y);           \
+    if (!X) {                    \
+      set_dlerror();             \
+      throw std::system_error(ECANCELED, std::generic_category(), dl_error_); \
+    }                            \
+  } while (false)
 
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
