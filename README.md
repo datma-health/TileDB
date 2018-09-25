@@ -1,6 +1,7 @@
 # TileDB
 
 [![Travis](https://travis-ci.org/OmicsDataAutomation/TileDB.svg?branch=master)](https://travis-ci.org/OmicsDataAutomation/TileDB)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The installation guide for TileDB can be found at this [Github
 Wiki](https://github.com/OmicsDataAutomation/TileDB/wiki).
