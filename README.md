@@ -1,9 +1,8 @@
 # TileDB
 
 [![Travis](https://travis-ci.org/OmicsDataAutomation/TileDB.svg?branch=master)](https://travis-ci.org/OmicsDataAutomation/TileDB)
-[![Coverage Status](https://coveralls.io/repos/github/OmicsDataAutomation/TileDB/badge.svg?branch=master)](https://coveralls.io/github/OmicsDataAutomation/TileDB?branch=master)
-
-Implementation of an Array Storage Manager based on [TileDB](https://people.csail.mit.edu/stavrosp/papers/vldb2017/VLDB17_TileDB.pdf).
+[![codecov](https://codecov.io/gh/OmicsDataAutomation/TileDB/branch/master/graph/badge.svg)](https://codecov.io/gh/OmicsDataAutomation/TileDB)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The installation guide for TileDB can be found at this [Github
 Wiki](https://github.com/OmicsDataAutomation/TileDB/wiki).
