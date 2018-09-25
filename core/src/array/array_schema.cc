@@ -31,6 +31,7 @@
  */
 
 #include "array_schema.h"
+#include "codec.h"
 #include "tiledb_constants.h"
 #include "utils.h"
 #include <algorithm>
@@ -38,8 +39,6 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
-
-
 
 
 /* ****************************** */
@@ -52,11 +51,19 @@
 #  define PRINT_ERROR(x) do { } while(0) 
 #endif
 
-//First 4 bytes of the array schema
-//To avoid conflicts with array size value in older schema, version tags are really large values
-#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0xFFFFFFFFu
+/**
+ * The first 4 bytes of the array schema is the version
+ **/
+#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0x1u
+#define TILEDB_ARRAY_SCHEMA_VERSION_MAX 0xFu
 
-#define TILEDB_ARRAY_SCHEMA_MIN_VERSION_TAG 0xFFFFFFF0u
+/**
+ * Initially, there was no schema versioning and the position that had the array size
+ * value in the older schema is the version now. To avoid conflicts, version tags are now
+ * persisted as really large values and start with the following value.
+ **/
+#define TILEDB_ARRAY_SCHEMA_VERSION_START 0xFFFFFFFFu
+#define GET_REAL_TILEDB_SCHEMA_VERSION(value) TILEDB_ARRAY_SCHEMA_VERSION_START - value
 
 
 /* ****************************** */
@@ -80,7 +87,7 @@ ArraySchema::ArraySchema(StorageFS *fs) {
   tile_extents_ = NULL;
   tile_domain_ = NULL;
   tile_coords_aux_ = NULL;
-  version_tag_ = TILEDB_ARRAY_SCHEMA_VERSION_TAG;
+  version_tag_ = TILEDB_ARRAY_SCHEMA_VERSION_START - TILEDB_ARRAY_SCHEMA_VERSION_TAG;
   fs_ = fs;
 }
 
@@ -1003,6 +1010,7 @@ int ArraySchema::deserialize(
     memcpy(&array_workspace_[0], buffer + offset, array_workspace_size);
     offset += array_workspace_size;
   }
+
   // Load array_name_ 
   int array_name_size;
   assert(offset + sizeof(int) < buffer_size);
@@ -1111,18 +1119,18 @@ int ArraySchema::deserialize(
     offset += sizeof(char);
     compression_.push_back(static_cast<int>(compression));
   }
-  // Load compression_level_
+  // Load compression_level_. Supported added in array schema version 1L
   char compression_level;
   for(int i=0; i<=attribute_num_; ++i) {
     if (offset == buffer_size) {
       // Backward compatibility when compression levels are not found in the schema
-      // TODO Assert schema version less than supported
-      compression_level_.push_back(compression_[i]);
+      assert(GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_) == 0x0L || GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_) > TILEDB_ARRAY_SCHEMA_VERSION_MAX);
+      compression_level_.push_back(Codec::get_default_level(compression));
     } else {
       assert(offset + sizeof(char) <= buffer_size);
       memcpy(&compression_level, buffer + offset, sizeof(char));
       offset += sizeof(char);
-      compression_level_.push_back(static_cast<int>(compression_level));
+      compression_level_.push_back(Codec::normalize_level(compression_[i], static_cast<int>(compression_level)));
     }
   }
   assert(offset == buffer_size); 
@@ -1475,28 +1483,16 @@ int ArraySchema::set_compression(int* compression) {
   return TILEDB_AS_OK;
 }
 
-static int get_codec_default_level(int compression) {
-  switch(compression) {
-  case TILEDB_GZIP:
-    return TILEDB_COMPRESSION_LEVEL_GZIP;
-  case TILEDB_ZSTD:
-    return TILEDB_COMPRESSION_LEVEL_ZSTD;
-  case TILEDB_BLOSC:
-    return TILEDB_COMPRESSION_LEVEL_BLOSC;
-  default:
-    return 0;
-  }
-}
 
 int ArraySchema::set_compression_level(int* compression_level) {
   for(int i=0; i<attribute_num_+1; ++i) {
-    if (compression_level == NULL) {
       // Set defaults based on codec
       assert(compression_.size() >= (unsigned)i && "set_compression should be called before set_compression_level");
-      compression_level_.push_back(get_codec_default_level(compression_[i]));
-    } else {
-      compression_level_.push_back(compression_level[i]);
-    }
+      if (compression_level == NULL) {
+	compression_level_.push_back(Codec::get_default_level(compression_[i]));
+      } else {
+	compression_level_.push_back(Codec::normalize_level(compression_[i], compression_level[i]));
+      }
   }
 
   // Success
@@ -2833,12 +2829,10 @@ int64_t ArraySchema::tile_slab_row_cell_num(const T* subarray) const {
   return cell_num;
 }
 
-
 bool ArraySchema::version_tag_exists() const
 {
-  return (version_tag_ >= TILEDB_ARRAY_SCHEMA_MIN_VERSION_TAG);
+  return (GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_) <= TILEDB_ARRAY_SCHEMA_VERSION_MAX);
 }
-
 
 // Explicit template instantiations
 

@@ -34,8 +34,12 @@
 #define __CODEC_H__
 
 #include "array_schema.h"
-#include <string>
 
+#include <errno.h>
+#include <dlfcn.h>
+#include <mutex>
+#include <string>
+#include <system_error>
 
 /* ********************************* */
 /*             CONSTANTS             */
@@ -67,6 +71,10 @@ class Codec {
   
   static Codec* create(const ArraySchema* array_schema, const int attribute_id);
 
+  static int get_default_level(const int compression_type);
+
+  static int normalize_level(const int compression_type, const int compression_level);
+
   static int print_errmsg(const std::string& msg);
   
   /* ********************************* */
@@ -95,6 +103,55 @@ class Codec {
   /*              MUTATORS             */
   /* ********************************* */
 
+  // Clears old error conditions
+  void clear_dlerror() {
+    dl_error_ = std::string("");
+    dlerror();
+  }
+
+  void set_dlerror() {
+    dl_error_ = dlerror();
+  }
+
+ void *get_dlopen_handle(const std::string& name) {
+    return get_dlopen_handle(name, "");
+  }
+
+  void *get_dlopen_handle(const std::string& name, const std::string& version) {
+    void *handle;
+    std::string prefix("lib");
+#ifdef __APPLE__
+    std::string suffix(".dylib");
+#elif __linux__
+    std::string suffix(".so");
+#else
+#  error Platform not supported
+#endif
+    
+    for (std::string dl_path : dl_paths_) {
+      clear_dlerror();
+      handle = dlopen((dl_path+prefix+name+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+      if (handle) {
+        return handle;
+      }
+    }
+
+    if (!handle) {
+      dl_error_ = std::string(dlerror());
+    }
+    return handle;
+  }
+
+#define BIND_SYMBOL(H, X, Y, Z)  \
+  do {                           \
+    clear_dlerror();             \
+    X = Z dlsym(H, Y);           \
+    if (!X) {                    \
+      set_dlerror();             \
+      throw std::system_error(ECANCELED, std::generic_category(), dl_error_); \
+    }                            \
+  } while (false)
+
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
@@ -115,7 +172,16 @@ class Codec {
   void* tile_compressed_ = NULL;
   /** Allocated size for internal buffer used in the case of compression. */
   size_t tile_compressed_allocated_size_ = 0;
-
+  void *dl_handle_ = NULL;
+  std::string dl_error_;
+#ifdef __APPLE__
+  std::vector<std::string> dl_paths_ = {"/usr/local/Cellar/lib", "/usr/local/lib", "/usr/lib", ""};
+#elif __linux__
+  std::vector<std::string> dl_paths_ = {"/usr/lib64", "/usr/lib", ""};
+#else
+#  error Platform not supported
+#endif
+  
 };
 
 #endif /*__CODEC_H__*/

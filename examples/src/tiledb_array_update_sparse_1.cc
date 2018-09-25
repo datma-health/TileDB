@@ -31,7 +31,7 @@
  * a write operation.
  */
 
-#include "tiledb.h"
+#include "examples.h"
 
 int main(int argc, char *argv[]) {
   // Initialize context with home dir if specified in command line, else
@@ -40,21 +40,21 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     TileDB_Config tiledb_config;
     tiledb_config.home_ = argv[1];
-    tiledb_ctx_init(&tiledb_ctx, &tiledb_config);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
   } else {
-    tiledb_ctx_init(&tiledb_ctx, NULL);
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
   }
 
   // Initialize array
   TileDB_Array* tiledb_array;
-  tiledb_array_init(
+  CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                // Context 
       &tiledb_array,                             // Array object
       "my_workspace/sparse_arrays/my_array_B",   // Array name
       TILEDB_ARRAY_WRITE_UNSORTED,               // Mode
       NULL,                                      // Entire domain
       NULL,                                      // All attributes
-      0);                                        // Number of attributes
+      0));                                       // Number of attributes
 
   // Prepare cell buffers
   int buffer_a1[] = { 107, 104, 106, 105 };
@@ -75,13 +75,13 @@ int main(int argc, char *argv[]) {
   };
 
   // Write to array
-  tiledb_array_write(tiledb_array, buffers, buffer_sizes); 
+  CHECK_RC(tiledb_array_write(tiledb_array, buffers, buffer_sizes));
 
   // Finalize array
-  tiledb_array_finalize(tiledb_array);
+  CHECK_RC(tiledb_array_finalize(tiledb_array));
 
   // Finalize context
-  tiledb_ctx_finalize(tiledb_ctx);
+  CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
   return 0;
 }

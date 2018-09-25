@@ -1,11 +1,11 @@
 /**
- * @file   tiledb_array_consolidate.cc
+ * @file   examples.h
  *
  * @section LICENSE
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,31 +27,27 @@
  * 
  * @section DESCRIPTION
  *
- * It shows how to consolidate arrays.
+ * Examples Header File handling errors of TileDB api
  */
 
-#include "examples.h"
+// TODO: move all examples to do error checking
 
-int main(int argc, char *argv[]) {
-  // Initialize context with home dir if specified in command line, else
-  // initialize with the default configuration parameters
-  TileDB_CTX* tiledb_ctx;
-  if (argc > 1) {
-    TileDB_Config tiledb_config;
-    tiledb_config.home_ = argv[1];
-    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
-  } else {
-    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
-  }
+#ifndef TILEDB_EXAMPLES_H
+#define TILEDB_EXAMPLES_H
 
-  // Consolidate the dense array
-  CHECK_RC(tiledb_array_consolidate(tiledb_ctx, "my_workspace/dense_arrays/my_array_A"));
+#include "tiledb.h"
+#include <cstdio>
+#include <string.h>
 
-  // Consolidate the sparse array
-  CHECK_RC(tiledb_array_consolidate(tiledb_ctx, "my_workspace/sparse_arrays/my_array_B"));
+#define CHECK_RC(...)                                      \
+do {                                                       \
+  int rc = __VA_ARGS__;                                    \
+  if (rc) {                                                \
+    printf("[Examples::%s] Runtime Error.\n",              \
+           __FILE__);	                                   \
+    printf(tiledb_errmsg);				   \
+    return rc;                                             \
+  }                                                        \
+} while (false)
 
-  // Finalize context
-  CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
-
-  return 0;
-}
+#endif /* TILEDB_EXAMPLES_H */
