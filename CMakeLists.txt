@@ -210,12 +210,8 @@ add_subdirectory(core)
 # Build examples
 add_subdirectory(examples)
 
-if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-    # Build unit tests
-    if(GTEST_FOUND)
-        add_subdirectory(test)
-    endif()
-endif()
+# Build unit tests
+add_subdirectory(test)
 
 # Doxygen documentation
 if(DOXYGEN_FOUND)

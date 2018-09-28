@@ -39,13 +39,10 @@
 #include <sstream>
 #include <map>
 
+#include "catch.h"
 
 
-/* ****************************** */
-/*        GTEST FUNCTIONS         */
-/* ****************************** */
-
-void DenseArrayTestFixture::SetUp() {
+DenseArrayTestFixture::DenseArrayTestFixture() {
   // Reset the random number generator
   srand(0);
 
@@ -54,26 +51,26 @@ void DenseArrayTestFixture::SetUp() {
  
   // Initialize context
   rc = tiledb_ctx_init(&tiledb_ctx_, NULL);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Create workspace
   rc = tiledb_workspace_create(tiledb_ctx_, WORKSPACE.c_str());
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 }
 
-void DenseArrayTestFixture::TearDown() {
+DenseArrayTestFixture::~DenseArrayTestFixture() {
   // Error code
   int rc;
 
   // Finalize TileDB context
   rc = tiledb_ctx_finalize(tiledb_ctx_);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Remove the temporary workspace
   std::string command = "rm -rf ";
   command.append(WORKSPACE);
   rc = system(command.c_str());
-  ASSERT_EQ(rc, 0);
+  CHECK_RC(rc, 0);
 }
 
 
@@ -486,7 +483,7 @@ int DenseArrayTestFixture::write_dense_subarray_2D(
  * Tests 10 random 2D subarrays and checks if the value of each cell is equal 
  * to row_id*dim1+col_id. Top left corner is always 4,4. 
  */
-TEST_F(DenseArrayTestFixture, test_random_dense_sorted_reads) {
+TEST_CASE_METHOD(DenseArrayTestFixture, "Test Dense Array - 10 random 2D arrays", "[test_random_dense_sorted_reads]") {
   // Error code
   int rc;
 
@@ -522,7 +519,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_reads) {
            false,
            cell_order,
            tile_order);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Write array cells with value = row id * COLUMNS + col id
   // to disk tile by tile
@@ -531,7 +528,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_reads) {
            domain_size_1,
            tile_extent_0,
            tile_extent_1);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Test random subarrays and check with corresponding value set by
   // row_id*dim1+col_id. Top left corner is always 4,4.
@@ -555,12 +552,12 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_reads) {
                       d1_lo,
                       d1_hi,
                       TILEDB_ARRAY_READ_SORTED_ROW);
-    ASSERT_TRUE(buffer != NULL);
+    REQUIRE(buffer != NULL);
 
     // Check
     for(int64_t i = d0_lo; i <= d0_hi; ++i) {
       for(int64_t j = d1_lo; j <= d1_hi; ++j) {
-        ASSERT_EQ(buffer[index], i*domain_size_1+j);
+        CHECK(buffer[index] == i*domain_size_1+j);
         if (buffer[index] !=  (i*domain_size_1+j)) {
           std::cout << "mismatch: " << i
               << "," << j << "=" << buffer[index] << "!="
@@ -586,7 +583,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_reads) {
 /**
  * Tests random 2D subarray writes. 
  */
-TEST_F(DenseArrayTestFixture, test_random_dense_sorted_writes) {
+TEST_CASE_METHOD(DenseArrayTestFixture, "Test random 2D subarray writes", "[test_random_dense_sorted_writes]") {
   // Error code
   int rc;
 
@@ -622,7 +619,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_writes) {
            false,
            cell_order,
            tile_order);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Write random subarray, then read it back and check
   int64_t d0[2], d1[2];
@@ -651,7 +648,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_writes) {
              TILEDB_ARRAY_WRITE_SORTED_ROW,
              buffer,
              buffer_sizes);
-    ASSERT_EQ(rc, TILEDB_OK);
+    CHECK_RC(rc, TILEDB_OK);
 
     // Read back the same subarray
     int* read_buffer = 
@@ -661,11 +658,11 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_writes) {
             subarray[2],
             subarray[3],
             TILEDB_ARRAY_READ_SORTED_ROW);
-    ASSERT_TRUE(read_buffer != NULL);
+    REQUIRE(read_buffer != NULL);
 
     // Check the two buffers
     for(index = 0; index < cell_num_in_subarray; ++index) 
-      ASSERT_EQ(buffer[index], read_buffer[index]);
+      CHECK(buffer[index] == read_buffer[index]);
 
     // Clean up
     delete [] buffer;
@@ -682,7 +679,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_sorted_writes) {
 /**
  * Test random updates in a 2D dense array.
  */
-TEST_F(DenseArrayTestFixture, test_random_dense_updates) {
+TEST_CASE_METHOD(DenseArrayTestFixture, " Test random updates in a 2D dense array", "[test_random_dense_updates]") {
   // Error code
   int rc;
 
@@ -716,7 +713,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_updates) {
            false,
            cell_order,
            tile_order);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Write array cells with value = row id * COLUMNS + col id
   // to disk tile by tile
@@ -725,7 +722,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_updates) {
            domain_size_1,
            tile_extent_0,
            tile_extent_1);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Read the entire array back to memory
   int *before_update = 
@@ -735,7 +732,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_updates) {
           domain_1_lo,
           domain_1_hi,
           TILEDB_ARRAY_READ);
-  ASSERT_TRUE(before_update != NULL);
+  REQUIRE(before_update != NULL);
 
   // Prepare random updates
   int *buffer_a1 = new int[update_num];
@@ -752,7 +749,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_updates) {
            seed,
            buffers,
            buffer_sizes);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Read the entire array back to memory after update
   int *after_update =
@@ -762,7 +759,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_updates) {
           domain_1_lo,
           domain_1_hi,
           TILEDB_ARRAY_READ);
-  ASSERT_TRUE(after_update != NULL);
+  REQUIRE(after_update != NULL);
 
   // Compare array before and after
   bool success = 
@@ -774,7 +771,7 @@ TEST_F(DenseArrayTestFixture, test_random_dense_updates) {
           domain_size_0,
           domain_size_1,
           update_num);
-  ASSERT_TRUE(success);
+  CHECK(success);
 
   // Clean up
   delete [] before_update;

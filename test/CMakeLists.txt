@@ -26,7 +26,7 @@
 #
 
 # Include GTest headers
-include_directories(${GTEST_INCLUDE_DIRS})
+#include_directories(${GTEST_INCLUDE_DIRS})
 
 # Include test header directories
 file(GLOB TILEDB_TEST_INCLUDE_DIRS "include/*")
@@ -37,16 +37,19 @@ file(GLOB TILEDB_CORE_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/../core/include/*"
 include_directories(${TILEDB_CORE_INCLUDE_DIRS})
 
 # Get test source files
-file(GLOB_RECURSE TILEDB_TEST_SOURCES "src/*.cc")
+file(GLOB_RECURSE TILEDB_TEST_SOURCES "src/*/test*.cc")
 
-# Build tests
-add_executable(tiledb_test EXCLUDE_FROM_ALL ${TILEDB_TEST_SOURCES})
-target_link_libraries(
-    tiledb_test 
-    ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} 
-    tiledb_static ${TILEDB_LIB_DEPENDENCIES}
-) 
-add_test(tiledb_test tiledb_test)
+# Build one executable per test
+foreach(TILEDB_TEST_SOURCE ${TILEDB_TEST_SOURCES})
+  get_filename_component(FILENAME ${TILEDB_TEST_SOURCE} NAME)
+  string(REGEX REPLACE ".cc$" "" TARGET ${FILENAME})
+  
+  add_executable(${TARGET} EXCLUDE_FROM_ALL ${TILEDB_TEST_SOURCE})
+  target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES})
+
+  add_test(NAME ${TARGET} COMMAND ${TARGET})
+  set(ALL_CMDS ${ALL_CMDS} ${TARGET})
+endforeach()
 
 # Add custom target 'check'
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -V DEPENDS tiledb_test)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -V DEPENDS ${ALL_CMDS})
