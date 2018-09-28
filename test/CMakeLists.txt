@@ -47,9 +47,12 @@ foreach(TILEDB_TEST_SOURCE ${TILEDB_TEST_SOURCES})
   add_executable(${TARGET} EXCLUDE_FROM_ALL ${TILEDB_TEST_SOURCE})
   target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES})
 
-  add_test(NAME ${TARGET} COMMAND ${TARGET})
+  add_test(${TARGET} ${TARGET})
   set(ALL_CMDS ${ALL_CMDS} ${TARGET})
 endforeach()
 
 # Add custom target 'check'
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} -V DEPENDS ${ALL_CMDS})
+
+# Add check to all tests
+add_dependencies(tests ${ALL_CMDS})
