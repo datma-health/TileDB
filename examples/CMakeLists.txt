@@ -58,6 +58,6 @@ add_dependencies(examples ${EXAMPLE_BINS})
 
 # Run a subset of examples for Continuous Integration Testing
 set(CI_TESTS ${CMAKE_SOURCE_DIR}/examples/run_examples.sh)
-add_test(ci_tests COMMAND ${CI_TESTS})
+add_test(NAME ci_tests COMMAND ${CI_TESTS})
 add_custom_target(ci_tests COMMAND touch ${CI_TESTS} DEPENDS examples)
 add_dependencies(tests ci_tests)
