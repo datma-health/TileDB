@@ -25,7 +25,9 @@ matrix:
 
 before_install:
     - if [[ INSTALL_TYPE == gcs ]]; then
-         openssl aes-256-cbc -K $encrypted_ccae32f351a4_key -iv $encrypted_ccae32f351a4_iv -in $TRAVIS_BUILD_DIR/resources/gcs/GCS.json.enc -out $TRAVIS_BUILD_DIR/GCS.json -d;
+        pushd $TRAVIS_BUILD_DIR/resources/gcs;
+        openssl aes-256-cbc -K $encrypted_e618d734a0d0_key -iv $encrypted_e618d734a0d0_iv -in GCS.json.enc -out GCS.json -d;
+        popd;
       fi
 
 install:
