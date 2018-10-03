@@ -53,7 +53,7 @@ install:
     # Hadoop install
     - if [[ $INSTALL_TYPE != basic ]]; then
         source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
-	echo "HADOOP CLASSPATH=" $CLASSPATH
+	echo "HADOOP CLASSPATH=" $CLASSPATH;
       fi
 
     - cd $TRAVIS_BUILD_DIR
