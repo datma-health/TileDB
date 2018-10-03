@@ -34,12 +34,10 @@
 #define __C_API_DENSE_ARRAY_SPEC_H__
 
 #include "tiledb.h"
-#include <gtest/gtest.h>
-
 
 
 /** Test fixture for dense array operations. */
-class DenseArrayTestFixture: public testing::Test {
+class DenseArrayTestFixture {
  public:
   /* ********************************* */
   /*             CONSTANTS             */
@@ -52,16 +50,12 @@ class DenseArrayTestFixture: public testing::Test {
 
 
   /* ********************************* */
-  /*          GTEST FUNCTIONS          */
+  /*      CONSTRUCTORS/DESTUCTORS      */
   /* ********************************* */
 
-  /** Test initialization. */
-  virtual void SetUp(); 
-
-  /** Test finalization. */
-  virtual void TearDown();
-
-
+  DenseArrayTestFixture();
+  ~DenseArrayTestFixture();
+  
 
 
   /* ********************************* */

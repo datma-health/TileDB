@@ -30,6 +30,8 @@
  * Tests of C API for sparse array operations.
  */
 
+#include "catch.h"
+
 #include "c_api_sparse_array_spec.h"
 #include "progress_bar.h"
 #include <cstring>
@@ -39,42 +41,33 @@
 #include <sys/time.h>
 #include <sstream>
 
-
-
-
-/* ****************************** */
-/*        GTEST FUNCTIONS         */
-/* ****************************** */
-
-void SparseArrayTestFixture::SetUp() {
+SparseArrayTestFixture::SparseArrayTestFixture() {
   // Error code
   int rc;
  
   // Initialize context
   rc = tiledb_ctx_init(&tiledb_ctx_, NULL);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Create workspace
   rc = tiledb_workspace_create(tiledb_ctx_, WORKSPACE.c_str());
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 }
 
-void SparseArrayTestFixture::TearDown() {
+SparseArrayTestFixture::~SparseArrayTestFixture() {
   // Error code
   int rc;
 
   // Finalize TileDB context
   rc = tiledb_ctx_finalize(tiledb_ctx_);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Remove the temporary workspace
   std::string command = "rm -rf ";
   command.append(WORKSPACE);
   rc = system(command.c_str());
-  ASSERT_EQ(rc, 0);
+  CHECK_RC(rc, 0);
 }
-
-
 
 
 /* ****************************** */
@@ -277,7 +270,7 @@ int SparseArrayTestFixture::write_sparse_array_unsorted_2D(
  * Test runs through 10 iterations to choose random
  * width and height of the subregions
  */
-TEST_F(SparseArrayTestFixture, test_random_sparse_sorted_reads) {
+TEST_CASE_METHOD(SparseArrayTestFixture, "Test random read subregions", "[test_random_sparse_sorted_reads]") {
   // Error code
   int rc;
 
@@ -313,12 +306,12 @@ TEST_F(SparseArrayTestFixture, test_random_sparse_sorted_reads) {
            false,
            cell_order,
            tile_order);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Write array cells with value = row id * COLUMNS + col id
   // to disk
   rc = write_sparse_array_unsorted_2D(domain_size_0, domain_size_1);
-  ASSERT_EQ(rc, TILEDB_OK);
+  CHECK_RC(rc, TILEDB_OK);
 
   // Test random subarrays and check with corresponding value set by
   // row_id*dim1+col_id. Top left corner is always 4,4.
@@ -342,12 +335,12 @@ TEST_F(SparseArrayTestFixture, test_random_sparse_sorted_reads) {
                       d1_lo,
                       d1_hi,
                       TILEDB_ARRAY_READ_SORTED_ROW);
-    ASSERT_TRUE(buffer != NULL);
+    REQUIRE(buffer != NULL);
 
     // Check
     for(int64_t i = d0_lo; i <= d0_hi; ++i) {
       for(int64_t j = d1_lo; j <= d1_hi; ++j) {
-        ASSERT_EQ(buffer[index], i*domain_size_1+j);
+        CHECK(buffer[index] == i*domain_size_1+j);
         if (buffer[index] !=  (i*domain_size_1+j)) {
           std::cout << "mismatch: " << i
               << "," << j << "=" << buffer[index] << "!="

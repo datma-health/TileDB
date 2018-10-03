@@ -34,9 +34,8 @@
 #define __C_API_SPARSE_ARRAY_SPEC_H__
 
 #include "tiledb.h"
-#include <gtest/gtest.h>
 
-class SparseArrayTestFixture: public testing::Test {
+class SparseArrayTestFixture {
  public:
   /* ********************************* */
   /*             CONSTANTS             */
@@ -49,17 +48,13 @@ class SparseArrayTestFixture: public testing::Test {
 
 
   /* ********************************* */
-  /*          GTEST FUNCTIONS          */
+  /*    CONSTRUCTOR/DESTRUCTOR         */
   /* ********************************* */
 
-  /** Test initialization. */
-  virtual void SetUp(); 
+  SparseArrayTestFixture();
+  ~SparseArrayTestFixture();
 
-  /** Test finalization. */
-  virtual void TearDown();
-
-
-
+  
 
   /* ********************************* */
   /*           PUBLIC METHODS          */

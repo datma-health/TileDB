@@ -43,9 +43,8 @@
 do {                                                       \
   int rc = __VA_ARGS__;                                    \
   if (rc) {                                                \
-    printf("[Examples::%s] Runtime Error.\n",              \
-           __FILE__);	                                   \
-    printf(tiledb_errmsg);				   \
+    printf("%s", &tiledb_errmsg[0]);                       \
+    printf("[Examples::%s] Runtime Error.\n", __FILE__);   \
     return rc;                                             \
   }                                                        \
 } while (false)
