@@ -3,17 +3,24 @@ dist: trusty
 
 env:
   matrix:
-    - INSTALL_TYPE=basic
-    - INSTALL_TYPE=hdfs
-    - INSTALL_TYPE=gcs
-  global:
+   global:
     - TILEDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build
     - secure: FY0kC/WNeghc7tffE/Lksir33wAGBRAyQ3Zo2QDb8KOaspT9lUnraW+vLgGTqbV1xJLYWszYv4tKxbiNLV78pfJ886FsZUv5FDiz93EmM7zIAM8moXqjFhwkq9PBKDfGTbkIEt3Ris5himIegSj5Jnpvxw+BhngDy9dFylLox55fsDc88ZjDBTMv1NRJQc2hWmi7unfkzz0Bmq4Ao9OvBqHDqwTt9ZAfmZQEHlrmojuPX8uENp9jQ+8Pgrl/Lv9HjFnHeQAhXHufWztCzUcw84ywnf14VF9ifJhb7nmMEa1itZTVW7QLOQhRZrKKv1ecgE2qt+i3hqN5W+8xR8sc3iKWqyrB3j2uZMrR4njtfoBYREXATS02+nzJQblSZMJh+clm6R4X30Z2F5SJuVW6k2Gr3Zme7B3HJZJWzscwV35aSbUQeCFro6LDrGPhLcuVYLnIVxwol7u72qh61hOOTfX4j38gWxTM/3uyNpQGfUjtk+CscdZvuYy2+ayt8BWilf4hDRpypJ9tQaNxOKLBB4Agv4Tvm5mwTly1OL3uE7MMzap3LD2li6MBFmwzjkY4YKnM9pji0gOs131RNBh1CnbcpzU5HdnLjwbA79Mhr+L1vxvHPcvuY2vd5YNygWHg2f7wYpIFxpkWWA80AwHEuJIsKK7GrVvHlDh7g3onmm4=
 
 matrix:
   include:
-    - os: linux
-      name: "TileDB"
+    - name: "TileDB"
+      os: linux
+      env: INSTALL_TYPE=basic
+      
+    - name: "TileDB HDFS"
+      os: linux
+      env: INSTALL_TYPE=hdfs
+
+    - name: "TileDB GCS"
+      os: linux
+      env: INSTALL_TYPE=gcs
+
     #- os: osx
 
 before_install:
