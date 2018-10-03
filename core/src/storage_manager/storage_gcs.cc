@@ -117,6 +117,7 @@ thread_local char *value = NULL;
 #define GCS_PREFIX "gs://"
 
 hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) {
+  std::cerr << "TODO: remove - working_dir=" << working_dir << std::endl;
   char *gcs_creds = getenv("GOOGLE_APPLICATION_CREDENTIALS");
   std::cerr << "TODO: remove - GOOG_APP_CRED=" << gcs_creds << std::endl;
   if (gcs_creds) {

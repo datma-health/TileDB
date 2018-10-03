@@ -26,6 +26,8 @@ download_gcs() {
   if ($INSTALL_TYPE == gcs); then
     wget -q https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-latest-hadoop2.jar
 	mv gcs-connector-latest-hadoop2.jar ${HADOOP_DIR}/share/hadoop/common
+	echo "Listing ${HADOOP_DIR}/share/hadoop/common"
+	ls -l ${HADOOP_DIR}/share/hadoop/common
   fi
 }
 
