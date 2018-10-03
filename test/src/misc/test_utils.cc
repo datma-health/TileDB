@@ -30,29 +30,15 @@
  * Tests for the utility functions spec.
  */
 
-
-#include "utils_spec.h"
-
-
-/* ****************************** */
-/*        GTEST FUNCTIONS         */
-/* ****************************** */
-
-void UtilsTestFixture::SetUp() {
-}
-
-void UtilsTestFixture::TearDown() {
-}
-
-
-
-
 /* ****************************** */
 /*             TESTS              */
 /* ****************************** */
 
+#include "catch.h"
+#include "utils.h"
+
 /** Tests RLE compression (attribute). */
-TEST_F(UtilsTestFixture, test_RLE) {
+TEST_CASE("Test RLE compression(attribute)", "rle") {
   // Initializations
   unsigned char input[1000000];
   size_t input_size = 0;
@@ -69,24 +55,22 @@ TEST_F(UtilsTestFixture, test_RLE) {
   value_size = sizeof(int);
 
   // Test empty bufffer
-
-
   rc = RLE_compress(input, input_size, compressed, compressed_size, value_size);
-  ASSERT_EQ(rc, 0);
+  CHECK(rc == 0);
 
   // Test input buffer invalid format
   input_size = 5; 
   rc = RLE_compress(input, input_size, compressed, compressed_size, value_size);
-  ASSERT_EQ(rc, TILEDB_UT_ERR);
+  CHECK(rc == TILEDB_UT_ERR);
 
   // Test output buffer overflow
   input_size = 16; 
   rc = RLE_compress(input, input_size, compressed, compressed_size, value_size);
-  ASSERT_EQ(rc, TILEDB_UT_ERR);
+  CHECK(rc == TILEDB_UT_ERR);
 
   // Test compress bound 
   compress_bound = RLE_compress_bound(input_size, value_size);
-  ASSERT_EQ(compress_bound, input_size + ((input_size/value_size) * 2));
+  CHECK(compress_bound == input_size + ((input_size/value_size) * 2));
 
   // Test all values unique (many unitary runs)
   for(int i=0; i<100; ++i) 
@@ -94,7 +78,7 @@ TEST_F(UtilsTestFixture, test_RLE) {
   input_size = 100*value_size;
   compressed_size = RLE_compress_bound(input_size, value_size);
   rc = RLE_compress(input, input_size, compressed, compressed_size, value_size);
-  ASSERT_EQ(static_cast<size_t>(rc), compressed_size);
+  REQUIRE(static_cast<size_t>(rc) == compressed_size);
   decompressed_size = input_size;
   rc = RLE_decompress(
            compressed, 
@@ -102,8 +86,8 @@ TEST_F(UtilsTestFixture, test_RLE) {
            decompressed, 
            decompressed_size,
            value_size);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  REQUIRE(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 
   // Test all values the same (a single long run)
   int v = 111;
@@ -117,7 +101,7 @@ TEST_F(UtilsTestFixture, test_RLE) {
           compressed, 
           compressed_size, 
           value_size);
-  ASSERT_EQ(compressed_size, run_size);
+  REQUIRE(compressed_size == run_size);
   decompressed_size = input_size;
   rc = RLE_decompress(
            compressed, 
@@ -125,8 +109,8 @@ TEST_F(UtilsTestFixture, test_RLE) {
            decompressed, 
            decompressed_size,
            value_size);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  REQUIRE(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 
   // Test a mix of short and long runs
   for(int i=0; i<10; ++i) 
@@ -144,7 +128,7 @@ TEST_F(UtilsTestFixture, test_RLE) {
           compressed, 
           compressed_size, 
           value_size);
-  ASSERT_EQ(compressed_size, 21*run_size);
+  REQUIRE(compressed_size == 21*run_size);
   decompressed_size = input_size;
   rc = RLE_decompress(
            compressed, 
@@ -152,8 +136,8 @@ TEST_F(UtilsTestFixture, test_RLE) {
            decompressed, 
            decompressed_size,
            value_size);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
   
   // Test when a run exceeds max run length
   for(int i=0; i<10; ++i) 
@@ -171,7 +155,7 @@ TEST_F(UtilsTestFixture, test_RLE) {
           compressed, 
           compressed_size, 
           value_size);
-  ASSERT_EQ(compressed_size, 32*run_size);
+  CHECK(compressed_size == 32*run_size);
   decompressed_size = input_size;
   rc = RLE_decompress(
            compressed, 
@@ -179,8 +163,8 @@ TEST_F(UtilsTestFixture, test_RLE) {
            decompressed, 
            decompressed_size,
            value_size);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 
   // === Attribute compression (value_size = 2*sizeof(double)) === //
   value_size = 2*sizeof(double);
@@ -215,7 +199,7 @@ TEST_F(UtilsTestFixture, test_RLE) {
           compressed, 
           compressed_size, 
           value_size);
-  ASSERT_EQ(compressed_size, 21*run_size);
+  REQUIRE(compressed_size == 21*run_size);
   decompressed_size = input_size;
   rc = RLE_decompress(
            compressed, 
@@ -223,12 +207,12 @@ TEST_F(UtilsTestFixture, test_RLE) {
            decompressed, 
            decompressed_size,
            value_size);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 }
 
 /** Tests RLE compression (coordinates, row-major cell order). */
-TEST_F(UtilsTestFixture, test_RLE_coords_row) {
+TEST_CASE("Tests RLE compression (coordinates, row-major cell order)", "[test_RLE_coords_row]") {
   // Initializations
   unsigned char input[1000000];
   unsigned char compressed[1000000];
@@ -256,7 +240,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(rc, 0);
+  CHECK(rc == 0);
 
   // Test input buffer invalid format
   input_size = 5; 
@@ -267,7 +251,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_ERR);
+  CHECK(rc == TILEDB_UT_ERR);
 
   // Test output buffer overflow
   input_size = 16; 
@@ -279,7 +263,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_ERR);
+  CHECK(rc == TILEDB_UT_ERR);
 
   // Test compress bound 
   input_size = 64;
@@ -287,7 +271,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
   int64_t cell_num = input_size / coords_size;
   size_t compress_bound_expected = 
       input_size + cell_num*(dim_num-1)*2 + sizeof(int64_t);
-  ASSERT_EQ(compress_bound, compress_bound_expected);
+  CHECK(compress_bound == compress_bound_expected);
 
   // Test all values unique (many unitary runs)
   int v;
@@ -305,7 +289,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(static_cast<size_t>(rc), compressed_size);
+  REQUIRE(static_cast<size_t>(rc) == compressed_size);
   decompressed_size = input_size;
   rc = RLE_decompress_coords_row(
            compressed, 
@@ -314,8 +298,8 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
            decompressed_size,
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 
   // Test all values the same (a single long run)
   v = 111;
@@ -333,7 +317,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
           compressed_size, 
           value_size,
           dim_num);
-  ASSERT_EQ(compressed_size, 100*value_size + run_size + sizeof(int64_t));
+  REQUIRE(compressed_size == 100*value_size + run_size + sizeof(int64_t));
   decompressed_size = input_size;
   rc = RLE_decompress_coords_row(
            compressed, 
@@ -342,8 +326,8 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
            decompressed_size,
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 
   // Test a mix of short and long runs
   for(int i=0; i<10; ++i) {
@@ -371,7 +355,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
           compressed_size, 
           value_size,
           dim_num);
-  ASSERT_EQ(compressed_size, 100*value_size + 21*run_size + sizeof(int64_t));
+  REQUIRE(compressed_size == 100*value_size + 21*run_size + sizeof(int64_t));
   decompressed_size = input_size;
   rc = RLE_decompress_coords_row(
            compressed, 
@@ -380,12 +364,12 @@ TEST_F(UtilsTestFixture, test_RLE_coords_row) {
            decompressed_size,
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 }
 
 /** Tests RLE compression (coordinates, column-major cell order). */
-TEST_F(UtilsTestFixture, test_RLE_coords_col) {
+TEST_CASE("Tests RLE compression (coordinates, column-major cell order)", "[test_RLE_coords_col]") {
   // Initializations
   unsigned char input[1000000];
   unsigned char compressed[1000000];
@@ -413,7 +397,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(rc, 0);
+  CHECK(rc == 0);
 
   // Test input buffer invalid format
   input_size = 5; 
@@ -424,7 +408,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_ERR);
+  CHECK(rc == TILEDB_UT_ERR);
 
   // Test output buffer overflow
   input_size = 16; 
@@ -436,7 +420,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_ERR);
+  CHECK(rc == TILEDB_UT_ERR);
 
   // Test compress bound 
   input_size = 64;
@@ -444,7 +428,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
   int64_t cell_num = input_size / coords_size;
   size_t compress_bound_expected = 
       input_size + cell_num*(dim_num-1)*2 + sizeof(int64_t);
-  ASSERT_EQ(compress_bound, compress_bound_expected);
+  CHECK(compress_bound == compress_bound_expected);
 
   // Test all values unique (many unitary runs)
   int v;
@@ -462,7 +446,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
            compressed_size, 
            value_size,
            dim_num);
-  ASSERT_EQ(static_cast<size_t>(rc), compressed_size);
+  REQUIRE(static_cast<size_t>(rc) == compressed_size);
   decompressed_size = input_size;
   rc = RLE_decompress_coords_col(
            compressed, 
@@ -471,8 +455,8 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
            decompressed_size,
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 
   // Test all values the same (a single long run)
   v = 111;
@@ -490,7 +474,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
           compressed_size, 
           value_size,
           dim_num);
-  ASSERT_EQ(compressed_size, 100*value_size + run_size + sizeof(int64_t));
+  CHECK(compressed_size == 100*value_size + run_size + sizeof(int64_t));
   decompressed_size = input_size;
   rc = RLE_decompress_coords_col(
            compressed, 
@@ -499,8 +483,8 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
            decompressed_size,
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 
   // Test a mix of short and long runs
   for(int i=0; i<10; ++i) {
@@ -528,7 +512,7 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
           compressed_size, 
           value_size,
           dim_num);
-  ASSERT_EQ(compressed_size, 100*value_size + 21*run_size + sizeof(int64_t));
+  REQUIRE(compressed_size == 100*value_size + 21*run_size + sizeof(int64_t));
   decompressed_size = input_size;
   rc = RLE_decompress_coords_col(
            compressed, 
@@ -537,6 +521,6 @@ TEST_F(UtilsTestFixture, test_RLE_coords_col) {
            decompressed_size,
            value_size,
            dim_num);
-  ASSERT_EQ(rc, TILEDB_UT_OK);
-  ASSERT_FALSE(memcmp(input, decompressed, input_size));
+  CHECK(rc == TILEDB_UT_OK);
+  CHECK_FALSE(memcmp(input, decompressed, input_size));
 }

@@ -34,11 +34,11 @@
 #define __C_API_ARRAY_SCHEMA_SPEC_H__
 
 #include "tiledb.h"
-#include <gtest/gtest.h>
+//#include <gtest/gtest.h>
 
 
 /** Test fixture for the array schema. */
-class ArraySchemaTestFixture: public testing::Test {
+class ArraySchemaTestFixture {
 
  public:
   /* ********************************* */
@@ -57,14 +57,11 @@ class ArraySchemaTestFixture: public testing::Test {
 
 
   /* ********************************* */
-  /*          GTEST FUNCTIONS          */
+  /*    CONSTRUCTOR/DESTRUCTOR         */
   /* ********************************* */
+  ArraySchemaTestFixture();
+  ~ArraySchemaTestFixture();
 
-  /** Test initialization. */
-  virtual void SetUp(); 
-
-  /** Test finalization. */
-  virtual void TearDown();
 
 
 

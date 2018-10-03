@@ -35,12 +35,12 @@
 #include "utils.h"
 #include <unistd.h>
 
+#include "catch.h"
 
-/* ****************************** */
-/*        GTEST FUNCTIONS         */
-/* ****************************** */
+using Catch::Equals;
+using Catch::EndsWith;
 
-void ArraySchemaTestFixture::SetUp() {
+ArraySchemaTestFixture::ArraySchemaTestFixture() {
   // Error code
   int rc;
 
@@ -49,34 +49,34 @@ void ArraySchemaTestFixture::SetUp() {
  
   // Initialize context
   rc = tiledb_ctx_init(&tiledb_ctx_, NULL);
-  ASSERT_EQ(rc, TILEDB_OK);
+  REQUIRE(rc == TILEDB_OK);
 
   // Create workspace
   rc = tiledb_workspace_create(tiledb_ctx_, WORKSPACE.c_str());
-  ASSERT_EQ(rc, TILEDB_OK);
+  REQUIRE(rc == TILEDB_OK);
  
   // Set array name
   array_name_ = WORKSPACE + ARRAYNAME;
 }
 
-void ArraySchemaTestFixture::TearDown() {
+ArraySchemaTestFixture::~ArraySchemaTestFixture() {
   // Error code
   int rc;
 
   // Finalize TileDB context
   rc = tiledb_ctx_finalize(tiledb_ctx_);
-  ASSERT_EQ(rc, TILEDB_OK);
+  REQUIRE(rc == TILEDB_OK);
 
   // Remove the temporary workspace
   std::string command = "rm -rf ";
   command.append(WORKSPACE);
   rc = system(command.c_str());
-  ASSERT_EQ(rc, 0);
+  REQUIRE(rc == 0);
 
   // Free array schema
   if(array_schema_set_) {
     rc = tiledb_array_free_schema(&array_schema_);
-    ASSERT_EQ(rc, TILEDB_OK);
+    REQUIRE(rc == TILEDB_OK);
   }
 }
 
@@ -156,13 +156,13 @@ int ArraySchemaTestFixture::create_dense_array() {
 /**
  * Tests the array schema creation and retrieval.
  */
-TEST_F(ArraySchemaTestFixture, test_array_schema) {
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema", "[array_schema]") {
   // Error code 
   int rc;
 
   // Create array
   rc = create_dense_array();
-  ASSERT_EQ(rc, TILEDB_OK);
+  REQUIRE(rc == TILEDB_OK);
 
   // Load array schema from the disk
   TileDB_ArraySchema array_schema_disk;
@@ -170,7 +170,7 @@ TEST_F(ArraySchemaTestFixture, test_array_schema) {
            tiledb_ctx_, 
            array_name_.c_str(), 
            &array_schema_disk);
-  ASSERT_EQ(rc, TILEDB_OK);
+  REQUIRE(rc == TILEDB_OK);
 
   // For easy reference
   int64_t* tile_extents_disk = 
@@ -180,28 +180,29 @@ TEST_F(ArraySchemaTestFixture, test_array_schema) {
 
   // Get real array path
   std::string array_name_real = real_dir(new PosixFS(), array_name_);
-  ASSERT_STRNE(array_name_real.c_str(), "");
+  CHECK_FALSE(array_name_real == "");
+  CHECK_THAT(array_name_real, EndsWith(ARRAYNAME));
 
   // Tests
   //absolute path isn't relevant anymore
   //ASSERT_STREQ(array_schema_disk.array_name_, array_name_real.c_str());
-  ASSERT_EQ(array_schema_disk.attribute_num_, array_schema_.attribute_num_);
-  ASSERT_EQ(array_schema_disk.dim_num_, array_schema_.dim_num_);
-  ASSERT_EQ(array_schema_disk.capacity_, array_schema_.capacity_);
-  ASSERT_EQ(array_schema_disk.cell_order_, array_schema_.cell_order_);
-  ASSERT_EQ(array_schema_disk.tile_order_, array_schema_.tile_order_);
-  ASSERT_EQ(array_schema_disk.dense_, array_schema_.dense_);
-  ASSERT_STREQ(array_schema_disk.attributes_[0], array_schema_.attributes_[0]);
-  ASSERT_EQ(array_schema_disk.compression_[0], array_schema_.compression_[0]);
-  ASSERT_EQ(array_schema_disk.compression_[1], array_schema_.compression_[1]);
-  ASSERT_EQ(array_schema_disk.types_[0], array_schema_.types_[0]);
-  ASSERT_EQ(array_schema_disk.types_[1], array_schema_.types_[1]);
-  ASSERT_EQ(tile_extents_disk[0], tile_extents[0]);
-  ASSERT_EQ(tile_extents_disk[1], tile_extents[1]);
+  CHECK(array_schema_disk.attribute_num_ == array_schema_.attribute_num_);
+  CHECK(array_schema_disk.dim_num_ == array_schema_.dim_num_);
+  CHECK(array_schema_disk.capacity_ == array_schema_.capacity_);
+  CHECK(array_schema_disk.cell_order_ == array_schema_.cell_order_);
+  CHECK(array_schema_disk.tile_order_ == array_schema_.tile_order_);
+  CHECK(array_schema_disk.dense_ == array_schema_.dense_);
+  CHECK_THAT(array_schema_disk.attributes_[0], Equals(array_schema_.attributes_[0]));
+  CHECK(array_schema_disk.compression_[0] == array_schema_.compression_[0]);
+  CHECK(array_schema_disk.compression_[1] == array_schema_.compression_[1]);
+  CHECK(array_schema_disk.types_[0] == array_schema_.types_[0]);
+  CHECK(array_schema_disk.types_[1] == array_schema_.types_[1]);
+  CHECK(tile_extents_disk[0] == tile_extents[0]);
+  CHECK(tile_extents_disk[1] == tile_extents[1]);
 
   // Free array schema
   rc = tiledb_array_free_schema(&array_schema_disk);
-  ASSERT_EQ(rc, TILEDB_OK);
+  REQUIRE(rc == TILEDB_OK);
 }
 
 

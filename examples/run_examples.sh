@@ -1,32 +1,11 @@
 #!/bin/bash
-
-#The MIT License (MIT)
-#Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
-
-#Permission is hereby granted, free of charge, to any person obtaining a copy of
-#this software and associated documentation files (the "Software"), to deal in
-#the Software without restriction, including without limitation the rights to
-#use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-#the Software, and to permit persons to whom the Software is furnished to do so,
-#subject to the following conditions:
-
-#The above copyright notice and this permission notice shall be included in all
-#copies or substantial portions of the Software.
-
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-#FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-#COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-#IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-#CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 #
 # run_examples.sh
 #
 #
 # The MIT License
 #
-# Copyright (c) 2018 Omics Data Automation, Inc.
+# Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -47,16 +26,26 @@
 # THE SOFTWARE.
 #
 
-#This runs a small subset of example binaries from <build>/examples/ directory.
+# This runs a small subset of example binaries from <build>/examples/ directory.
 
-#Usage without arguments(workspace will be a default "my_workspace" in <build/examples/) :
-#   ./run_examples.sh 
-#Usage with args(path can either be a posix filesystem path or a hdfs/emrfs/gs URL)
-#   ./run_examples.sh <path>
-#Results are either in a "log" file for the default case or <last_segment_of_specified_path>.log
-#if path is specified.
-# e.g for ./run_examples.sh gs://my_bucket/my_dir/my_test, expect results in test.log
-#Check the log file against the <install>/examples/expected_results file.
+# Usage without arguments(workspace will be a default "my_workspace" in <build/examples/) :
+#    ./run_examples.sh 
+# Usage with args(path can either be a posix filesystem path or a hdfs/emrfs/gs URL)
+#    ./run_examples.sh <path>
+# Results are either in a "log" file for the default case or <last_segment_of_specified_path>.log
+#  if path is specified.
+#    e.g for ./run_examples.sh gs://my_bucket/my_dir/my_test, expect results in test.log
+# Check the log file against the <install>/examples/expected_results file.
+
+check_rc() {
+  if [[ $# -eq 1 ]]; then
+    if [[ $1 -ne 0 ]]; then
+      echo
+      echo "Exit Status=$1. Quitting execution of run_examples.sh"
+      exit $1
+    fi
+  fi
+}
 
 run_example() {
   if [[ $# -eq 3 ]]
@@ -64,18 +53,12 @@ run_example() {
     logfile=`basename $2`.log
     echo "Example $3: Running $1..." | tee -a ${logfile}
     $1 $2 | tee -a ${logfile}
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
-        echo $1 $2 Failed. Exiting.
-        exit
-    fi
+    check_rc ${PIPESTATUS[0]}
     echo "Example $3: Done running $1" | tee -a ${logfile}
   else
     echo "Example $2: Running $1..." | tee -a log
     $1 | tee -a log
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
-        echo $1 $2 Failed. Exiting.
-        exit
-    fi
+    check_rc ${PIPESTATUS[0]}
     echo "Example $2: Done running $1" | tee -a log
   fi
 }
@@ -85,15 +68,15 @@ then
   logfile=`basename $1`.log
   if [[ $1 == *"//"* ]]
   then
-    echo "Cleaning hdfs $1" | tee ${logfile}
-    hdfs dfs -rm -r $1 | tee -a ${logfile}
+    echo "Cleaning hdfs $1"
+    hdfs dfs -rm -r $1
   else
-    echo "Cleaning posixfs$1" | tee ${logfile}
-    rm -fr $1 my_workspace | tee -a ${logfile}
+    echo "Cleaning posixfs$1"
+    rm -fr $1 my_workspace
   fi
 else
-  echo "Cleaning default my_workspace" | tee log
-  rm -fr my_workspace | tee -a log
+  echo "Cleaning default my_workspace"
+  rm -fr my_workspace
 fi
 
 run_example ./tiledb_workspace_group_create $1 1

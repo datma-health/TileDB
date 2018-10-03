@@ -42,7 +42,7 @@ set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
 set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(ENABLE_MUPARSERX_EXPRESSIONS False CACHE BOOL "Enable MuparserX expression parsing")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
-set(ENABLE_MASTER_CATALOG True CACHE BOOL "Enable master catalog")
+set(ENABLE_MASTER_CATALOG False CACHE BOOL "Enable master catalog")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 
 # Only for Mac OS X warnings
@@ -201,21 +201,18 @@ if(COMPRESSION_LEVEL_BLOSC)
   message(STATUS "Set Blosc compression level to ${COMPRESSION_LEVEL_BLOSC}.")
 endif()
 
-# Enable testing
-enable_testing()
-
 # Build TileDB library
 add_subdirectory(core)
 
+# Enable testing
+enable_testing()
+add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND} -V)
+
+# Build unit tests
+add_subdirectory(test)
+
 # Build examples
 add_subdirectory(examples)
-
-if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-    # Build unit tests
-    if(GTEST_FOUND)
-        add_subdirectory(test)
-    endif()
-endif()
 
 # Doxygen documentation
 if(DOXYGEN_FOUND)
