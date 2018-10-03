@@ -65,7 +65,6 @@ set(MAC_ADDRESS_INTERFACE ""
 )
 set(USE_PARALLEL_SORT False CACHE BOOL "Enables parallel sorting.")
 set(USE_HDFS True CACHE BOOL "Enables HDFS support")
-set(GTEST_FILTER "*" CACHE STRING "Filters for the Google unit tests.")
 set(COMPRESSION_LEVEL_GZIP "" CACHE STRING "Compression level for GZIP.")
 set(COMPRESSION_LEVEL_ZSTD "" CACHE STRING "Compression level for Zstandard.")
 set(COMPRESSION_LEVEL_BLOSC "" CACHE STRING "Compression level for Blosc.")
@@ -111,7 +110,6 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
 
 # Find optional library dependencies
-find_package(GTest)
 find_package(Doxygen)
 if(USE_MPI)
   find_package(MPI REQUIRED)

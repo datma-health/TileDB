@@ -5,6 +5,8 @@
  *
  * The MIT License
  *
+ * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -116,11 +118,13 @@ thread_local char *value = NULL;
 
 hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) {
   char *gcs_creds = getenv("GOOGLE_APPLICATION_CREDENTIALS");
+  std::cerr << "TODO: remove - GOOG_APP_CRED=" << gcs_creds << std::endl;
   if (gcs_creds) {
+    hdfsBuilderConfSetStr(builder, "google.cloud.auth.service.account.enable", "true");
+    hdfsBuilderConfSetStr(builder, "google.cloud.auth.service.account.json.keyfile", gcs_creds);
+    
     value = parse_json(gcs_creds, "project_id"); // free value after hdfsBuilderConnect as it is shallow copied.
     if (value) {
-      hdfsBuilderConfSetStr(builder, "google.cloud.auth.service.account.enable", "true");
-      hdfsBuilderConfSetStr(builder, "google.cloud.auth.service.account.json.keyfile", gcs_creds);
       hdfsBuilderConfSetStr(builder, "fs.gs.project.id", value);
     }
   }

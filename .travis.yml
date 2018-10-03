@@ -2,29 +2,37 @@ sudo: required
 dist: trusty
 
 env:
+  matrix:
+    - INSTALL_TYPE=basic
+    - INSTALL_TYPE=hdfs
+    - INSTALL_TYPE=gcs
   global:
     - TILEDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build
+    - secure: FY0kC/WNeghc7tffE/Lksir33wAGBRAyQ3Zo2QDb8KOaspT9lUnraW+vLgGTqbV1xJLYWszYv4tKxbiNLV78pfJ886FsZUv5FDiz93EmM7zIAM8moXqjFhwkq9PBKDfGTbkIEt3Ris5himIegSj5Jnpvxw+BhngDy9dFylLox55fsDc88ZjDBTMv1NRJQc2hWmi7unfkzz0Bmq4Ao9OvBqHDqwTt9ZAfmZQEHlrmojuPX8uENp9jQ+8Pgrl/Lv9HjFnHeQAhXHufWztCzUcw84ywnf14VF9ifJhb7nmMEa1itZTVW7QLOQhRZrKKv1ecgE2qt+i3hqN5W+8xR8sc3iKWqyrB3j2uZMrR4njtfoBYREXATS02+nzJQblSZMJh+clm6R4X30Z2F5SJuVW6k2Gr3Zme7B3HJZJWzscwV35aSbUQeCFro6LDrGPhLcuVYLnIVxwol7u72qh61hOOTfX4j38gWxTM/3uyNpQGfUjtk+CscdZvuYy2+ayt8BWilf4hDRpypJ9tQaNxOKLBB4Agv4Tvm5mwTly1OL3uE7MMzap3LD2li6MBFmwzjkY4YKnM9pji0gOs131RNBh1CnbcpzU5HdnLjwbA79Mhr+L1vxvHPcvuY2vd5YNygWHg2f7wYpIFxpkWWA80AwHEuJIsKK7GrVvHlDh7g3onmm4=
 
 matrix:
   include:
-    - name: "Basic build"
-      os: linux
+    - os: linux
+    #- os: osx
 
-    - name: "Cloud support"
-      os: linux
-      env: HDFS_SUPPORT=true
+before_install:
+    - if [[ INSTALL_TYPE == gcs ]]; then
+         openssl aes-256-cbc -K $encrypted_ccae32f351a4_key -iv $encrypted_ccae32f351a4_iv -in $TRAVIS_BUILD_DIR/resources/gcs/GCS.json.enc -out $TRAVIS_BUILD_DIR/GCS.json -d;
+      fi
 
 install:
     # Install cmake, lcov, MPICH
     - sudo apt-get -y install cmake lcov mpich
+
     # Install zlib, OpenSSL and LZ4
     - sudo apt-get -y install zlib1g-dev libssl-dev liblz4-dev uuid-dev
+
     # Install Zstandard
     #- wget https://github.com/facebook/zstd/archive/v1.0.0.tar.gz
     #- tar xf v1.0.0.tar.gz
     #- cd zstd-1.0.0
     #- sudo make install PREFIX='/usr'
-    - cd $TRAVIS_BUILD_DIR
+    #- cd $TRAVIS_BUILD_DIR
     # Install Blosc
     #- git clone https://github.com/Blosc/c-blosc 
     #- cd c-blosc
@@ -35,9 +43,8 @@ install:
     #- sudo cmake --build . --target install
 
     # Hadoop install
-    - if [[ $HDFS_SUPPORT == true ]]; then
+    - if [[ $INSTALL_TYPE != basic ]]; then
         source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
-        echo "CLASSPATH=" $CLASSPATH;
       fi
 
     - cd $TRAVIS_BUILD_DIR
@@ -55,12 +62,8 @@ before_script:
     - lcov --directory $TILEDB_BUILD_DIR --zerocounters
 
 script:
-    - if [[ $HDFS_SUPPORT == true ]]; then
-       echo "Run HDFS tests";
-       make examples;
-       cd examples;
-       $TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test";
-       diff travis_test.log $TRAVIS_BUILD_DIR/examples/expected_results;
+    - if [[ $INSTALL_TYPE != basic ]]; then
+        $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
       else
         make tests -j 4;
       fi

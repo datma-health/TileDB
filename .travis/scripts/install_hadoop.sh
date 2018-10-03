@@ -22,11 +22,19 @@ install_prereqs() {
   echo "install_prereqs successful"
 }
 
+download_gcs() {
+  if ($INSTALL_TYPE == gcs); then
+    wget -q https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-latest-hadoop2.jar
+	mv gcs-connector-latest-hadoop2.jar ${HADOOP_DIR}/share/hadoop/common
+  fi
+}
+
 download_hadoop() {
   wget -q http://www-eu.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz &&
   sudo tar -xzvf $HADOOP.tar.gz --directory $INSTALL_DIR &&
   sudo chown -R $USER:$USER $HADOOP_DIR &&
-  echo "download_hadoop successful" 
+  download_gcs &&
+  echo "download_hadoop successful"
 }
 
 configure_passphraseless_ssh() {
@@ -55,6 +63,8 @@ setup_paths() {
 }
 
 install_hadoop() {
+  mkdir -p $TRAVIS_BUILD_DIR/scripts
+  cd $TRAVIS_BUILD_DIR/scripts &&
   install_prereqs &&
   download_hadoop &&
   configure_hadoop &&
