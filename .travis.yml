@@ -13,6 +13,7 @@ env:
 matrix:
   include:
     - os: linux
+      name: "TileDB"
     #- os: osx
 
 before_install:
