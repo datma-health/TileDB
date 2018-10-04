@@ -74,7 +74,9 @@ install_hadoop() {
   echo "Install Hadoop SUCCESSFUL"
 }
 
-install_hadoop
+if [[ $INSTALL_TYPE != basic ]]; then
+  install_hadoop
+fi
 
 
 

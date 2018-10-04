@@ -32,10 +32,7 @@ matrix:
 before_install:
     - if [[ $INSTALL_TYPE == gcs ]]; then
         pushd $TRAVIS_BUILD_DIR/.travis/resources/gcs;
-        echo "GS_BUCKET=" $GS_BUCKET;
         openssl aes-256-cbc -K $encrypted_e618d734a0d0_key -iv $encrypted_e618d734a0d0_iv -in GCS.json.enc -out ~/GCS.json -d;
-        echo "Listing gcs";
-        ls -l;
         popd;
       fi
 
@@ -44,15 +41,12 @@ install:
         sudo apt-get -y install cmake lcov mpich;
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
         source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
-        if [[ $INSTALL_TYPE != basic ]]; then
-          source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
-          echo "HADOOP CLASSPATH=" $CLASSPATH;
-        fi
+        source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
         brew install cmake lcov mpich ;
-        brew install openssl, ossp-uuid;
+        brew install openssl ossp-uuid;
       else
-        echo "Platform $TRAVIS_OS not yet supported";
+        echo "Platform $TRAVIS_OS_NAME not yet supported";
         exit 1;
       fi
 
