@@ -6,7 +6,7 @@ if [[ $INSTALL_TYPE != basic ]]; then
 		$TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test";		
 	elif [[ $INSTALL_TYPE == gcs ]]; then
 		echo "GS_BUCKET=" $GS_BUCKET
-		if [[ ! -f ~/gcs/GCS.json ]]; then
+		if [[ ! -f ~/GCS.json ]]; then
 			echo "GCS Service Json File not found";
 			exit 1;
 		fi
