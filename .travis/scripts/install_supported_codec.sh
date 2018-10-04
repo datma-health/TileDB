@@ -14,7 +14,7 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 
 	# Install Blosc
 	pushd ~
-	git clone https://github.com/Blosc/c-blosc &&
+	git clone https://github.com/Blosc/c-blosc.git &&
 		cd c-blosc &&
 		mkdir build &&
 		cd build &&
@@ -25,7 +25,7 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 	popd
 
 	# Install LZ4
-	sudo apt-get -y liblz4-dev &&
+	sudo apt-get -y install liblz4-dev &&
 		export ENABLE_LZ4=1
 else
 	export ENABLE_ZSTD=0
