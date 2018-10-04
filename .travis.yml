@@ -45,18 +45,22 @@ install:
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
         brew install cmake lcov mpich ;
         brew install openssl ossp-uuid;
+	export OPENSSL_ROOT_DIR=/usr/local/opt/openssl;
       else
         echo "Platform $TRAVIS_OS_NAME not yet supported";
         exit 1;
       fi
 
     # Install lcov to coveralls conversion + upload tool
-    - gem install coveralls-lcov
+    # - gem install coveralls-lcov
 
     # Build TileDB
     - rm -rf $TILEDB_BUILD_DIR
     - mkdir -p $TILEDB_BUILD_DIR
     - cd $TILEDB_BUILD_DIR
+
+    - echo "Invoking cmake"
+    - echo "cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 .."
 
     - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 ..
     - make -j 4
