@@ -60,7 +60,7 @@ install:
         brew install openssl, ossp-uuid;
       else
         echo "Platform $TRAVIS_OS not yet supported";
-	exit 1
+	exit 1;
       fi
 
     # Install lcov to coveralls conversion + upload tool
