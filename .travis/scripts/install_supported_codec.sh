@@ -3,13 +3,13 @@
 INSTALL_DIR=${INSTALL_DIR:-/usr}
 
 if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
-	# Install Zstandard
+	# Install Zstandard - Not enabled - Seg faults when Code Coverage is ON
 	pushd ~
 	wget https://github.com/facebook/zstd/archive/v1.0.0.tar.gz &&
 		tar xf v1.0.0.tar.gz &&
 		cd zstd-1.0.0 &&
 		sudo make install PREFIX=$INSTALL_DIR &&
-		export ENABLE_ZSTD=1
+		export ENABLE_ZSTD=0
 	popd
 
 	# Install Blosc
@@ -24,8 +24,8 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 		export ENABLE_BLOSC=1
 	popd
 
-	# Install LZ4 - Not enabled as Trusty seems to have a very old version of lz4
-	sudo apt-get -y install liblz4-dev && echo "Finding lz4" && find /usr -name liblz4* &&
+	# Install LZ4 - Not enabled - Travis/Trusty distr has a very old version of lz4
+	sudo apt-get -y install liblz4-dev &&
 		export ENABLE_LZ4=0
 else
 	export ENABLE_ZSTD=0
