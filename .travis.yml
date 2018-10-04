@@ -27,7 +27,7 @@ matrix:
 
     - name: "Basic build - OSX"
       os: osx
-      env: INSTALL_TYPE=basic ENABLE_ZSTD=0 ENABLE_BLOSC=0 ENABLE_LZ4=0
+      env: INSTALL_TYPE=basic
 
 before_install:
     - if [[ $INSTALL_TYPE == gcs ]]; then
@@ -37,11 +37,10 @@ before_install:
       fi
 
 install:
+    # Install prerequisites
     - if [[ $TRAVIS_OS_NAME == linux ]]; then
         sudo apt-get -y install cmake lcov mpich;
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
-        source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
-        source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
         brew install cmake lcov mpich ;
         brew install openssl ossp-uuid;
@@ -50,9 +49,8 @@ install:
         echo "Platform $TRAVIS_OS_NAME not yet supported";
         exit 1;
       fi
-
-    # Install lcov to coveralls conversion + upload tool
-    # - gem install coveralls-lcov
+    - source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
+    - source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
 
     # Build TileDB
     - rm -rf $TILEDB_BUILD_DIR

@@ -74,7 +74,7 @@ install_hadoop() {
   echo "Install Hadoop SUCCESSFUL"
 }
 
-if [[ $INSTALL_TYPE != basic ]]; then
+if [[ $INSTALL_TYPE != basic && $TRAVIS_OS_NAME == linux ]]; then
   install_hadoop
 fi
 
