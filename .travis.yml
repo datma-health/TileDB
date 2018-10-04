@@ -9,19 +9,25 @@ env:
 
 matrix:
   include:
-    - name: "Basic"
+    - name: "Basic build"
       os: linux
       env: INSTALL_TYPE=basic
+
+    - name: "Basic build - all codec"
+      os: linux
+      env: INSTALL_TYPE=basic INSTALL_CODEC=true
       
-    - name: "HDFS"
+    - name: "HDFS support"
       os: linux
       env: INSTALL_TYPE=hdfs
 
-    - name: "Cloud - GCS"
+    - name: "GCS support"
       os: linux
       env: INSTALL_TYPE=gcs
 
-    #- os: osx
+    - name: "Basic build - OSX"
+      os: osx
+      env: INSTALL_TYPE=basic ENABLE_ZSTD=0 ENABLE_BLOSC=0 ENABLE_LZ4=0
 
 before_install:
     - if [[ $INSTALL_TYPE == gcs ]]; then
@@ -34,34 +40,29 @@ before_install:
       fi
 
 install:
-    # Install cmake, lcov, MPICH
-    - sudo apt-get -y install cmake lcov mpich
+    - if [[ $TRAVIS_OS_NAME == linux ]]; then
+        # Install cmake, lcov, MPICH
+        sudo apt-get -y install cmake lcov mpich;
 
-    # Install zlib, OpenSSL and LZ4
-    - sudo apt-get -y install zlib1g-dev libssl-dev liblz4-dev uuid-dev
+        # Install zlib, OpenSSL, uuid
+        sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
 
-    # Install Zstandard
-    #- wget https://github.com/facebook/zstd/archive/v1.0.0.tar.gz
-    #- tar xf v1.0.0.tar.gz
-    #- cd zstd-1.0.0
-    #- sudo make install PREFIX='/usr'
-    #- cd $TRAVIS_BUILD_DIR
-    # Install Blosc
-    #- git clone https://github.com/Blosc/c-blosc 
-    #- cd c-blosc
-    #- mkdir build
-    #- cd build
-    #- cmake -DCMAKE_INSTALL_PREFIX='/usr' ..
-    #- cmake --build .
-    #- sudo cmake --build . --target install
+        # Install codec(ZStandard, Blosc, LZ4, ...), if necessary
+        source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
 
-    # Hadoop install
-    - if [[ $INSTALL_TYPE != basic ]]; then
-        source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
-        echo "HADOOP CLASSPATH=" $CLASSPATH;
+        # Hadoop install
+        if [[ $INSTALL_TYPE != basic ]]; then
+          source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
+          echo "HADOOP CLASSPATH=" $CLASSPATH;
+        fi
+      elif [[ $TRAVIS_OS_NAME == osx ]]; then
+        brew install cmake lcov mpich ;
+        brew install openssl, ossp-uuid;
+      else
+        echo "Platform $TRAVIS_OS not yet supported";
+	exit 1
       fi
 
-    - cd $TRAVIS_BUILD_DIR
     # Install lcov to coveralls conversion + upload tool
     - gem install coveralls-lcov
 
@@ -69,7 +70,8 @@ install:
     - rm -rf $TILEDB_BUILD_DIR
     - mkdir -p $TILEDB_BUILD_DIR
     - cd $TILEDB_BUILD_DIR
-    - cmake .. -DCMAKE_BUILD_TYPE=Coverage 
+    
+    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 ..
     - make -j 4
 
 before_script:
