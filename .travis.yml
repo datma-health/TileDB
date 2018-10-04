@@ -16,7 +16,7 @@ matrix:
     - name: "Basic build - all codec"
       os: linux
       env: INSTALL_TYPE=basic INSTALL_CODEC=true
-      
+
     - name: "HDFS support"
       os: linux
       env: INSTALL_TYPE=hdfs
@@ -41,16 +41,9 @@ before_install:
 
 install:
     - if [[ $TRAVIS_OS_NAME == linux ]]; then
-        # Install cmake, lcov, MPICH
         sudo apt-get -y install cmake lcov mpich;
-
-        # Install zlib, OpenSSL, uuid
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
-
-        # Install codec(ZStandard, Blosc, LZ4, ...), if necessary
         source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
-
-        # Hadoop install
         if [[ $INSTALL_TYPE != basic ]]; then
           source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
           echo "HADOOP CLASSPATH=" $CLASSPATH;
@@ -70,7 +63,7 @@ install:
     - rm -rf $TILEDB_BUILD_DIR
     - mkdir -p $TILEDB_BUILD_DIR
     - cd $TILEDB_BUILD_DIR
-    
+
     - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 ..
     - make -j 4
 
