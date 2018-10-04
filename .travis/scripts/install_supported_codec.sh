@@ -25,7 +25,7 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 	popd
 
 	# Install LZ4 - Not enabled as Trusty seems to have a very old version of lz4
-	sudo apt-get -y install liblz4-dev && find /usr -name liblz4* &&
+	sudo apt-get -y install liblz4-dev && echo "Finding lz4" && find /usr -name liblz4* &&
 		export ENABLE_LZ4=0
 else
 	export ENABLE_ZSTD=0
