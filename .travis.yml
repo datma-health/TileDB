@@ -24,7 +24,7 @@ matrix:
     #- os: osx
 
 before_install:
-    - if [[ INSTALL_TYPE == gcs ]]; then
+    - if [[ $INSTALL_TYPE == gcs ]]; then
         pushd $TRAVIS_BUILD_DIR/resources/gcs;
         echo "GS_BUCKET=" $GS_BUCKET;
         openssl aes-256-cbc -K $encrypted_e618d734a0d0_key -iv $encrypted_e618d734a0d0_iv -in GCS.json.enc -out GCS.json -d;
