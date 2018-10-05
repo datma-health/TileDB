@@ -2,65 +2,73 @@ sudo: required
 dist: trusty
 
 env:
+  matrix:
   global:
     - TILEDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build
+    - secure: FY0kC/WNeghc7tffE/Lksir33wAGBRAyQ3Zo2QDb8KOaspT9lUnraW+vLgGTqbV1xJLYWszYv4tKxbiNLV78pfJ886FsZUv5FDiz93EmM7zIAM8moXqjFhwkq9PBKDfGTbkIEt3Ris5himIegSj5Jnpvxw+BhngDy9dFylLox55fsDc88ZjDBTMv1NRJQc2hWmi7unfkzz0Bmq4Ao9OvBqHDqwTt9ZAfmZQEHlrmojuPX8uENp9jQ+8Pgrl/Lv9HjFnHeQAhXHufWztCzUcw84ywnf14VF9ifJhb7nmMEa1itZTVW7QLOQhRZrKKv1ecgE2qt+i3hqN5W+8xR8sc3iKWqyrB3j2uZMrR4njtfoBYREXATS02+nzJQblSZMJh+clm6R4X30Z2F5SJuVW6k2Gr3Zme7B3HJZJWzscwV35aSbUQeCFro6LDrGPhLcuVYLnIVxwol7u72qh61hOOTfX4j38gWxTM/3uyNpQGfUjtk+CscdZvuYy2+ayt8BWilf4hDRpypJ9tQaNxOKLBB4Agv4Tvm5mwTly1OL3uE7MMzap3LD2li6MBFmwzjkY4YKnM9pji0gOs131RNBh1CnbcpzU5HdnLjwbA79Mhr+L1vxvHPcvuY2vd5YNygWHg2f7wYpIFxpkWWA80AwHEuJIsKK7GrVvHlDh7g3onmm4=
 
 matrix:
   include:
     - name: "Basic build"
       os: linux
+      env: INSTALL_TYPE=basic
 
-    - name: "Cloud support"
+    - name: "Basic build - all codec"
       os: linux
-      env: HDFS_SUPPORT=true
+      env: INSTALL_TYPE=basic INSTALL_CODEC=true
 
-install:
-    # Install cmake, lcov, MPICH
-    - sudo apt-get -y install cmake lcov mpich
-    # Install zlib, OpenSSL and LZ4
-    - sudo apt-get -y install zlib1g-dev libssl-dev liblz4-dev uuid-dev
-    # Install Zstandard
-    #- wget https://github.com/facebook/zstd/archive/v1.0.0.tar.gz
-    #- tar xf v1.0.0.tar.gz
-    #- cd zstd-1.0.0
-    #- sudo make install PREFIX='/usr'
-    - cd $TRAVIS_BUILD_DIR
-    # Install Blosc
-    #- git clone https://github.com/Blosc/c-blosc 
-    #- cd c-blosc
-    #- mkdir build
-    #- cd build
-    #- cmake -DCMAKE_INSTALL_PREFIX='/usr' ..
-    #- cmake --build .
-    #- sudo cmake --build . --target install
+    - name: "HDFS support"
+      os: linux
+      env: INSTALL_TYPE=hdfs
 
-    # Hadoop install
-    - if [[ $HDFS_SUPPORT == true ]]; then
-        source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
-        echo "CLASSPATH=" $CLASSPATH;
+    - name: "GCS support"
+      os: linux
+      env: INSTALL_TYPE=gcs
+
+    - name: "Basic build - OSX"
+      os: osx
+      env: INSTALL_TYPE=basic
+
+before_install:
+    - if [[ $INSTALL_TYPE == gcs ]]; then
+        pushd $TRAVIS_BUILD_DIR/.travis/resources/gcs;
+        openssl aes-256-cbc -K $encrypted_e618d734a0d0_key -iv $encrypted_e618d734a0d0_iv -in GCS.json.enc -out ~/GCS.json -d;
+        popd;
       fi
 
-    - cd $TRAVIS_BUILD_DIR
-    # Install lcov to coveralls conversion + upload tool
-    - gem install coveralls-lcov
+install:
+    # Install prerequisites
+    - if [[ $TRAVIS_OS_NAME == linux ]]; then
+        sudo apt-get -y install cmake lcov mpich;
+        sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
+      elif [[ $TRAVIS_OS_NAME == osx ]]; then
+        brew install cmake lcov mpich ;
+        brew install openssl ossp-uuid;
+        export OPENSSL_ROOT_DIR=/usr/local/opt/openssl;
+      else
+        echo "Platform $TRAVIS_OS_NAME not yet supported";
+        exit 1;
+      fi
+    - source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
+    - source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
 
     # Build TileDB
     - rm -rf $TILEDB_BUILD_DIR
     - mkdir -p $TILEDB_BUILD_DIR
     - cd $TILEDB_BUILD_DIR
-    - cmake .. -DCMAKE_BUILD_TYPE=Coverage 
+
+    - echo "Invoking cmake"
+    - echo "cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 .."
+
+    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 ..
     - make -j 4
 
 before_script:
     - lcov --directory $TILEDB_BUILD_DIR --zerocounters
 
 script:
-    - if [[ $HDFS_SUPPORT == true ]]; then
-       echo "Run HDFS tests";
-       make examples;
-       cd examples;
-       $TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test";
-       diff travis_test.log $TRAVIS_BUILD_DIR/examples/expected_results;
+    - if [[ $INSTALL_TYPE != basic ]]; then
+        $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
       else
         make tests -j 4;
       fi
@@ -70,8 +78,8 @@ after_success:
     - find test -name *.gcda -type f -delete
     - find examples -name *.gcda -type f -delete
     - find deps -name *.gcda -type f -delete
-    - lcov --directory core --capture --output-file coverage.info
-    - lcov --remove coverage.info '/opt*' '*/usr/*' -o coverage.info
-    - lcov --list coverage.info
+    - lcov --directory core --capture --output-file coverage.info;
+    - lcov --remove coverage.info '/opt*' '*/usr/*' -o coverage.info;
+    - lcov --list coverage.info;
     # Uploading report to CodeCov
     - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
