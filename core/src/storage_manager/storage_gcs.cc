@@ -119,14 +119,17 @@ hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) 
     hdfsBuilderConfSetStr(builder, "google.cloud.auth.service.account.enable", "true");
     hdfsBuilderConfSetStr(builder, "google.cloud.auth.service.account.json.keyfile", gcs_creds);
     value = parse_json(gcs_creds, "project_id"); // free value after hdfsBuilderConnect as it is shallow copied.
-    if (value) {
-      hdfsBuilderConfSetStr(builder, "fs.gs.project.id", value);
-    } else {
+    if (!value) {
       // Workaround for HELLBENDER TESTS
       char *hellbender_test_project = getenv("HELLBENDER_TEST_PROJECT");
       if (hellbender_test_project) {
+	printf("Found hellbender_test_project=%s", hellbender_test_project); 
 	value = strdup(hellbender_test_project);
       }
+    }
+
+    if (value) {
+      hdfsBuilderConfSetStr(builder, "fs.gs.project.id", value);
     }
   }
 
