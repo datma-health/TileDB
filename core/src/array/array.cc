@@ -1009,7 +1009,8 @@ int Array::write(const void** buffers, const size_t* buffer_sizes) {
   }
 
   // Write based on mode
-  int rc;
+  int rc = TILEDB_AR_OK;
+
   if(mode_ == TILEDB_ARRAY_WRITE_SORTED_COL ||
      mode_ == TILEDB_ARRAY_WRITE_SORTED_ROW) { 
     rc = array_sorted_write_state_->write(buffers, buffer_sizes); 
