@@ -25,9 +25,6 @@
 # THE SOFTWARE.
 #
 
-# Include GTest headers
-#include_directories(${GTEST_INCLUDE_DIRS})
-
 # Include test header directories
 file(GLOB TILEDB_TEST_INCLUDE_DIRS "include/*")
 include_directories(${TILEDB_TEST_INCLUDE_DIRS})

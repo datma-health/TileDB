@@ -12,8 +12,11 @@ void test_url(const std::string path_url_str, const std::string protocol,  const
   CHECK_THAT(path_url.query(), Equals(query));
 }
 
-
 TEST_CASE("Test url parsing", "[url]") {
+  REQUIRE_THROWS(new url(""));
+  REQUIRE_THROWS(new url("gibberish"));
+  REQUIRE_THROWS(new url("foo://xxx:9999999/dfdfd"));
+
   test_url("hdfs://oda-master:9000/tmp", "hdfs", "oda-master", 9000, "/tmp", "");
   test_url("hdfs://oda-master:9000/", "hdfs", "oda-master", 9000, "/", "");
   test_url("hdfs://oda-master:9000", "hdfs", "oda-master", 9000, "", "");

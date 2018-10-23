@@ -79,9 +79,23 @@ void Buffer::set_buffer(void *bytes, int64_t size) {
 }
 
 int Buffer::read_buffer(void *bytes, int64_t size) {
-  assert(bytes != NULL);
-  assert(buffer != NULL);
-  assert(size > 0);
+  if (bytes == NULL) {
+    std::string errmsg = "Arguments not specified correctly";
+    PRINT_ERROR(errmsg);
+    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    return TILEDB_BF_ERR;
+  }
+
+  if (buffer == NULL) {
+    std::string errmsg = "Buffer is null, may not have been initalized correctly";
+    PRINT_ERROR(errmsg);
+    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    return TILEDB_BF_ERR;
+  }
+
+  if (size == 0) {
+    return TILEDB_BF_OK;
+  }
   
   if (buffer_offset + size > buffer_size) {
     free_buffer();
@@ -100,16 +114,25 @@ int Buffer::read_buffer(void *bytes, int64_t size) {
 }
 
 int Buffer::read_buffer(int64_t offset, void *bytes, int64_t size) {
-  assert(bytes != NULL);
-  assert(buffer != NULL);
-  assert(size >= 0);
+  if (bytes == NULL) {
+    std::string errmsg = "Arguments not specified correctly";
+    PRINT_ERROR(errmsg);
+    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    return TILEDB_BF_ERR;
+  }
+
+  if (buffer == NULL) {
+    std::string errmsg = "Buffer is null, may not have been initalized correctly";
+    PRINT_ERROR(errmsg);
+    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    return TILEDB_BF_ERR;
+  }
 
   if (size == 0) {
     return TILEDB_BF_OK;
   }
   
   if (offset + size > buffer_size) {
-    free_buffer();
     std::string errmsg = "Cannot read from buffer; End of buffer reached";
     PRINT_ERROR(errmsg);
     tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
@@ -126,9 +149,23 @@ int Buffer::read_buffer(int64_t offset, void *bytes, int64_t size) {
 
 #define CHUNK 1024
 int Buffer::append_buffer(const void *bytes, int64_t size) {
-  assert(read_only == false);
-  assert(bytes != NULL);
-  assert(size > 0);
+  if (read_only) {
+    std::string errmsg = "Cannot append buffer to read-only buffers";
+    PRINT_ERROR(errmsg);
+    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    return TILEDB_BF_ERR;
+  }
+
+  if (bytes == NULL) {
+    std::string errmsg = "Arguments not specified correctly";
+    PRINT_ERROR(errmsg);
+    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    return TILEDB_BF_ERR;
+  }
+
+  if (size == 0) {
+    return TILEDB_BF_OK;
+  }
   
   if (buffer == NULL || buffer_size+size > buffer_size) {
     int64_t alloc_size = allocated_buffer_size + ((size/CHUNK)+1)*CHUNK;
