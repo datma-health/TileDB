@@ -5,6 +5,8 @@
  *
  * The MIT License
  *
+ * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -28,6 +30,7 @@
  * Default Posix Filesystem Implementation for StorageFS
  */
 
+#include "error.h"
 #include "storage_posixfs.h"
 #include "utils.h"
 
@@ -41,16 +44,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#ifdef TILEDB_VERBOSE
-#  define PRINT_ERROR(x) std::cerr << TILEDB_FS_ERRMSG << "posix: " << x << " " << std::endl
-#else
-#  define PRINT_ERROR(x) do { } while(0) 
-#endif
+#define POSIX_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, MSG, PATH, tiledb_fs_errmsg)
 
 std::string PosixFS::current_dir() {
   std::string dir = "";
-  char* path = getcwd(NULL,0);
-
+  char* path = getcwd(NULL, 0);
 
   if(path != NULL) {
     dir = path;
@@ -164,32 +162,28 @@ std::string PosixFS::real_dir(const std::string& dir) {
 }
   
 int PosixFS::create_dir(const std::string& dir) {
+  reset_errno();
+  
   // Get real directory path
   std::string real_dir = this->real_dir(dir);
 
   // If the directory does not exist, create it
   if(!is_dir(real_dir)) { 
     if(mkdir(real_dir.c_str(), S_IRWXU)) {
-      std::string errmsg = 
-          std::string("Cannot create directory '") + real_dir + "'; " + 
-          strerror(errno);
-      PRINT_ERROR(errmsg);
-      tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+      POSIX_ERROR("Cannot create directory", real_dir);
       return TILEDB_FS_ERR;
-    } else {
-      return TILEDB_FS_OK;
     }
   } else { // Error
-    std::string errmsg = 
-        std::string("Cannot create directory '") + real_dir +
-        "'; Directory already exists";
-    PRINT_ERROR(errmsg); 
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot create directory; Directory already exists", real_dir);
     return TILEDB_FS_ERR;
   }
+
+  return TILEDB_FS_OK;
 }
 
 int PosixFS::delete_dir(const std::string& dirname) {
+  reset_errno();
+  
   // Get real path
   std::string dirname_real = this->real_dir(dirname); 
 
@@ -199,10 +193,7 @@ int PosixFS::delete_dir(const std::string& dirname) {
   DIR* dir = opendir(dirname_real.c_str());
 
   if(dir == NULL) {
-    std::string errmsg = 
-        std::string("Cannot open directory; ") + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot open directory", dirname);
     return TILEDB_FS_ERR;
   }
 
@@ -217,30 +208,20 @@ int PosixFS::delete_dir(const std::string& dirname) {
 
   for(const auto& curr_filename : all_filenames) {
     if(remove(curr_filename.c_str())) {
-      std::string errmsg = 
-          std::string("Cannot delete file; ") + strerror(errno);
-      PRINT_ERROR(errmsg);
-      tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+      POSIX_ERROR("Cannot delete file", curr_filename);   
       return TILEDB_FS_ERR;
     }
   } 
  
   // Close directory 
   if(closedir(dir)) {
-    std::string errmsg = 
-        std::string("Cannot close directory; ") + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot close directory", dirname);
     return TILEDB_FS_ERR;
   }
 
   // Remove directory
   if(rmdir(dirname.c_str())) {
-    std::string errmsg = 
-        std::string("Cannot delete directory; ") + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
-    return TILEDB_FS_ERR;
+    POSIX_ERROR("Cannot delete directory", dirname);
   }
 
   // Success
@@ -248,13 +229,17 @@ int PosixFS::delete_dir(const std::string& dirname) {
 }
 
 std::vector<std::string> PosixFS::get_dirs(const std::string& dir) {
+  reset_errno();
+  
   std::vector<std::string> dirs;
   std::string new_dir; 
   struct dirent *next_file;
   DIR* c_dir = opendir(dir.c_str());
 
-  if(c_dir == NULL) 
+  if(c_dir == NULL) {
+    POSIX_ERROR("Cannot open directory", dir);
     return std::vector<std::string>();
+  }
 
   while((next_file = readdir(c_dir))) {
     if(!strcmp(next_file->d_name, ".") ||
@@ -266,20 +251,26 @@ std::vector<std::string> PosixFS::get_dirs(const std::string& dir) {
   } 
 
   // Close array directory  
-  closedir(c_dir);
+  if (closedir(c_dir)) {
+    POSIX_ERROR("Cannot close directory", dir);
+  }
 
   // Return
   return dirs;
 }
     
 std::vector<std::string> PosixFS::get_files(const std::string& dir) {
+  reset_errno();
+  
   std::vector<std::string> files;
   std::string filename; 
   struct dirent *next_file;
   DIR* c_dir = opendir(dir.c_str());
 
-  if(c_dir == NULL) 
+  if(c_dir == NULL) {
+    POSIX_ERROR("Cannot open directory", dir);
     return std::vector<std::string>();
+  }
 
   while((next_file = readdir(c_dir))) {
     if(!strcmp(next_file->d_name, ".") ||
@@ -291,18 +282,20 @@ std::vector<std::string> PosixFS::get_files(const std::string& dir) {
   } 
 
   // Close array directory  
-  closedir(c_dir);
+  if (closedir(c_dir)) {
+    POSIX_ERROR("Cannot close directory", dir);
+  }
 
   // Return
   return files;
 }
 
 int PosixFS::create_file(const std::string& filename, int flags, mode_t mode) {
-    int fd = open(filename.c_str(), flags, mode);
+  reset_errno();
+  
+  int fd = open(filename.c_str(), flags, mode);
   if(fd == -1 || close(fd)) {
-    std::string errmsg = std::string("Failed to create file ") + filename + std::string(" ; ") + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Failed to create file", filename);
     return TILEDB_FS_ERR;
   }
 
@@ -310,23 +303,27 @@ int PosixFS::create_file(const std::string& filename, int flags, mode_t mode) {
 }
 
 int PosixFS::delete_file(const std::string& filename) {
+  reset_errno();
+
   if(remove(filename.c_str())) {
-      std::string errmsg = 
-	std::string("Cannot remove file ") + filename.c_str() + "; " + strerror(errno);
-      PRINT_ERROR(errmsg);
-      tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg;
-      return TILEDB_FS_ERR;
+    POSIX_ERROR("Cannot remove file", filename);
+    return TILEDB_FS_ERR;
   }
 
   return TILEDB_FS_OK;
 }
 
 size_t PosixFS::file_size(const std::string& filename) {
+  reset_errno();
+  
+  if (!is_file(filename)) {
+    POSIX_ERROR("Cannot get file size for paths that are not files", filename);
+    return TILEDB_FS_ERR;
+  }
+  
   int fd = open(filename.c_str(), O_RDONLY);
   if(fd == -1) {
-    std::string errmsg = "Cannot get file size; File opening error";
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot get file size; File opening error", filename);
     return TILEDB_FS_ERR;
   }
 
@@ -335,36 +332,41 @@ size_t PosixFS::file_size(const std::string& filename) {
   fstat(fd, &st);
   off_t file_size = st.st_size;
   
-  close(fd);
+  if (close(fd)) {
+    POSIX_ERROR("Cannot get file size; File closing error", filename);
+  }
 
   return file_size;
 }
 
 int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
+  reset_errno();
+  
   // Open file
   int fd = open(filename.c_str(), O_RDONLY);
   if(fd == -1) {
-    std::string errmsg = "Cannot read from file; File opening error";
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot read from file; File opening error", filename);
     return TILEDB_FS_ERR;
   }
 
-  // Read
-  lseek(fd, offset, SEEK_SET); 
-  ssize_t bytes_read = read(fd, buffer, length);
-  if(bytes_read != ssize_t(length)) {
-    std::string errmsg = "Cannot read from file; File reading error";
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
-    return TILEDB_FS_ERR;
+  // Read in batches
+  auto iterations = length/TILEDB_UT_MAX_WRITE_COUNT;
+  for (auto i=0; i<=iterations; i++) {
+    size_t bytes_to_read = i<iterations?TILEDB_UT_MAX_WRITE_COUNT:length%TILEDB_UT_MAX_WRITE_COUNT;
+    if (bytes_to_read > 0) {
+      void *buffer_ptr =  reinterpret_cast<void *>(reinterpret_cast<char *>(buffer) + i*(off_t)TILEDB_UT_MAX_WRITE_COUNT);
+      off_t file_offset = offset + i*(off_t)TILEDB_UT_MAX_WRITE_COUNT;
+      ssize_t bytes_read = pread(fd, buffer_ptr, bytes_to_read, file_offset);
+      if(bytes_read != ssize_t(bytes_to_read)) {
+        POSIX_ERROR("Cannot read from file; File reading error", filename);
+        return TILEDB_FS_ERR;
+      }
+    }
   }
   
   // Close file
   if(close(fd)) {
-    std::string errmsg = std::string("Cannot read from file; File closing error; ") + strerror(errno); 
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot read from file; File closing error", filename);
     return TILEDB_FS_ERR;
   }
 
@@ -373,17 +375,12 @@ int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buf
 }
 
 int PosixFS::write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) {
+  reset_errno();
+  
   // Open file
-  int fd = open(
-      filename.c_str(), 
-      O_WRONLY | O_APPEND | O_CREAT, 
-      S_IRWXU);
+  int fd = open(filename.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXU);
   if(fd == -1) {
-    std::string errmsg = 
-        std::string("Cannot write to file '") + filename + 
-        "'; File opening error";
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot write to file; File opening error", filename);
     return TILEDB_FS_ERR;
   }
 
@@ -393,88 +390,66 @@ int PosixFS::write_to_file(const std::string& filename, const void *buffer, size
   while(buffer_size > TILEDB_UT_MAX_WRITE_COUNT) {
     bytes_written = write(fd, buffer, TILEDB_UT_MAX_WRITE_COUNT);
     if(bytes_written != TILEDB_UT_MAX_WRITE_COUNT) {
-      std::string errmsg = 
-          std::string("Cannot write to file '") + filename + 
-          "'; File writing error";
-      PRINT_ERROR(errmsg);
-      tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+      POSIX_ERROR("Cannot write to file; File writing error", filename);
       return TILEDB_FS_ERR;
     }
     buffer_size -= TILEDB_UT_MAX_WRITE_COUNT;
   }
   bytes_written = write(fd, buffer, buffer_size);
   if(bytes_written != ssize_t(buffer_size)) {
-    std::string errmsg = 
-        std::string("Cannot write to file '") + filename + 
-        "'; File writing error";
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot write to file; File writing error", filename);
     return TILEDB_FS_ERR;
   }
 
   // Close file
   if(close(fd)) {
-    std::string errmsg = 
-        std::string("Cannot write to file '") + filename + "'; File closing error; " + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot write to file; File closing error", filename);
     return TILEDB_FS_ERR;
   }
 
   // Success 
   return TILEDB_FS_OK;
-
 }
 
 int PosixFS::move_path(const std::string& old_path, const std::string& new_path) {
-   if(rename(old_path.c_str(), new_path.c_str())) {
-    std::string errmsg = 
-        std::string("Cannot rename fragment directory; ") + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg;
+  reset_errno();
+  
+  if(rename(old_path.c_str(), new_path.c_str())) {
+    POSIX_ERROR("Cannot rename path", old_path);
     return TILEDB_FS_ERR;
   }
-
+  
   return TILEDB_FS_OK;
 }
     
 int PosixFS::sync_path(const std::string& filename) {
+  reset_errno();
+  
   // Open file
   int fd;
-  if(is_dir(filename))       // DIRECTORY 
+  if(is_dir(filename)) {      // DIRECTORY 
     fd = open(filename.c_str(), O_RDONLY, S_IRWXU);
-  else if(is_file(filename)) // FILE
-    fd = open(filename.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXU);
-  else
+  } else if(is_file(filename)) { // FILE
+    fd = open(filename.c_str(), O_WRONLY | O_APPEND, S_IRWXU);
+  } else {
     return TILEDB_FS_OK;     // If file does not exist, exit
+  }
 
   // Handle error
   if(fd == -1) {
-    std::string errmsg = 
-        std::string("Cannot sync file '") + filename + 
-        "'; File opening error";
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot sync file; File opening error", filename);
     return TILEDB_FS_ERR;
   }
 
   // Sync
   if(fsync(fd)) {
-    std::string errmsg = 
-        std::string("Cannot sync file '") + filename + 
-        "'; File syncing error; " + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot sync file; File syncing error", filename);
     return TILEDB_FS_ERR;
   }
 
   // Close file
   if(close(fd)) {
-    std::string errmsg = 
-        std::string("Cannot sync file '") + filename + 
-        "'; File closing error; " + strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_fs_errmsg = TILEDB_FS_ERRMSG + errmsg; 
+    POSIX_ERROR("Cannot sync file; File closing error", filename);
     return TILEDB_FS_ERR;
   }
 

@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +32,9 @@
  */
 
 #include "tiledb_constants.h"
-#include "utils.h"
 #include "buffer.h"
+#include "error.h"
+#include "utils.h"
 
 #include <algorithm>
 #include <cassert>
@@ -72,13 +74,9 @@
 /*             MACROS             */
 /* ****************************** */
 
-#ifdef TILEDB_VERBOSE
-#  define PRINT_ERROR(x) std::cerr << TILEDB_UT_ERRMSG << x << ".\n" 
-#else
-#  define PRINT_ERROR(x) do { } while(0) 
-#endif
-
-
+#define UTILS_ERROR(MSG) TILEDB_ERROR(TILEDB_UT_ERRMSG, MSG, tiledb_ut_errmsg)
+#define UTILS_SYSTEM_ERROR(MSG) SYSTEM_ERROR(TILEDB_UT_ERRMSG, MSG, "", tiledb_ut_errmsg)
+#define UTILS_PATH_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_UT_ERRMSG, MSG, PATH, tiledb_ut_errmsg)
 
 
 /* ****************************** */
@@ -264,11 +262,7 @@ int create_fragment_file(StorageFS *fs, const std::string& dir) {
   // Create the special fragment file
   std::string filename = std::string(dir) + "/" + TILEDB_FRAGMENT_FILENAME;
   if (fs->create_file(filename, O_WRONLY | O_CREAT | O_SYNC,  S_IRWXU) == TILEDB_UT_ERR) {
-    std::string errmsg = 
-        std::string("Failed to create fragment file; ") +
-        strerror(errno);
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Failed to create fragment file", dir);
     return TILEDB_UT_ERR;
   }
 
@@ -303,9 +297,7 @@ int expand_buffer(void*& buffer, size_t& buffer_allocated_size) {
   buffer = realloc(buffer, buffer_allocated_size);
   
   if(buffer == NULL) {
-    std::string errmsg = "Cannot reallocate buffer";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_SYSTEM_ERROR("Cannot reallocate buffer");
     return TILEDB_UT_ERR;
   } else {
     return TILEDB_UT_OK;
@@ -369,17 +361,13 @@ std::string get_mac_addr() {
   mib[4] = NET_RT_IFLIST;
   if(((mib[5] = if_nametoindex(XSTR(TILEDB_MAC_ADDRESS_INTERFACE))) == 0) ||
      (sysctl(mib, 6, NULL, &len, NULL, 0) < 0)) {
-    std::string errmsg = "Cannot get MAC address";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR( "Cannot get MAC address");
     return "";
   }
 
   buf = (char*) malloc(len);
   if(sysctl(mib, 6, buf, &len, NULL, 0) < 0) {
-    std::string errmsg = "Cannot get MAC address";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR( "Cannot get MAC address");
     return "";
   }
 
@@ -405,13 +393,10 @@ std::string get_mac_addr() {
       sprintf(mac + 2*i, "%02x", (unsigned char) s.ifr_addr.sa_data[i]);
     mac[12] = '\0';
     close(fd);
-
     return mac;
   } else { // Error
     close(fd);
-    std::string errmsg = "Cannot get MAC address";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR("Cannot get MAC address");
     return "";
   }
 }
@@ -434,9 +419,7 @@ ssize_t gzip(
   ret = deflateInit(&strm, level);
 
   if(ret != Z_OK) {
-    std::string errmsg = "Cannot compress with GZIP";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR("Cannot compress with GZIP");
     (void)deflateEnd(&strm);
     return TILEDB_UT_ERR;
   }
@@ -453,9 +436,7 @@ ssize_t gzip(
 
   // Return 
   if(ret == Z_STREAM_ERROR || strm.avail_in != 0) {
-    std::string errmsg = "Cannot compress with GZIP";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR("Cannot compress with GZIP");
     return TILEDB_UT_ERR;
   } else {
     // Return size of compressed data
@@ -481,9 +462,7 @@ int gunzip(
   ret = inflateInit(&strm);
 
   if(ret != Z_OK) {
-    std::string errmsg = "Cannot decompress with GZIP";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR("Cannot decompress with GZIP");
     return TILEDB_UT_ERR;
   }
 
@@ -495,9 +474,7 @@ int gunzip(
   ret = inflate(&strm, Z_FINISH);
 
   if(ret != Z_STREAM_END) {
-    std::string errmsg = "Cannot decompress with GZIP";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR("Cannot decompress with GZIP");
     return TILEDB_UT_ERR;
   }
 
@@ -627,9 +604,7 @@ int mpi_io_read_from_file(
     size_t length) {
   // Sanity check
   if(mpi_comm == NULL) {
-    std::string errmsg = "Cannot read from file; Invalid MPI communicator";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_ERROR("Invalid MPI communicator");
     return TILEDB_UT_ERR;
   }
 
@@ -641,9 +616,7 @@ int mpi_io_read_from_file(
          MPI_MODE_RDONLY, 
          MPI_INFO_NULL, 
          &fh)) {
-    std::string errmsg = "Cannot read from file; File opening error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot read from file; MPI file opening error", filename);
     return TILEDB_UT_ERR;
   }
 
@@ -651,17 +624,13 @@ int mpi_io_read_from_file(
   MPI_File_seek(fh, offset, MPI_SEEK_SET); 
   MPI_Status mpi_status;
   if(MPI_File_read(fh, buffer, length, MPI_CHAR, &mpi_status)) {
-    std::string errmsg = "Cannot read from file; File reading error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot read from file; MPI file reading error", filename);
     return TILEDB_UT_ERR;
   }
   
   // Close file
   if(MPI_File_close(&fh)) {
-    std::string errmsg = "Cannot read from file; File closing error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot read from file; MPI file closing error", filename);
     return TILEDB_UT_ERR;
   }
 
@@ -683,11 +652,7 @@ int mpi_io_write_to_file(
              MPI_MODE_CREATE | MPI_MODE_SEQUENTIAL, 
          MPI_INFO_NULL, 
          &fh)) {
-    std::string errmsg = 
-        std::string("Cannot write to file '") + filename + 
-        "'; File opening error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot write to file; MPI file opening error", filename);
     return TILEDB_UT_ERR;
   }
 
@@ -701,31 +666,19 @@ int mpi_io_write_to_file(
            TILEDB_UT_MAX_WRITE_COUNT, 
            MPI_CHAR, 
            &mpi_status)) {
-      std::string errmsg = 
-          std::string("Cannot write to file '") + filename + 
-          "'; File writing error";
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+      UTILS_PATH_ERROR("Cannot write to file; MPI file writing error", filename);
       return TILEDB_UT_ERR;
     }
     buffer_size -= TILEDB_UT_MAX_WRITE_COUNT;
   }
   if(MPI_File_write(fh, (void*) buffer, buffer_size, MPI_CHAR, &mpi_status)) {
-    std::string errmsg = 
-        std::string("Cannot write to file '") + filename + 
-        "'; File writing error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot write to file; MPI file writing error", filename);
     return TILEDB_UT_ERR;
   }
 
   // Close file
   if(MPI_File_close(&fh)) {
-    std::string errmsg = 
-        std::string("Cannot write to file '") + filename + 
-        "'; File closing error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot write to file; MPI file closing error", filename);
     return TILEDB_UT_ERR;
   }
 
@@ -760,31 +713,19 @@ int mpi_io_sync(
 
   // Handle error
   if(rc) {
-      std::string errmsg = 
-          std::string("Cannot sync file '") + filename + 
-          "'; File opening error";
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
-      return TILEDB_UT_ERR;
+    UTILS_PATH_ERROR("Cannot sync file; MPI file opening error", filename);
+    return TILEDB_UT_ERR;
     }
 
   // Sync
   if(MPI_File_sync(fh)) {
-    std::string errmsg = 
-        std::string("Cannot sync file '") + filename + 
-        "'; File syncing error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot sync file; MPI file syncing error", filename);
     return TILEDB_UT_ERR;
   }
 
   // Close file
   if(MPI_File_close(&fh)) {
-    std::string errmsg = 
-        std::string("Cannot sync file '") + filename + 
-        "'; File closing error";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Cannot sync file; MPI file closing error", filename);
     return TILEDB_UT_ERR;
   }
 
@@ -796,34 +737,29 @@ int mpi_io_sync(
 #ifdef HAVE_OPENMP
 int mutex_destroy(omp_lock_t* mtx) {
   omp_destroy_lock(mtx);
-
   return TILEDB_UT_OK;
 }
 
 int mutex_init(omp_lock_t* mtx) {
   omp_init_lock(mtx);
-
   return TILEDB_UT_OK;
 }
 
 int mutex_lock(omp_lock_t* mtx) {
   omp_set_lock(mtx);
-
   return TILEDB_UT_OK;
 }
 
 int mutex_unlock(omp_lock_t* mtx) {
   omp_unset_lock(mtx);
-
   return TILEDB_UT_OK;
 }
 #endif
 
 int mutex_destroy(pthread_mutex_t* mtx) {
+  reset_errno();
   if(pthread_mutex_destroy(mtx) != 0) {
-    std::string errmsg = "Cannot destroy mutex";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_SYSTEM_ERROR("Cannot destroy mutex");
     return TILEDB_UT_ERR;
   } else {
     return TILEDB_UT_OK;
@@ -831,21 +767,37 @@ int mutex_destroy(pthread_mutex_t* mtx) {
 }
 
 int mutex_init(pthread_mutex_t* mtx) {
-  if(pthread_mutex_init(mtx, NULL) != 0) {
-    std::string errmsg = "Cannot initialize mutex";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+  reset_errno();
+  pthread_mutexattr_t mtx_attr;
+  if (pthread_mutexattr_init(&mtx_attr)) {
+    UTILS_SYSTEM_ERROR("Cannot initialize mutex attribute");
     return TILEDB_UT_ERR;
-  } else {
-    return TILEDB_UT_OK;
   }
+
+  if (pthread_mutexattr_settype(&mtx_attr, PTHREAD_MUTEX_ERRORCHECK)) {
+    pthread_mutexattr_destroy(&mtx_attr);
+    UTILS_SYSTEM_ERROR("Cannot set mutex attribute type");
+    return TILEDB_UT_ERR;
+  }
+
+  if (pthread_mutex_init(mtx, NULL) != 0) {
+    pthread_mutexattr_destroy(&mtx_attr);
+    UTILS_SYSTEM_ERROR("Cannot initialize mutex");
+    return TILEDB_UT_ERR;
+  }
+
+  if (pthread_mutexattr_destroy(&mtx_attr)) {
+    UTILS_SYSTEM_ERROR("Cannot destroy mutex attribute");
+    return TILEDB_UT_ERR;
+  }
+
+  return TILEDB_UT_OK;
 }
 
 int mutex_lock(pthread_mutex_t* mtx) {
+  reset_errno();
   if(pthread_mutex_lock(mtx) != 0) {
-    std::string errmsg = "Cannot lock mutex";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_SYSTEM_ERROR("Cannot lock mutex");
     return TILEDB_UT_ERR;
   } else {
     return TILEDB_UT_OK;
@@ -853,10 +805,9 @@ int mutex_lock(pthread_mutex_t* mtx) {
 }
 
 int mutex_unlock(pthread_mutex_t* mtx) {
+  reset_errno();
   if(pthread_mutex_unlock(mtx) != 0) {
-    std::string errmsg = "Cannot unlock mutex";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_SYSTEM_ERROR("Cannot unlock mutex");
     return TILEDB_UT_ERR;
   } else {
     return TILEDB_UT_OK;
@@ -903,9 +854,7 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
     case TILEDB_NO_COMPRESSION:
       break;
     default:
-      std::string errmsg = std::string("Compression type not supported");
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+      UTILS_ERROR("Compression type not supported");
       return TILEDB_UT_ERR;
   }
   
@@ -914,9 +863,7 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
 
   if (fs->read_from_file(filename, 0, in, size) == TILEDB_UT_ERR) {
     free(in);
-    std::string errmsg = std::string("Could not read from file");
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Could not read from file for decompression", filename);
     return TILEDB_UT_ERR;
   }
 
@@ -938,9 +885,7 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
     
   if (inflateInit2(&strm, (windowBits + 32)) != Z_OK) {
     free(in);
-    std::string errmsg = std::string("Could not inflate file");
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Could not inflate file", filename);
     return TILEDB_UT_ERR;
   }
 
@@ -965,9 +910,7 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
       case Z_MEM_ERROR:
         free(in);
         inflateEnd(&strm);
-        std::string errmsg = std::string("Error encountered during inflate");
-        PRINT_ERROR(errmsg);
-        tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+        UTILS_PATH_ERROR("Error encountered during inflate", filename);
         return TILEDB_UT_ERR;
     }
 
@@ -1016,10 +959,7 @@ int64_t RLE_compress(
 
   // Sanity check on input buffer
   if(input_size % value_size) {
-    std::string errmsg = 
-        "Failed compressing with RLE; invalid input buffer format";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed compressing with RLE; invalid input buffer format");
     return TILEDB_UT_ERR;
   }
 
@@ -1031,10 +971,7 @@ int64_t RLE_compress(
     } else {                                 // Save the run
       // Sanity check on output size
       if(output_size + run_size > output_allocated_size) {
-        std::string errmsg = 
-            "Failed compressing with RLE; output buffer overflow";
-        PRINT_ERROR(errmsg);
-        tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+        UTILS_ERROR("Failed compressing with RLE; output buffer overflow");
         return TILEDB_UT_ERR;
       }
 
@@ -1061,10 +998,7 @@ int64_t RLE_compress(
   // Save final run
   // --- Sanity check on size
   if(output_size + run_size > output_allocated_size) {
-    std::string errmsg = 
-        "Failed compressing with RLE; output buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed compressing with RLE; output buffer overflow");
     return TILEDB_UT_ERR;
   }
 
@@ -1121,10 +1055,7 @@ int64_t RLE_compress_coords_col(
 
   // Sanity check on input buffer format
   if(input_size % coords_size) {
-    std::string errmsg = 
-        "failed compressing coordinates with RLE; invalid input buffer format";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Failed compressing coordinates with RLE; invalid buffer format");
     return TILEDB_UT_ERR;
   }
 
@@ -1134,10 +1065,7 @@ int64_t RLE_compress_coords_col(
 
   // Copy the number of coordinates
   if(output_size + sizeof(int64_t) > output_allocated_size) {
-    std::string errmsg = 
-        "failed compressing coordinates with RLE; output buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Failed compressing coordinates with RLE; output buffer overflow");
     return TILEDB_UT_ERR;
   }
   memcpy(output_cur, &coords_num, sizeof(int64_t));  
@@ -1147,10 +1075,7 @@ int64_t RLE_compress_coords_col(
   // Copy the first dimension intact
   // --- Sanity check on size
   if(output_size + coords_num*value_size > output_allocated_size) {
-    std::string errmsg = 
-        "Failed compressing coordinates with RLE; output buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed compressing coordinates with RLE; output buffer overflow");
     return TILEDB_UT_ERR;
   }
   // --- Copy to output buffer
@@ -1175,10 +1100,7 @@ int64_t RLE_compress_coords_col(
       } else {                                       // Save the run
         // Sanity check on output size
         if(output_size + run_size > output_allocated_size) {
-          std::string errmsg = 
-              "Failed compressing coordinates with RLE; output buffer overflow";
-          PRINT_ERROR(errmsg);
-          tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+          UTILS_ERROR("Failed compressing coordinates with RLE; output buffer overflow");
           return TILEDB_UT_ERR;
         }
   
@@ -1205,10 +1127,7 @@ int64_t RLE_compress_coords_col(
     // Save final run
     //---  Sanity check on ouput size
     if(output_size + run_size > output_allocated_size) {
-      std::string errmsg = 
-          "Failed compressing coordinates with RLE; output buffer overflow";
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+      UTILS_ERROR("Failed compressing coordinates with RLE; output buffer overflow");
       return TILEDB_UT_ERR;
     }
 
@@ -1249,10 +1168,7 @@ int64_t RLE_compress_coords_row(
 
   // Sanity check on input buffer format
   if(input_size % coords_size) {
-    std::string errmsg = 
-        "failed compressing coordinates with RLE; invalid input buffer format";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Failed compressing coordinates with RLE; invalid buffer format");
     return TILEDB_UT_ERR;
   }
 
@@ -1262,10 +1178,7 @@ int64_t RLE_compress_coords_row(
 
   // Copy the number of coordinates
   if(output_size + sizeof(int64_t) > output_allocated_size) {
-    std::string errmsg = 
-        "failed compressing coordinates with RLE; output buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Filed compressing coordinates with RLE; output buffer overflow");
     return TILEDB_UT_ERR;
   }
   memcpy(output_cur, &coords_num, sizeof(int64_t));  
@@ -1286,10 +1199,7 @@ int64_t RLE_compress_coords_row(
       } else {                                 // Save the run
         // Sanity check on size
         if(output_size + run_size > output_allocated_size) {
-          std::string errmsg = 
-              "Failed compressing coordinates with RLE; output buffer overflow";
-          PRINT_ERROR(errmsg);
-          tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+          UTILS_ERROR("Failed compressing coordinates with RLE; output buffer overflow");
           return TILEDB_UT_ERR;
         }
   
@@ -1316,10 +1226,7 @@ int64_t RLE_compress_coords_row(
     // Save final run
     // --- Sanity check on size
     if(output_size + run_size > output_allocated_size) {
-      std::string errmsg = 
-          "Failed compressing coordinates with RLE; output buffer overflow";
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+      UTILS_ERROR("Failed compressing coordinates with RLE; output buffer overflow");
       return TILEDB_UT_ERR;
     }
 
@@ -1338,10 +1245,7 @@ int64_t RLE_compress_coords_row(
   // Copy the final dimension intact
   // --- Sanity check on size
   if(output_size + coords_num*value_size > output_allocated_size) {
-    std::string errmsg = 
-        "Failed compressing coordinates with RLE; output buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed compressing coordinates with RLE; output buffer overflow");
     return TILEDB_UT_ERR;
   }
   // --- Copy to output buffer
@@ -1378,10 +1282,7 @@ int RLE_decompress(
 
   // Sanity check on input buffer format
   if(input_size % run_size) {
-    std::string errmsg = 
-        "Failed decompressing with RLE; invalid input buffer format";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed decompressing with RLE; invalid input buffer format");
     return TILEDB_UT_ERR;
   }
 
@@ -1395,10 +1296,7 @@ int RLE_decompress(
 
     // Sanity check on size
     if(output_size + value_size * run_len > output_allocated_size) {
-      std::string errmsg = 
-          "Failed decompressing with RLE; output buffer overflow";
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+      UTILS_ERROR("Failed decompressing with RLE; output buffer overflow");
       return TILEDB_UT_ERR;
     }
 
@@ -1436,10 +1334,7 @@ int RLE_decompress_coords_col(
   // Get the number of coordinates
   // --- Sanity check on input buffer size
   if(input_offset + sizeof(int64_t) > input_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; input buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; input buffer overflow");
     return TILEDB_UT_ERR;
   }
   // --- Copy number of coordinates
@@ -1454,18 +1349,12 @@ int RLE_decompress_coords_col(
   // Copy the first dimension intact
   // --- Sanity check on output buffer size
   if(coords_num * coords_size > output_allocated_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; output buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; output buffer overflow");
     return TILEDB_UT_ERR;
   }
   // --- Sanity check on output buffer size
   if(input_offset + coords_num * value_size > input_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; input buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; input buffer overflow");
     return TILEDB_UT_ERR;
   }
   // --- Copy first dimension to output
@@ -1481,11 +1370,7 @@ int RLE_decompress_coords_col(
 
   // Sanity check on input buffer format
   if((input_size - input_offset) % run_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; "
-         "invalid input buffer format";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; invalid input buffer format");
     return TILEDB_UT_ERR;
   }
 
@@ -1540,10 +1425,7 @@ int RLE_decompress_coords_row(
   // Get the number of coordinates
   // --- Sanity check on input buffer size
   if(input_offset + sizeof(int64_t) > input_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; input buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; input buffer overflow");
     return TILEDB_UT_ERR;
   }
   // --- Copy number of coordinates
@@ -1557,10 +1439,7 @@ int RLE_decompress_coords_row(
 
   // Sanity check on output buffer size
   if(coords_num * coords_size > output_allocated_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; output buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = tiledb_ut_errmsg + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; output buffer overflow");
     return TILEDB_UT_ERR;
   }
 
@@ -1570,11 +1449,7 @@ int RLE_decompress_coords_row(
 
   // Sanity check on input buffer format
   if((input_size - input_offset - coords_num * value_size) % run_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; "
-         "invalid input buffer format";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; invalid input buffer format");
     return TILEDB_UT_ERR;
   }
 
@@ -1609,10 +1484,7 @@ int RLE_decompress_coords_row(
   // Copy the last dimension intact
   // --- Sanity check on input buffer size
   if(input_offset + coords_num * value_size > input_size) {
-    std::string errmsg = 
-        "Failed decompressing coordinates with RLE; input buffer overflow";
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    UTILS_ERROR("Failed decompressing coordinates with RLE; input buffer overflow");
     return TILEDB_UT_ERR;
   }
   // --- Copy to output buffer
@@ -1662,9 +1534,7 @@ int write_to_file_after_compression(StorageFS *fs, const std::string& filename, 
       }
       return rc;
     default:
-      std::string errmsg = std::string("Compression type not supported");
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+      UTILS_PATH_ERROR("Compression type not supported", filename);
       return TILEDB_UT_ERR;
   }
 
@@ -1678,10 +1548,8 @@ int write_to_file_after_compression(StorageFS *fs, const std::string& filename, 
   strm.opaque = Z_NULL;
 
   if (deflateInit2 (&strm, TILEDB_COMPRESSION_LEVEL_GZIP, Z_DEFLATED, windowBits | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
-      std::string errmsg = std::string("Could not initialize for gzip compression");
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
-      return TILEDB_UT_ERR;
+    UTILS_PATH_ERROR("Could not initialize for gzip compression", filename);
+    return TILEDB_UT_ERR;
   }
 
   /* compress until end of file */
@@ -1697,18 +1565,14 @@ int write_to_file_after_compression(StorageFS *fs, const std::string& filename, 
     
     if ((rc = deflate(&strm, Z_FINISH)) == Z_STREAM_ERROR) {
       deflateEnd(&strm);
-      std::string errmsg = std::string("Encountered Z_STREAM_ERROR; Could not compress file");
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+      UTILS_PATH_ERROR("Encountered Z_STREAM_ERROR; Could not compress file", filename);
       return TILEDB_UT_ERR;
     }
     
     have = TILEDB_GZIP_CHUNK_SIZE - strm.avail_out;
     if (gzip_buffer->append_buffer(out, have) == TILEDB_BF_ERR) {
       deflateEnd(&strm);
-      std::string errmsg = std::string("Could not write compressed bytes to internal buffer");
-      PRINT_ERROR(errmsg);
-      tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+      UTILS_PATH_ERROR("Could not write compressed bytes to internal buffer", filename);
       return TILEDB_UT_ERR;
     }
   } while (strm.avail_out == 0);
@@ -1719,9 +1583,7 @@ int write_to_file_after_compression(StorageFS *fs, const std::string& filename, 
   deflateEnd(&strm);
 
   if (write_to_file(fs, filename, gzip_buffer->get_buffer(), gzip_buffer->get_buffer_size()) == TILEDB_UT_ERR) {
-    std::string errmsg = std::string("Could not write compressed bytes to internal buffer");
-    PRINT_ERROR(errmsg);
-    tiledb_ut_errmsg = TILEDB_UT_ERRMSG + errmsg; 
+    UTILS_PATH_ERROR("Could not write compressed bytes to internal buffer", filename);
     return TILEDB_UT_ERR;
   }
 
