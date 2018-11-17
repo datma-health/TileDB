@@ -2071,8 +2071,8 @@ int ArraySchema::tile_order_cmp(
     const int64_t* coords_a, 
     const int64_t* coords_b) const {
   // For easy reference
-  int64_t diff; 
-  int64_t norm;
+  int64_t diff = 0;
+  int64_t norm = 0;
   const int64_t* domain = static_cast<const int64_t*>(domain_);
   const int64_t* tile_extents = static_cast<const int64_t*>(tile_extents_);
 
@@ -2127,8 +2127,8 @@ int ArraySchema::tile_order_cmp(
     const float* coords_a, 
     const float* coords_b) const {
   // For easy reference
-  float diff; 
-  float norm, norm_temp;
+  float diff = 0.0;
+  float norm = 0.0, norm_temp = 0.0;
   const float* domain = static_cast<const float*>(domain_);
   const float* tile_extents = static_cast<const float*>(tile_extents_);
 
