@@ -197,6 +197,13 @@ int cmp_row_order(
     int dim_num);
 
 /**
+ * Checks if a given pathURL is Azure Blob Storage.
+ * @param pathURL URL to path to be checked.
+ * @return true if pathURL starts with wasb:// or wasbs://
+ */
+bool is_azure_blob_storage_path(const std::string& pathURL);
+
+/**
  * Checks if a given pathURL is GCS.
  * @param pathURL URL to path to be checked.
  * @return true if pathURL starts with gs://
