@@ -230,6 +230,14 @@ int cmp_row_order(
   return 0;
 }
 
+bool is_azure_blob_storage_path(const std::string& pathURL) {
+  if (!pathURL.empty() && (starts_with(pathURL, "wasbs:") || (starts_with(pathURL, "wasb:")))) {
+    return true;
+  } else {
+    return false;
+ }
+}
+
 bool is_gcs_path(const std::string& pathURL) {
   if (!pathURL.empty() && starts_with(pathURL, "gs:")) {
     return true;
