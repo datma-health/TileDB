@@ -91,7 +91,7 @@ int StorageManagerConfig::init(
      if (fs_ != NULL)
        delete fs_;
      home_ = std::string(home, strlen(home));
-     if (is_hdfs_path(home) || is_gcs_path(home)) {
+     if (is_hdfs_path(home) || is_gcs_path(home) || is_azure_blob_storage_path(home)) {
        try {
 #ifdef USE_HDFS
 	 fs_ = new HDFS(home_);
