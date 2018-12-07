@@ -22,3 +22,8 @@ build
 \#*\#
 .\#*
 TAGS
+
+#idea
+.idea/
+TileDB.iml
+
