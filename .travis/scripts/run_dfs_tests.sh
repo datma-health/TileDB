@@ -3,14 +3,16 @@
 if [[ $INSTALL_TYPE != basic ]]; then
 	cd $TILEDB_BUILD_DIR && make examples && cd examples
 	if [[ $INSTALL_TYPE == hdfs ]]; then
-		$TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test";		
+		$TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test"
 	elif [[ $INSTALL_TYPE == gcs ]]; then
-		echo "GS_BUCKET=" $GS_BUCKET
-		if [[ ! -f ~/GCS.json ]]; then
-			echo "GCS Service Json File not found";
-			exit 1;
-		fi
-		GOOGLE_APPLICATION_CREDENTIALS=~/GCS.json $TRAVIS_BUILD_DIR/examples/run_examples.sh "gs://$GS_BUCKET/travis_test";
+		GOOGLE_APPLICATION_CREDENTIALS=$TRAVIS_BUILD_DIR/.travis/resources/gcs/GCS.json $TRAVIS_BUILD_DIR/examples/run_examples.sh "gs://$GS_BUCKET/travis_test"
+	elif [[ $INSTALL_TYPE == azure ]]; then
+		$TRAVIS_BUILD_DIR/examples/run_examples.sh "wasbs://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_test"
 	fi
-	diff travis_test.log $TRAVIS_BUILD_DIR/examples/expected_results;
+	if [[ ! $! -eq 0 ]]; then
+        echo "Something wrong! run_examples.sh returned status code = $!"
+        exit 1
+    else
+		diff travis_test.log $TRAVIS_BUILD_DIR/examples/expected_results
+	fi
 fi
