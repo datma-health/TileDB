@@ -42,7 +42,8 @@ int main(int argc, char** argv) {
     tiledb_config.home_ = home;
     CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
   } else {
-    home = get_current_dir_name();
+    home = (char *)malloc(TILEDB_NAME_MAX_LEN+1);
+    home = getcwd(home, TILEDB_NAME_MAX_LEN);
     CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
   }
 
