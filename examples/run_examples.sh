@@ -65,48 +65,41 @@ run_example() {
 
 if [[ -n $1 ]]
 then
-  logfile=`basename $1`.log
-  if [[ $1 == *"//"* ]]
-  then
-    echo "Cleaning hdfs $1"
-    hdfs dfs -rm -r $1
-  else
-    echo "Cleaning posixfs$1"
-    rm -fr $1 my_workspace
-  fi
+  rm -fr `basename $1`.log
 else
-  echo "Cleaning default my_workspace"
-  rm -fr my_workspace
+  rm -fr log
 fi
 
 run_example ./tiledb_workspace_group_create $1 1
-run_example ./tiledb_array_create_dense $1 2
-run_example ./tiledb_array_create_sparse $1 3
-run_example ./tiledb_array_primitive $1 4
-run_example ./tiledb_array_write_dense_1 $1 5
-run_example ./tiledb_array_write_sparse_1 $1 6
-run_example ./tiledb_array_read_dense_1 $1 7
-run_example ./tiledb_array_write_dense_2 $1 8
+run_example ./tiledb_ls_workspaces $1 2
+run_example ./tiledb_array_create_dense $1 3
+run_example ./tiledb_array_create_sparse $1 4
+run_example ./tiledb_array_primitive $1 5
+run_example ./tiledb_array_write_dense_1 $1 6
+run_example ./tiledb_array_write_sparse_1 $1 7
+run_example ./tiledb_ls $1 8
 run_example ./tiledb_array_read_dense_1 $1 9
-run_example ./tiledb_array_read_dense_2 $1 10
-run_example ./tiledb_array_write_dense_sorted $1 11
-run_example ./tiledb_array_read_dense_1 $1 12
-run_example ./tiledb_array_update_dense_1 $1 13
+run_example ./tiledb_array_write_dense_2 $1 10
+run_example ./tiledb_array_read_dense_1 $1 11
+run_example ./tiledb_array_read_dense_2 $1 12
+run_example ./tiledb_array_write_dense_sorted $1 13
 run_example ./tiledb_array_read_dense_1 $1 14
-run_example ./tiledb_array_update_dense_2 $1 15
+run_example ./tiledb_array_update_dense_1 $1 15
 run_example ./tiledb_array_read_dense_1 $1 16
-run_example ./tiledb_array_write_sparse_1 $1 17
-run_example ./tiledb_array_read_sparse_1 $1 18
-run_example ./tiledb_array_read_sparse_2 $1 19
-run_example ./tiledb_array_write_sparse_2 $1 20
-run_example ./tiledb_array_read_sparse_1 $1 21
-run_example ./tiledb_array_read_sparse_2 $1 22
-run_example ./tiledb_array_update_sparse_1 $1 23
-run_example ./tiledb_array_read_sparse_1 $1 24
-run_example ./tiledb_array_read_sparse_2 $1 25
-run_example ./tiledb_array_consolidate $1 26
-run_example ./tiledb_array_read_dense_1 $1 27
-run_example ./tiledb_array_read_sparse_1 $1 28
-run_example ./tiledb_array_read_dense_2 $1 29
-run_example ./tiledb_array_read_sparse_2 $1 30
+run_example ./tiledb_array_update_dense_2 $1 17
+run_example ./tiledb_array_read_dense_1 $1 18
+run_example ./tiledb_array_write_sparse_1 $1 19
+run_example ./tiledb_array_read_sparse_1 $1 20
+run_example ./tiledb_array_read_sparse_2 $1 21
+run_example ./tiledb_array_write_sparse_2 $1 22
+run_example ./tiledb_array_read_sparse_1 $1 23
+run_example ./tiledb_array_read_sparse_2 $1 24
+run_example ./tiledb_array_update_sparse_1 $1 25
+run_example ./tiledb_array_read_sparse_1 $1 26
+run_example ./tiledb_array_read_sparse_2 $1 27
+run_example ./tiledb_array_consolidate $1 28
+run_example ./tiledb_array_read_dense_1 $1 29
+run_example ./tiledb_array_read_sparse_1 $1 30
+run_example ./tiledb_array_read_dense_2 $1 31
+run_example ./tiledb_array_read_sparse_2 $1 32
 

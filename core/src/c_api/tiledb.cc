@@ -1589,6 +1589,7 @@ int tiledb_move(
 
 int tiledb_ls_workspaces(
     const TileDB_CTX* tiledb_ctx,
+    const char* parent_dir,
     char** workspaces,
     int* workspace_num) {
   // Sanity check
@@ -1597,6 +1598,7 @@ int tiledb_ls_workspaces(
 
   // List workspaces
   if(tiledb_ctx->storage_manager_->ls_workspaces(
+	       parent_dir,
                workspaces,
                *workspace_num) != TILEDB_SM_OK) {
     strcpy(tiledb_errmsg, tiledb_sm_errmsg.c_str());
@@ -1609,6 +1611,7 @@ int tiledb_ls_workspaces(
 
 int tiledb_ls_workspaces_c(
     const TileDB_CTX* tiledb_ctx,
+    const char* parent_dir,
     int* workspace_num) {
   // Sanity check
   if(!sanity_check(tiledb_ctx))
@@ -1616,7 +1619,7 @@ int tiledb_ls_workspaces_c(
 
   // List workspaces
   if(tiledb_ctx->storage_manager_->ls_workspaces_c(
-               *workspace_num) != TILEDB_SM_OK) {
+				   parent_dir, *workspace_num) != TILEDB_SM_OK) {
     strcpy(tiledb_errmsg, tiledb_sm_errmsg.c_str());
     return TILEDB_ERR;
   }
