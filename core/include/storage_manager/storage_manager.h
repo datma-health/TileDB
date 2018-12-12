@@ -173,6 +173,7 @@ class StorageManager {
    * @return TILEDB_SM_OK for success and TILEDB_SM_ERR for error.
    */
   int ls_workspaces(
+      const char *parent_dir,
       char** workspaces,
       int& workspace_num);
 
@@ -182,9 +183,7 @@ class StorageManager {
    * @param workspace_num The number of TileDB workspace to be returned.
    * @return TILEDB_SM_OK for success and TILEDB_SM_ERR for error.
    */
-  int ls_workspaces_c(int& workspace_num);
-
-
+  int ls_workspaces_c(const char *parent_dir, int& workspace_num);
 
   /* ********************************* */
   /*              GROUP                */
@@ -918,6 +917,7 @@ class StorageManager {
   int workspace_move(
        const std::string& old_workspace,
        const std::string& new_workspace);
+
 }; 
 
 /**  
