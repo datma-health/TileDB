@@ -42,7 +42,6 @@ set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
 set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(ENABLE_MUPARSERX_EXPRESSIONS False CACHE BOOL "Enable MuparserX expression parsing")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
-set(ENABLE_MASTER_CATALOG False CACHE BOOL "Enable master catalog")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 
 # Only for Mac OS X warnings
@@ -71,10 +70,6 @@ set(COMPRESSION_LEVEL_ZSTD "" CACHE STRING "Compression level for Zstandard.")
 set(COMPRESSION_LEVEL_BLOSC "" CACHE STRING "Compression level for Blosc.")
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
-endif()
-
-if(ENABLE_MASTER_CATALOG)
-    add_definitions(-DENABLE_MASTER_CATALOG)
 endif()
 
 # Find required library dependencies

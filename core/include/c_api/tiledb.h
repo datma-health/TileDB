@@ -1220,6 +1220,7 @@ TILEDB_EXPORT int tiledb_move(
  */
 TILEDB_EXPORT int tiledb_ls_workspaces(
     const TileDB_CTX* tiledb_ctx,
+    const char* parent_dir,
     char** workspaces,
     int* workspace_num);
 
@@ -1232,6 +1233,7 @@ TILEDB_EXPORT int tiledb_ls_workspaces(
  */
 TILEDB_EXPORT int tiledb_ls_workspaces_c(
     const TileDB_CTX* tiledb_ctx,
+    const char* parent_dir,
     int* workspace_num);
 
 /**

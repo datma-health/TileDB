@@ -99,7 +99,9 @@ hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
     throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Error getting hdfs builder");
   }
   
-  hdfsBuilderSetForceNewInstance(builder);
+  // Forces the builder to always create a new instance of the FileSystem.
+  // Cached instances of the builder should be fine.
+  // hdfsBuilderSetForceNewInstance(builder);
   
   hdfsBuilderSetNameNode(builder, name_node.c_str());
   if (!path_url.port().empty()) {

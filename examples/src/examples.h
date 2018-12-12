@@ -36,6 +36,7 @@
 #define TILEDB_EXAMPLES_H
 
 #include "tiledb.h"
+#include "tiledb_storage.h"
 #include <cstdio>
 #include <string.h>
 
