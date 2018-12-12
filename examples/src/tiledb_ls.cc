@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,24 +31,24 @@
  * It shows how to explore the contents of a TileDB directory.
  */
 
-#include "tiledb.h"
-#include <cstdio>
-#include <cstdlib>
+#include "examples.h"
 
 int main(int argc, char** argv) {
-  // Sanity check
-  if(argc != 2) {
-    fprintf(stderr, "Usage: ./tiledb_list parent_dir\n");
-    return -1;
-  }
-
-  // Initialize context with the default configuration parameters
+  char *home;
   TileDB_CTX* tiledb_ctx;
-  tiledb_ctx_init(&tiledb_ctx, NULL);
+  if (argc > 1) {
+    TileDB_Config tiledb_config;
+    home = strdup(argv[1]);
+    tiledb_config.home_ = home;
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
+  } else {
+    home = get_current_dir_name();
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
+  }
 
   // Retrieve number of directories
   int dir_num;
-  tiledb_ls_c(tiledb_ctx, argv[1], &dir_num);
+  CHECK_RC(tiledb_ls_c(tiledb_ctx, home, &dir_num));
 
   // Exit if there are not TileDB objects in the input directory_
   if(dir_num == 0)
@@ -60,12 +61,12 @@ int main(int argc, char** argv) {
     dirs[i] = (char*) malloc(TILEDB_NAME_MAX_LEN);
 
   // List TileDB objects
-  tiledb_ls(
+  CHECK_RC(tiledb_ls(
       tiledb_ctx,                                    // Context
-      argv[1],                                       // Parent directory
+      home,                                          // Parent directory
       dirs,                                          // Directories
       dir_types,                                     // Directory types
-      &dir_num);                                     // Directory number
+      &dir_num));                                    // Directory number
 
   // Print TileDB objects
   for(int i=0; i<dir_num; ++i) {
@@ -85,9 +86,10 @@ int main(int argc, char** argv) {
     free(dirs[i]);
   free(dirs);
   free(dir_types);
+  free(home);
 
   // Finalize context
-  tiledb_ctx_finalize(tiledb_ctx);
+  CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
   return 0;
 }
