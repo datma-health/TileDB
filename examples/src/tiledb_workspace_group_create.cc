@@ -44,6 +44,11 @@ int main(int argc, char *argv[]) {
     CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
   }
 
+  // Delete a workspace if it exists
+  if (is_dir(tiledb_ctx, "my_workspace")) {
+    CHECK_RC(tiledb_delete(tiledb_ctx, "my_workspace"));
+  }
+
   // Create a workspace
   CHECK_RC(tiledb_workspace_create(tiledb_ctx, "my_workspace"));
 

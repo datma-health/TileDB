@@ -74,8 +74,8 @@ install_hadoop() {
   cd $TRAVIS_BUILD_DIR/scripts &&
   install_prereqs &&
   download_hadoop &&
-  configure_hadoop &&
   setup_paths &&
+  configure_hadoop &&
   echo "Install Hadoop SUCCESSFUL"
 }
 
