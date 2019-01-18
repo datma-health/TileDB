@@ -58,8 +58,6 @@ void StorageFS::set_disable_file_locking(const bool val) {
   disable_file_locking_ = val;
 }
 
-bool is_disable_file_locking_set = false;
-
 bool StorageFS::disable_file_locking() {
   if (is_disable_file_locking_set) {
     return disable_file_locking_;

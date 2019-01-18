@@ -33,6 +33,7 @@
 
 #include "c_api_dense_array_spec.h"
 #include "progress_bar.h"
+#include "storage_posixfs.h"
 #include <iostream>
 #include <time.h>
 #include <sys/time.h>
@@ -583,7 +584,8 @@ TEST_CASE_METHOD(DenseArrayTestFixture, "Test Dense Array - 10 random 2D arrays"
  * Tests random 2D subarray writes. 
  */
 TEST_CASE_METHOD(DenseArrayTestFixture, "Test random 2D subarray writes", "[test_random_dense_sorted_writes]") {
-  putenv("TILEDB_DISABLE_FILE_LOCKING=True");
+  char *disable_file_locking_env = strdup("TILEDB_DISABLE_FILE_LOCKING=True");
+  CHECK(putenv(disable_file_locking_env) == 0);
 
   // Error code
   int rc;
@@ -621,6 +623,10 @@ TEST_CASE_METHOD(DenseArrayTestFixture, "Test random 2D subarray writes", "[test
            cell_order,
            tile_order);
   CHECK_RC(rc, TILEDB_OK);
+
+  PosixFS fs;
+  CHECK(fs.is_dir(WORKSPACE+"/dense_test_100x100_10x10"));
+  CHECK(!fs.is_file(WORKSPACE+"/dense_test_100x100_10x10/.consolidation_lock"));
 
   // Write random subarray, then read it back and check
   int64_t d0[2], d1[2];
@@ -675,6 +681,11 @@ TEST_CASE_METHOD(DenseArrayTestFixture, "Test random 2D subarray writes", "[test
 
   // Delete progress bar
   delete progress_bar;
+
+  free(disable_file_locking_env);
+  disable_file_locking_env = strdup("TILEDB_DISABLE_FILE_LOCKING=False");
+  CHECK(putenv(disable_file_locking_env) == 0);
+  free(disable_file_locking_env);
 }
 
 /**
