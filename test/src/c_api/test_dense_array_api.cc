@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -72,8 +73,6 @@ DenseArrayTestFixture::~DenseArrayTestFixture() {
   rc = system(command.c_str());
   CHECK_RC(rc, 0);
 }
-
-
 
 
 /* ****************************** */
@@ -584,6 +583,8 @@ TEST_CASE_METHOD(DenseArrayTestFixture, "Test Dense Array - 10 random 2D arrays"
  * Tests random 2D subarray writes. 
  */
 TEST_CASE_METHOD(DenseArrayTestFixture, "Test random 2D subarray writes", "[test_random_dense_sorted_writes]") {
+  putenv("TILEDB_DISABLE_FILE_LOCKING=True");
+
   // Error code
   int rc;
 

@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -304,12 +305,12 @@ int Fragment::rename_fragment() {
   if(read_mode())
     return TILEDB_FG_OK;
 
-  // No rename of fragment required for cloud based filenames
-  if (is_hdfs_path(fragment_name_) || is_gcs_path(fragment_name_)) {
+  StorageFS *fs = array_->config()->get_filesystem();
+
+  // No rename of fragment for filesystems with no locking
+  if (!fs->locking_support()) {
     return TILEDB_FG_OK;
   }
-
-  StorageFS *fs = array_->config()->get_filesystem();
 
   std::string parent_dir = ::parent_dir(fs, fragment_name_);
   std::string new_fragment_name = parent_dir + "/" +

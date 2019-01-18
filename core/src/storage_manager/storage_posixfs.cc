@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -341,31 +341,36 @@ size_t PosixFS::file_size(const std::string& filename) {
 
 int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
   reset_errno();
+
+  if (length == 0) {
+    return TILEDB_FS_OK;
+  }
   
   // Open file
   int fd = open(filename.c_str(), O_RDONLY);
-  if(fd == -1) {
+  if (fd == -1) {
     POSIX_ERROR("Cannot read from file; File opening error", filename);
     return TILEDB_FS_ERR;
   }
 
-  // Read in batches
-  auto iterations = length/TILEDB_UT_MAX_WRITE_COUNT;
-  for (auto i=0; i<=iterations; i++) {
-    size_t bytes_to_read = i<iterations?TILEDB_UT_MAX_WRITE_COUNT:length%TILEDB_UT_MAX_WRITE_COUNT;
-    if (bytes_to_read > 0) {
-      void *buffer_ptr =  reinterpret_cast<void *>(reinterpret_cast<char *>(buffer) + i*(off_t)TILEDB_UT_MAX_WRITE_COUNT);
-      off_t file_offset = offset + i*(off_t)TILEDB_UT_MAX_WRITE_COUNT;
-      ssize_t bytes_read = pread(fd, buffer_ptr, bytes_to_read, file_offset);
-      if(bytes_read != ssize_t(bytes_to_read)) {
-        POSIX_ERROR("Cannot read from file; File reading error", filename);
-        return TILEDB_FS_ERR;
-      }
+  // Read in batches of SSIZE_MAX
+  size_t nbytes = 0;
+  char *pbuf = reinterpret_cast<char *>(buffer);
+  do {
+    ssize_t bytes_read = pread(fd, reinterpret_cast<void *>(pbuf), (length - nbytes) > SSIZE_MAX?SSIZE_MAX : length-nbytes, offset + nbytes);
+    if (bytes_read < 0) {
+      POSIX_ERROR("Cannot read from file; File reading error", filename);
+      return TILEDB_FS_ERR;
+    } else if (bytes_read == 0) {
+      POSIX_ERROR("EOF reached; File reading error", filename);
+      return TILEDB_FS_ERR;
     }
-  }
+    nbytes += bytes_read;
+    pbuf += bytes_read;
+  } while (nbytes < length);
   
   // Close file
-  if(close(fd)) {
+  if (close(fd)) {
     POSIX_ERROR("Cannot read from file; File closing error", filename);
     return TILEDB_FS_ERR;
   }
@@ -377,6 +382,10 @@ int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buf
 int PosixFS::write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) {
   reset_errno();
   
+  if (buffer_size == 0) {
+    return TILEDB_FS_OK;
+  }
+
   // Open file
   int fd = open(filename.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXU);
   if(fd == -1) {
@@ -384,22 +393,18 @@ int PosixFS::write_to_file(const std::string& filename, const void *buffer, size
     return TILEDB_FS_ERR;
   }
 
-  // Append data to the file in batches of TILEDB_UT_MAX_WRITE_COUNT
-  // bytes at a time
-  ssize_t bytes_written;
-  while(buffer_size > TILEDB_UT_MAX_WRITE_COUNT) {
-    bytes_written = write(fd, buffer, TILEDB_UT_MAX_WRITE_COUNT);
-    if(bytes_written != TILEDB_UT_MAX_WRITE_COUNT) {
+  // Write in batches of SSIZE_MAX
+  size_t nbytes = 0;
+  char *pbuf = reinterpret_cast<char *>(const_cast<void *>(buffer));
+  do {
+    ssize_t bytes_written = write(fd, reinterpret_cast<void *>(pbuf), (buffer_size - nbytes) > SSIZE_MAX ? SSIZE_MAX : buffer_size - nbytes);
+    if(bytes_written < 0) {
       POSIX_ERROR("Cannot write to file; File writing error", filename);
       return TILEDB_FS_ERR;
     }
-    buffer_size -= TILEDB_UT_MAX_WRITE_COUNT;
-  }
-  bytes_written = write(fd, buffer, buffer_size);
-  if(bytes_written != ssize_t(buffer_size)) {
-    POSIX_ERROR("Cannot write to file; File writing error", filename);
-    return TILEDB_FS_ERR;
-  }
+    nbytes += bytes_written;
+    pbuf += bytes_written;
+  } while (nbytes < buffer_size);
 
   // Close file
   if(close(fd)) {
@@ -443,8 +448,10 @@ int PosixFS::sync_path(const std::string& filename) {
 
   // Sync
   if(fsync(fd)) {
+    if (locking_support()) {
     POSIX_ERROR("Cannot sync file; File syncing error", filename);
     return TILEDB_FS_ERR;
+    }
   }
 
   // Close file
@@ -458,7 +465,5 @@ int PosixFS::sync_path(const std::string& filename) {
 }
 
 bool PosixFS::locking_support() {
-  if(disable_file_locking())
-    return false;
-  return true;
+  return !disable_file_locking();
 }

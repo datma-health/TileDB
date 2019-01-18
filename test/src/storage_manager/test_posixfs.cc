@@ -189,8 +189,8 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
   REQUIRE(fs.create_dir(test_dir) == TILEDB_FS_OK);
 
   bool complete = true;
-  auto iterations = std::thread::hardware_concurrency();
-  for (auto i=0; i<iterations; i++) {
+  uint iterations = std::thread::hardware_concurrency();
+  for (uint i=0; i<iterations; i++) {
     std::string filename = test_dir+"/foo"+std::to_string(i);
 
     for (auto j=0; j<2; j++) {
@@ -211,7 +211,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
   CHECK(fs.is_dir(test_dir+"new"));
 
   if (complete) {
-    for (auto i=0; i<iterations; i++) {
+    for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"new/foo"+std::to_string(i);
       CHECK(fs.is_file(filename));
       CHECK(fs.file_size(filename) == ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*2);

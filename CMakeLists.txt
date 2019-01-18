@@ -5,6 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
+# Copyright (c) 2018-2019 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +45,7 @@ set(ENABLE_MUPARSERX_EXPRESSIONS False CACHE BOOL "Enable MuparserX expression p
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 
-# Only for Mac OS X warnings
+# Only for Mac OS X
 if(APPLE)
   set(CMAKE_MACOSX_RPATH True CACHE BOOL "Set rpath on OSX")
   set(CMAKE_FIND_FRAMEWORK NEVER CACHE STRING "Never try to find frameworks on Mac OS X")
@@ -64,7 +65,6 @@ set(MAC_ADDRESS_INTERFACE ""
 )
 set(USE_PARALLEL_SORT False CACHE BOOL "Enables parallel sorting.")
 set(USE_HDFS True CACHE BOOL "Enables HDFS support")
-set(GTEST_FILTER "*" CACHE STRING "Filters for the Google unit tests.")
 set(COMPRESSION_LEVEL_GZIP "" CACHE STRING "Compression level for GZIP.")
 set(COMPRESSION_LEVEL_ZSTD "" CACHE STRING "Compression level for Zstandard.")
 set(COMPRESSION_LEVEL_BLOSC "" CACHE STRING "Compression level for Blosc.")
