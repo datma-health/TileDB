@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -196,11 +197,6 @@ class StorageManagerConfig {
    *      TileDB will use MPI-IO write. 
    */
   int write_method_;
-
-  /*
-   * Disable file locking even if the backend supports it
-   */
-  bool disable_file_locking_;
 
   /** The Filesystem type associated with this configuration */
   StorageFS *fs_ = NULL;

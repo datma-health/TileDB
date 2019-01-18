@@ -353,11 +353,11 @@ int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buf
     return TILEDB_FS_ERR;
   }
 
-  // Read in batches of SSIZE_MAX
+  // Read in batches of TILEDB_UT_MAX_WRITE_COUNT
   size_t nbytes = 0;
   char *pbuf = reinterpret_cast<char *>(buffer);
   do {
-    ssize_t bytes_read = pread(fd, reinterpret_cast<void *>(pbuf), (length - nbytes) > SSIZE_MAX?SSIZE_MAX : length-nbytes, offset + nbytes);
+    ssize_t bytes_read = pread(fd, reinterpret_cast<void *>(pbuf), (length - nbytes) > TILEDB_UT_MAX_WRITE_COUNT?TILEDB_UT_MAX_WRITE_COUNT : length-nbytes, offset + nbytes);
     if (bytes_read < 0) {
       POSIX_ERROR("Cannot read from file; File reading error", filename);
       return TILEDB_FS_ERR;
@@ -393,11 +393,13 @@ int PosixFS::write_to_file(const std::string& filename, const void *buffer, size
     return TILEDB_FS_ERR;
   }
 
-  // Write in batches of SSIZE_MAX
+  // Write in batches of TILEDB_UT_MAX_WRITE_COUNT
   size_t nbytes = 0;
   char *pbuf = reinterpret_cast<char *>(const_cast<void *>(buffer));
   do {
-    ssize_t bytes_written = write(fd, reinterpret_cast<void *>(pbuf), (buffer_size - nbytes) > SSIZE_MAX ? SSIZE_MAX : buffer_size - nbytes);
+    size_t count = (buffer_size - nbytes) > TILEDB_UT_MAX_WRITE_COUNT ? TILEDB_UT_MAX_WRITE_COUNT : buffer_size - nbytes;
+    assert(count != 0);
+    ssize_t bytes_written = write(fd, reinterpret_cast<void *>(pbuf), count);
     if(bytes_written < 0) {
       POSIX_ERROR("Cannot write to file; File writing error", filename);
       return TILEDB_FS_ERR;
