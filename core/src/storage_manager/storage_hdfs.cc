@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 University of California, Los Angeles and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -416,6 +417,8 @@ static int read_from_file_kernel(hdfsFS hdfs_handle, hdfsFile file, void* buffer
     tSize bytes_read = hdfsRead(hdfs_handle, file, (void *)pbuf,  (length - nbytes) > max_bytes ? max_bytes : length - nbytes);
     if (bytes_read < 0) {
       return print_errmsg(std::string("Error reading file. ") + std::strerror(errno));
+    } else if (bytes_read == 0) {
+      return print_errmsg(std::string("EOF reached"));
     }
     nbytes += bytes_read;
     pbuf += bytes_read;
@@ -578,15 +581,8 @@ int HDFS::close_file(const std::string& filename) {
   return rc_close_write;
 }
 
-static bool done_printing_consolidation_support_message = false;
-
 bool HDFS::locking_support() {
-  if(disable_file_locking())
-    return false;
-  if (!done_printing_consolidation_support_message) {
-    print_errmsg("No file locking support for HDFS/GCS/EMRFS paths.");
-    done_printing_consolidation_support_message = true;
-  }
+  // No file locking available for distributed file systems
   return false;
 }
 

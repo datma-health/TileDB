@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <cctype>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -48,6 +49,10 @@ class PosixFSTestFixture {
  protected:
   PosixFS fs;
   std::string test_dir = "test_posixfs_dir";
+
+  PosixFSTestFixture() {
+    CHECK(fs.locking_support());
+  }
 
   ~PosixFSTestFixture() {
     // Remove the temporary dir
@@ -189,8 +194,8 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
   REQUIRE(fs.create_dir(test_dir) == TILEDB_FS_OK);
 
   bool complete = true;
-  auto iterations = std::thread::hardware_concurrency();
-  for (auto i=0; i<iterations; i++) {
+  uint iterations = std::thread::hardware_concurrency();
+  for (uint i=0; i<iterations; i++) {
     std::string filename = test_dir+"/foo"+std::to_string(i);
 
     for (auto j=0; j<2; j++) {
@@ -211,7 +216,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
   CHECK(fs.is_dir(test_dir+"new"));
 
   if (complete) {
-    for (auto i=0; i<iterations; i++) {
+    for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"new/foo"+std::to_string(i);
       CHECK(fs.is_file(filename));
       CHECK(fs.file_size(filename) == ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*2);
@@ -219,4 +224,28 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
   }
 
   CHECK_RC(fs.delete_dir(test_dir+"new"), TILEDB_FS_OK);
+}
+
+void test_locking_support(const std::string& disable_file_locking_value) {
+  std::cerr << disable_file_locking_value << std::endl;
+  std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING="+disable_file_locking_value;
+  CHECK(putenv(const_cast<char *>(disable_file_locking_env.c_str())) == 0);
+  const char *value = disable_file_locking_value.c_str();
+  if (strcasecmp(value, "true") == 0 || strcmp(value, "1") == 0) {
+    CHECK(!(new PosixFS())->locking_support());
+  } else {
+    CHECK((new PosixFS())->locking_support());
+  }
+}
+
+TEST_CASE("Test locking support", "[locking_support]") {
+  test_locking_support("True");
+  test_locking_support("true");
+  test_locking_support("TRUE");
+  test_locking_support("1");
+  test_locking_support("0");
+  test_locking_support("False");
+  test_locking_support("false");
+  test_locking_support("FALSE");
+  test_locking_support("Gibberish");
 }
