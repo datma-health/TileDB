@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation Inc. and Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -92,6 +92,7 @@ class StorageFS {
   bool disable_file_locking();
  private:
   bool disable_file_locking_;
+  bool is_disable_file_locking_set = false;
 };
 
 #endif /* __STORAGE_FS_H__ */

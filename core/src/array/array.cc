@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1297,16 +1298,16 @@ std::string Array::new_fragment_name() const {
   std::string mac = uuid_str;
 #endif
 
-  // Generate fragment name. Note that the cloud based filesystems have
-  // fragment names generated "in-place", there will be no rename associated
-  // with those fragments.
+  // Generate fragment name. Note: for cloud based filesystems or if locking_support is
+  // turned off explicitly, fragment names are generated "in-place", there will be no
+  // rename associated with those fragments.
   int n;
-  if (is_hdfs_path(get_array_path_used()) || is_gcs_path(get_array_path_used())) {
-    n = sprintf(fragment_name, "%s/__%s%" PRIu64"_%" PRIu64,
-              get_array_path_used().c_str(), mac.c_str(), tid, ms);  
+  if (config()->get_filesystem()->locking_support()) {
+    n = sprintf(fragment_name, "%s/.__%s%" PRIu64"_%" PRIu64,
+		get_array_path_used().c_str(), mac.c_str(), tid, ms);
   } else {
-      n = sprintf(fragment_name, "%s/.__%s%" PRIu64"_%" PRIu64,
-          get_array_path_used().c_str(), mac.c_str(), tid, ms);
+    n = sprintf(fragment_name, "%s/__%s%" PRIu64"_%" PRIu64,
+		get_array_path_used().c_str(), mac.c_str(), tid, ms);
   }
 
   // Handle error
