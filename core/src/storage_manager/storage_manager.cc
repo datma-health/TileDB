@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1584,6 +1585,13 @@ int StorageManager::consolidation_filelock_lock(
   std::string filename = 
       array_name_real + "/" + 
       TILEDB_SM_CONSOLIDATION_FILELOCK_NAME;
+
+  // Create consolidation lock file if necessary
+  if (!fs_->is_file(filename)) {
+    if (!consolidation_filelock_create(array_name_real)) {
+      return TILEDB_SM_ERR;
+    }
+  }
 
   // Open the file
   fd = ::open(filename.c_str(), O_RDWR);
