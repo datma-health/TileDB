@@ -32,6 +32,7 @@
 
 #include "tiledb.h"
 #include <cstdio>
+#include <inttypes.h>
 
 int main(int argc, char *argv[]) {
   // Initialize context with home dir if specified in command line, else
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]) {
   printf("coords\t a1\t   a2\t     (a3.first, a3.second)\n");
   printf("--------------------------------------------------\n");
   for(int i=0; i<result_num; ++i) { 
-    printf("(%lld, %lld)", buffer_coords[2*i], buffer_coords[2*i+1]);
+    printf("(%" PRId64 ", %" PRId64 ")", buffer_coords[2*i], buffer_coords[2*i+1]);
     printf("\t %3d", buffer_a1[i]);
     size_t var_size = (i != result_num-1) ? buffer_a2[i+1] - buffer_a2[i] 
                                           : buffer_sizes[2] - buffer_a2[i];
