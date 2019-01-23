@@ -451,8 +451,8 @@ int PosixFS::sync_path(const std::string& filename) {
   // Sync
   if(fsync(fd)) {
     if (locking_support()) {
-    POSIX_ERROR("Cannot sync file; File syncing error", filename);
-    return TILEDB_FS_ERR;
+      POSIX_ERROR("Cannot sync file; File syncing error", filename);
+      return TILEDB_FS_ERR;
     }
   }
 
