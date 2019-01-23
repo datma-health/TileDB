@@ -417,8 +417,6 @@ static int read_from_file_kernel(hdfsFS hdfs_handle, hdfsFile file, void* buffer
     tSize bytes_read = hdfsRead(hdfs_handle, file, (void *)pbuf,  (length - nbytes) > max_bytes ? max_bytes : length - nbytes);
     if (bytes_read < 0) {
       return print_errmsg(std::string("Error reading file. ") + std::strerror(errno));
-    } else if (bytes_read == 0) {
-      return print_errmsg(std::string("EOF reached"));
     }
     nbytes += bytes_read;
     pbuf += bytes_read;
