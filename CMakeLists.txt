@@ -44,6 +44,7 @@ set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(ENABLE_MUPARSERX_EXPRESSIONS False CACHE BOOL "Enable MuparserX expression parsing")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
+set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
 
 # Only for Mac OS X
 if(APPLE)
@@ -200,11 +201,13 @@ endif()
 add_subdirectory(core)
 
 # Enable testing
-enable_testing()
-add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND} -V)
+if(NOT TILEDB_DISABLE_TESTING)
+  enable_testing()
+  add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND} -V)
 
-# Build unit tests
-add_subdirectory(test)
+  # Build unit tests
+  add_subdirectory(test)
+endif()
 
 # Build examples
 add_subdirectory(examples)
