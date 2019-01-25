@@ -34,7 +34,7 @@
 #define __C_API_ARRAY_SCHEMA_SPEC_H__
 
 #include "tiledb.h"
-//#include <gtest/gtest.h>
+#include "storage_posixfs.h"
 
 
 /** Test fixture for the array schema. */
@@ -90,6 +90,7 @@ class ArraySchemaTestFixture {
   bool array_schema_set_;
   /** TileDB context. */
   TileDB_CTX* tiledb_ctx_;
+  PosixFS fs_;
 };
 
 #endif

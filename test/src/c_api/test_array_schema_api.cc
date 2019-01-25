@@ -32,7 +32,6 @@
  */
 
 #include "c_api_array_schema_spec.h"
-#include "storage_posixfs.h"
 #include "utils.h"
 #include <unistd.h>
 
@@ -180,7 +179,7 @@ TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema", "[array_schema]") 
       static_cast<int64_t*>(array_schema_.tile_extents_);
 
   // Get real array path
-  std::string array_name_real = real_dir(new PosixFS(), array_name_);
+  std::string array_name_real = fs_.real_dir(array_name_);
   CHECK_FALSE(array_name_real == "");
   CHECK_THAT(array_name_real, EndsWith(ARRAYNAME));
 
@@ -207,3 +206,23 @@ TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema", "[array_schema]") 
 }
 
 
+TEST_CASE("Test array schema backward compatibility", "[compatibility]") {
+  TileDB_CTX* tiledb_ctx;
+  int rc = tiledb_ctx_init(&tiledb_ctx, NULL);
+  REQUIRE(rc == TILEDB_OK);
+
+  PosixFS fs;
+  std::string array_name = std::string(TILEDB_TEST_DIR)+"/inputs/compatibility_gdb_pre100_ws/t0_1_2";
+  REQUIRE(fs.is_dir(array_name));
+
+  TileDB_ArraySchema array_schema;
+  rc = tiledb_array_load_schema(tiledb_ctx, array_name.c_str(), &array_schema);
+  REQUIRE(rc == TILEDB_OK);
+
+  CHECK_THAT(array_schema.array_name_, Equals("/tmp/tmp7l5mFz/ws/t0_1_2"));
+  CHECK(array_schema.attribute_num_ == 22);
+  CHECK(array_schema.capacity_ == 3);
+  CHECK(array_schema.cell_order_ == 1);
+  CHECK(array_schema.dim_num_ == 2);
+  CHECK(array_schema.compression_[0] == 1);
+}

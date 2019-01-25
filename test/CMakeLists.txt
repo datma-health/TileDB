@@ -36,6 +36,9 @@ include_directories(${TILEDB_CORE_INCLUDE_DIRS})
 # Get test source files
 file(GLOB_RECURSE TILEDB_TEST_SOURCES "src/*/test*.cc")
 
+# Add TILEDB_TEST_DIR macro
+add_definitions(-DTILEDB_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
 # Build one executable per test
 foreach(TILEDB_TEST_SOURCE ${TILEDB_TEST_SOURCES})
   get_filename_component(FILENAME ${TILEDB_TEST_SOURCE} NAME)
