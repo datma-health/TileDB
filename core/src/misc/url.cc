@@ -40,8 +40,6 @@
 
 #include "url.h"
 
-using namespace std;
-
 // Constructor
 url::url(const std::string& url_s) {
   parse(url_s);
@@ -73,36 +71,36 @@ std::string url::query() {
 }
 
 // Private Methods
-void url::parse(const string& url_s)
+void url::parse(const std::string& url_s)
 {
   if (url_s.empty()) {
-    throw system_error(EINVAL, std::generic_category(), "Cannot parse empty string as an URL");
+    throw std::system_error(EINVAL, std::generic_category(), "Cannot parse empty string as an URL");
   }
   
-  const string::const_iterator start_iter = url_s.begin();
-  const string::const_iterator end_iter = url_s.end();
+  const std::string::const_iterator start_iter = url_s.begin();
+  const std::string::const_iterator end_iter = url_s.end();
   
-  const string protocol_end("://");
-  string::const_iterator protocol_iter = search(start_iter, end_iter, protocol_end.begin(), protocol_end.end());
+  const std::string protocol_end("://");
+  std::string::const_iterator protocol_iter = std::search(start_iter, end_iter, protocol_end.begin(), protocol_end.end());
   if (protocol_iter == url_s.end()) {
-    throw system_error(EINVAL, std::generic_category(), "String does not seem to be a URL");
+    throw std::system_error(EINVAL, std::generic_category(), "String does not seem to be a URL");
   }
 
   // protocol is case insensitive
-  protocol_.reserve(distance(start_iter, protocol_iter));
-  transform(start_iter, protocol_iter, back_inserter(protocol_), ptr_fun<int,int>(tolower));
+  protocol_.reserve(std::distance(start_iter, protocol_iter));
+  std::transform(start_iter, protocol_iter, back_inserter(protocol_), std::ptr_fun<int,int>(tolower));
   if (protocol_iter == end_iter) {
     return;
   }
     
-  advance(protocol_iter, protocol_end.length());
+  std::advance(protocol_iter, protocol_end.length());
 
-  string::const_iterator path_iter = find(protocol_iter, end_iter, '/');
-  string::const_iterator port_iter = find(protocol_iter, path_iter, ':');
+  std::string::const_iterator path_iter = find(protocol_iter, end_iter, '/');
+  std::string::const_iterator port_iter = find(protocol_iter, path_iter, ':');
 
   // host is case insensitive
   host_.reserve(distance(protocol_iter, port_iter));
-  transform(protocol_iter, port_iter, back_inserter(host_), ptr_fun<int,int>(tolower));
+  std::transform(protocol_iter, port_iter, back_inserter(host_), std::ptr_fun<int,int>(tolower));
 
   if (port_iter != path_iter) {
     ++port_iter;
@@ -114,14 +112,14 @@ void url::parse(const string& url_s)
     errno = 0;
     long port_val = strtol(start_ptr, &end_ptr, 10);
     if (errno == ERANGE || port_val > UINT16_MAX){
-      throw system_error(ERANGE, std::generic_category(), "URL has a bad port #");
+      throw std::system_error(ERANGE, std::generic_category(), "URL has a bad port #");
     }
     if (start_ptr != end_ptr) {
       nport_ = (uint16_t)port_val;
     }
   }
 
-  string::const_iterator query_iter = find(path_iter, end_iter, '?');
+  std::string::const_iterator query_iter = find(path_iter, end_iter, '?');
   path_.assign(path_iter, query_iter);
 
   if (query_iter != end_iter) {

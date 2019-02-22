@@ -105,10 +105,6 @@ bool array_write_mode(int mode) {
          mode == TILEDB_ARRAY_WRITE_UNSORTED;
 }
 
-bool array_filter_mode(int mode) {
-  return mode == TILEDB_ARRAY_FILTER;
-}
-
 bool both_slashes(char a, char b) {
   return a == '/' && b == '/';
 }

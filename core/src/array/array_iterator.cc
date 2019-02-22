@@ -167,6 +167,11 @@ int ArrayIterator::init(
   return TILEDB_AIT_OK;
 }
 
+int ArrayIterator::apply_filter(const char* filter_expression) {
+  return array_->apply_filter(filter_expression);
+}
+
+
 int ArrayIterator::reset_subarray(const void* subarray) {
   end_ = false;
 

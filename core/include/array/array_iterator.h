@@ -143,6 +143,17 @@ class ArrayIterator {
       size_t* buffer_sizes);
 
   /**
+   * Applies a filter expression to constrain the results returned by
+   * the iterator operations.
+   *
+   * @param filter_expression An expression string that evaluates to a boolean
+   *     to allow for cells to be filtered out from the buffers while reading.
+   *     If NULL, there is no filter applied.
+   * @return TILEDB_AR_OK on success, and TILEDB_AR_ERR on error.
+   */
+  int apply_filter(const char* filter_expression);
+
+  /**
    * Resets the subarray used upon initialization of the iterator. This is useful
    * when the array is used for reading, and the user wishes to change the
    * query subarray without having to finalize and re-initialize the array
