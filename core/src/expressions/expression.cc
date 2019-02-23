@@ -174,8 +174,10 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
     
     try {
       mup::Value ret = parser_->Eval();
+#ifdef DEBUG
       // print the result
       mup::console() << "Ret=" << ret << std::endl;
+#endif
       // drop the cell from buffer if the return type is a boolean
       if (drop_cell(ret)) {
         cells_to_be_dropped.push_back(i_cell);

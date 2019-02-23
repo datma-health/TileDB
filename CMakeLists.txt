@@ -43,6 +43,7 @@ set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
 set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
+set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
 
 # Only for Mac OS X
@@ -106,8 +107,9 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
 
 # Build MuParserX source code added as a dependency
-include(MuParserX)
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${MuParserX_STATIC_LIBRARIES})
+include_directories(${MUPARSERX_SOURCE_DIR}/parser)
+add_subdirectory(${MUPARSERX_SOURCE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} muparserx)
 
 # Find optional library dependencies
 find_package(GTest)
