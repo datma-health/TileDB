@@ -41,9 +41,9 @@ endif()
 set(ENABLE_LZ4 False CACHE BOOL "Enable lz4 compression")
 set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
 set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
-set(ENABLE_MUPARSERX_EXPRESSIONS False CACHE BOOL "Enable MuparserX expression parsing")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
+set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
 
 # Only for Mac OS X
@@ -106,6 +106,11 @@ find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
 
+# Build MuParserX source code added as a dependency
+include_directories(${MUPARSERX_SOURCE_DIR}/parser)
+add_subdirectory(${MUPARSERX_SOURCE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} muparserx)
+
 # Find optional library dependencies
 find_package(GTest)
 find_package(Doxygen)
@@ -134,19 +139,15 @@ endif()
 # Set C++ 2011 flag
 include(SetCXX2011Flag)
 
-if(ENABLE_MUPARSERX_EXPRESSIONS)
-    # Build MuParserX source code added as a dependency
-    include(MuParserX)
-    add_definitions(-DENABLE_MUPARSERX_EXPRESSIONS)
-endif()
-
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
 # Set compiler flags
-set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3 -Wall -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
-if(NOT APPLE)
+if(APPLE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-inconsistent-missing-override")
+else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")
 endif()
 

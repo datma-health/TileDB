@@ -74,6 +74,7 @@ Array::Array() {
   array_sorted_write_state_ = NULL;
   array_schema_ = NULL;
   subarray_ = NULL;
+  expression_ = NULL;
   aio_thread_created_ = false;
   array_clone_ = NULL;
 }
@@ -84,6 +85,8 @@ Array::~Array() {
   for(; it != fragments_.end(); ++it)
     if(*it != NULL)
        delete *it;
+  if(expression_ != NULL)
+    delete expression_;
   if(array_read_state_ != NULL)
     delete array_read_state_;
   if(array_sorted_read_state_ != NULL)
@@ -300,7 +303,7 @@ int Array::read(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
   if(mode_ == TILEDB_ARRAY_READ_SORTED_COL ||
      mode_ == TILEDB_ARRAY_READ_SORTED_ROW) {
       if(skip_counts) {
-        tiledb_ar_errmsg = "skip counts only handled for TILDB_ARRAY_READ mode, unsupported for TILDB_ARRAY_READ_SORTED* modes";
+        tiledb_ar_errmsg = "skip counts only handled for TILDB_ARRAY_READ mode, unsupported for TILEDB_ARRAY_READ_SORTED* modes";
         return TILEDB_AR_ERR;
       }
       if(array_sorted_read_state_->read(buffers, buffer_sizes) == 
@@ -315,44 +318,17 @@ int Array::read(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
   }
 }
 
-#ifdef ENABLE_MUPARSERX_EXPRESSIONS
-int Array::filter(void** buffers, size_t* buffer_sizes) {
-  // Sanity checks
-  if(!filter_mode()) {
-    std::string errmsg = "Cannot read from array; Invalid mode";
-    PRINT_ERROR(errmsg);
-    tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
-    return TILEDB_AR_ERR;
-  }
-
-  // Check if there are no fragments 
-  int buffer_i = 0;
-  int attribute_id_num = attribute_ids_.size();
-  if(fragments_.size() == 0) {             
-    for(int i=0; i<attribute_id_num; ++i) {
-      // Update all sizes to 0
-      buffer_sizes[buffer_i] = 0; 
-      if(!array_schema_->var_size(attribute_ids_[i])) 
-        ++buffer_i;
-      else 
-        buffer_i += 2;
-    }
-    return TILEDB_AR_OK;
-  }
-
-  int rc = read_default(buffers, buffer_sizes);
-  if (rc == TILEDB_AR_ERR) {
-    return rc;
-  }
-
-  return expression_->evaluate(buffers, buffer_sizes);
-}
-#endif
-
 int Array::read_default(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
   if(array_read_state_->read(buffers, buffer_sizes, skip_counts) != TILEDB_ARS_OK) {
     tiledb_ar_errmsg = tiledb_ars_errmsg;
     return TILEDB_AR_ERR;
+  }
+
+  if (expression_) {
+    if (expression_->evaluate(buffers, buffer_sizes) != TILEDB_EXPR_OK) {
+      tiledb_ar_errmsg = tiledb_expr_errmsg;
+      return TILEDB_AR_ERR;
+    }
   }
 
   // Success
@@ -370,11 +346,6 @@ const void* Array::subarray() const {
 bool Array::write_mode() const {
   return array_write_mode(mode_);
 }
-
-bool Array::filter_mode() const {
-  return array_filter_mode(mode_);
-}
-
 
 /* ****************************** */
 /*            MUTATORS            */
@@ -761,6 +732,19 @@ int Array::init(
   }
 
   // Return
+  return TILEDB_AR_OK;
+}
+
+int Array::apply_filter(const char* filter_expression) {
+  // Set up filter expression
+  if (filter_expression != NULL && strlen(filter_expression) > 0) {
+    std::vector<std::string> attributes_vec;
+    for (std::vector<int>::iterator it = attribute_ids_.begin(); it != attribute_ids_.end(); it++) {
+      attributes_vec.push_back(array_schema_->attribute(*it));
+    }
+    expression_ = new Expression(filter_expression, attributes_vec, array_schema_);
+  }
+
   return TILEDB_AR_OK;
 }
 
