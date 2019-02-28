@@ -51,7 +51,9 @@ std::string tiledb_expr_errmsg = "";
 Expression::Expression(std::string expression, std::vector<std::string> attributes,
                        const ArraySchema *array_schema) :
     expression_(expression), attributes_(attributes), array_schema_(array_schema) {
-  if (expression_.size() != 0) {
+  if (array_schema->dense()) {
+    EXPRESSION_ERROR("Expression parsing for dense arrays not yet implemented");
+  } else if (expression_.size() != 0) {
     parser_->EnableOptimizer(true);
     parser_->EnableAutoCreateVar(true);
     // Setup muparserx variables for the attributes
