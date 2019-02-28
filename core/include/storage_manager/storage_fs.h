@@ -91,7 +91,7 @@ class StorageFS {
 
   bool disable_file_locking();
  private:
-  bool disable_file_locking_;
+  bool disable_file_locking_ = false;
   bool is_disable_file_locking_set = false;
 };
 

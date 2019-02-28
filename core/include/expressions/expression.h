@@ -35,8 +35,14 @@
 
 #include "mpParser.h"
 #include "array_schema.h"
-#include "array_read_state.h"
 #include <typeinfo>
+
+/* ********************************* */
+/*          GLOBAL VARIABLES         */
+/* ********************************* */
+
+/** Stores potential error messages. */
+extern std::string tiledb_expr_errmsg;
 
 
 /* ********************************* */
@@ -56,55 +62,45 @@
 class ArrayReadState;
 
 class Expression {
-  public:
+ public:
 
-    /* ********************************* */
-    /*            MUTATORS               */
-    /* ********************************* */
-    Expression(
-        std::string expression,
-        std::vector<std::string> attribute_vec,
-        std::vector<int> attributes_id,
-        const ArraySchema* array_schema);
+  /* ********************************* */
+  /*            MUTATORS               */
+  /* ********************************* */
+  Expression();
 
-    Expression();
-    ~Expression();
+  Expression(std::string expression, std::vector<std::string> attribute_vec,
+             const ArraySchema* array_schema);
 
-    void set_array_schema(const ArraySchema *array_schema);
-    void set_array_read_state(ArrayReadState* array_read_state);
+  ~Expression() {
+    delete parser_;
+  }
 
-    int add_attribute(
-        std::string name,
-        const std::type_info& attribute_type);
+  void set_array_schema(const ArraySchema *array_schema);
 
-    int add_vector(
-        std::string name,
-        const std::type_info& attribute_type,
-        const int size,
-        const int initial_value);
+  void add_attribute(std::string name);
 
-    int add_expression(std::string expression);
+  int add_expression(std::string expression);
 
-    template<class T>
-    int add_udf(T *function_class);
+  /**
+   * The evaluate method is called after array read is done.
+   * FIXME: This is extremely inefficient and only works
+   * for the POC on filters. The idea is to change this
+   * quickly with on-disk secondary indexing of attributes
+   * which have been annotated to be indexed
+   */
+  int evaluate(void** buffers, size_t* buffer_sizes);
 
-    /**
-     * The evaluate method is called after array read is done.
-     * FIXME: This is extremely inefficient and only works
-     * for the POC on filters. The idea is to change this
-     * quickly with on-disk secondary indexing of attributes
-     * which have been annotated to be indexed
-     */
-    int evaluate(void** buffers, size_t* buffer_sizes);
+ private:
+  std::string expression_;
+  std::vector<std::string> attributes_;
 
-  private:
-    void create_parser_object();
+  mup::ParserX *parser_ = new mup::ParserX(mup::pckALL_NON_COMPLEX | mup::pckMATRIX);
+  const ArraySchema* array_schema_;
+ 
+  std::map<std::string, mup::Value> attribute_map_;
 
-    mup::ParserX *parser_;
-    std::string expression_;
-    const ArraySchema* array_schema_;
-    const ArrayReadState* array_read_state_;
-
-    std::map<std::string, mup::Value> attribute_map_;
+  void fixup_return_buffers(void** buffers, size_t* buffer_sizes, int number_of_cells, std::vector<int> cells_to_be_dropped);
 };
+
 #endif // __EXPRESSION_H__

@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corp.
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +37,6 @@
 #include "array_schema_c.h"
 #include "storage_manager.h"
 #include "storage_manager_config.h"
-#ifdef ENABLE_MUPARSERX_EXPRESSIONS
-#include "expression.h"
-#endif
 #include "utils.h"
 #include "trace.h"
 
@@ -519,6 +517,18 @@ int tiledb_array_init(
   }
 }
 
+int tiledb_array_apply_filter(
+    const TileDB_Array* tiledb_array,
+    const char* filter_expression) {
+  // Apply filter
+  if (tiledb_array->array_->apply_filter(filter_expression) != TILEDB_AR_OK) {
+    strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
+  }
+
+  // Success
+  return TILEDB_OK;
+}
+
 int tiledb_array_reset_subarray(
     const TileDB_Array* tiledb_array,
     const void* subarray) {
@@ -742,26 +752,6 @@ int tiledb_array_skip_and_read(
   return TILEDB_OK;
 }
 
-#ifdef ENABLE_MUPARSERX_EXPRESSIONS
-int tiledb_array_filter(
-    const TileDB_Array* tiledb_array,
-    void** buffers,
-    size_t* buffer_sizes) {
-  // Sanity check
-  if(!sanity_check(tiledb_array))
-    return TILEDB_ERR;
-
-  // Read
-  if(tiledb_array->array_->filter(buffers, buffer_sizes) != TILEDB_AR_OK) {
-    strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
-    return TILEDB_ERR;
-  }
-
-  // Success
-  return TILEDB_OK;
-}
-#endif
-
 int tiledb_array_overflow(
     const TileDB_Array* tiledb_array,
     int attribute_id) {
@@ -900,6 +890,18 @@ int tiledb_array_iterator_init(
     free(*tiledb_array_it);
     strcpy(tiledb_errmsg, tiledb_sm_errmsg.c_str());
     return TILEDB_ERR; 
+  }
+
+  // Success
+  return TILEDB_OK;
+}
+
+int tiledb_array_iterator_apply_filter(
+    const TileDB_ArrayIterator* tiledb_array_it,
+    const char *filter_expression) {
+  // Apply filter
+  if (tiledb_array_it->array_it_->apply_filter(filter_expression) != TILEDB_AIT_OK) {
+    strcpy(tiledb_errmsg, tiledb_ait_errmsg.c_str());
   }
 
   // Success
