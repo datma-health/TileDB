@@ -450,8 +450,9 @@ int PosixFS::sync_path(const std::string& filename) {
 
   // Sync
   if(fsync(fd)) {
-    if (locking_support()) {
-      POSIX_ERROR("Cannot sync file; File syncing error", filename);
+    // Ignoring EINVAL errors on fsync that can show up on NFS/CIFS even if they are posix compilant"
+    if (errno != EINVAL && locking_support()) {
+      POSIX_ERROR("Cannot sync file; File syncing error. Some network filesystems(NFS/CIFS) can have issues with fsync due to synchronization across machines. Try setting env \"export TILEDB_DISABLE_FILE_LOCKING=1\" and retry", filename);
       return TILEDB_FS_ERR;
     }
   }

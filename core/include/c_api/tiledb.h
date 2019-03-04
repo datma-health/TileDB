@@ -717,7 +717,7 @@ TILEDB_EXPORT int tiledb_array_iterator_init(
  * @return TILEDB_OK on success, and TILEDB_ERR on error.
  */
 TILEDB_EXPORT int tiledb_array_iterator_apply_filter(
-    const TileDB_Array* tiledb_array,
+    const TileDB_ArrayIterator* tiledb_array_it,
     const char *filter_expression);
 
 /**
