@@ -1515,11 +1515,17 @@ bool starts_with(const std::string& value, const std::string& prefix) {
 }
 
 int sync_path(StorageFS *fs, const std::string& path) {
-  return fs->sync_path(path);
+  auto status = fs->sync_path(path);
+  if(status != TILEDB_FS_OK)
+    tiledb_ut_errmsg = tiledb_fs_errmsg;
+  return status;
 }
 
 int close_file(StorageFS *fs, const std::string& filename) {
-  return fs->close_file(filename);
+  auto status = fs->close_file(filename);
+  if(status != TILEDB_FS_OK)
+    tiledb_ut_errmsg = tiledb_fs_errmsg;
+  return status;
 }
 
 int write_to_file(
@@ -1527,7 +1533,10 @@ int write_to_file(
     const std::string& filename,
     const void* buffer,
     size_t buffer_size) {
-  return fs->write_to_file(filename, buffer, buffer_size);
+  auto status = fs->write_to_file(filename, buffer, buffer_size);
+  if(status != TILEDB_FS_OK)
+    tiledb_ut_errmsg = tiledb_fs_errmsg;
+  return status;
 }
 
 int write_to_file_after_compression(StorageFS *fs, const std::string& filename, const void* buffer, size_t buffer_size, const int compression) {
@@ -1608,6 +1617,7 @@ int delete_directories(StorageFS *fs, const std::vector<std::string>& directorie
   // Delete old fragments
   for(auto i=0u; i<directories.size(); ++i) {
     if(fs->delete_dir(directories[i]) != TILEDB_UT_OK) {
+      tiledb_ut_errmsg = tiledb_fs_errmsg;
       return TILEDB_UT_ERR;
     }
   }
