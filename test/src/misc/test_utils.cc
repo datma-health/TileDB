@@ -1,11 +1,12 @@
 /**
- * @file   utils_spec.cc
+ * @file   test_utils.cc
  *
  * @section LICENSE
  *
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +28,7 @@
  * 
  * @section DESCRIPTION
  *
- * Tests for the utility functions spec.
+ * Tests for the utility functionality.
  */
 
 /* ****************************** */
@@ -35,7 +36,12 @@
 /* ****************************** */
 
 #include "catch.h"
+#include "storage_posixfs.h"
 #include "utils.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 /** Tests RLE compression (attribute). */
 TEST_CASE("Test RLE compression(attribute)", "rle") {
@@ -523,4 +529,44 @@ TEST_CASE("Tests RLE compression (coordinates, column-major cell order)", "[test
            dim_num);
   CHECK(rc == TILEDB_UT_OK);
   CHECK_FALSE(memcmp(input, decompressed, input_size));
+}
+
+TEST_CASE("Test utils file system operations", "[test_utils_fs]") {
+  PosixFS test_fs;
+  PosixFS *fs = &test_fs;
+  
+  char *temp_dir = strdup("tiledb_test_XXXXXX");
+  if (!mkstemp(temp_dir)) {
+    CHECK(create_dir(fs, "/non-existent-dir/dir"));
+    CHECK(create_file(fs, "/non-existent-dir/file", 0, 0));
+    CHECK(write_to_file(fs, "/non-existent-dir/file", NULL, 0));
+    CHECK(read_from_file(fs, "/non-existent-dir/file", 0, NULL, 0));
+    CHECK(sync_path(fs, "/non-existent-dir/file"));
+    CHECK(delete_file(fs, "/non-existent-dir/file"));
+    CHECK(delete_dir(fs, "/non-existent-dir/dir"));
+    CHECK(move_path(fs, "/non-existent-dir/old", "/non-existent-dir/new"));
+
+    CHECK(!create_dir(fs, temp_dir));
+    CHECK(is_dir(fs, temp_dir));
+
+    const std::string path = std::string(temp_dir)+"/foo";
+    CHECK(!create_file(fs, path,  O_WRONLY|O_CREAT,  S_IRWXU));
+    CHECK(is_file(fs, path));
+    CHECK(!write_to_file(fs, path, "Hello", 6));
+    char check_str[6];
+    CHECK(!read_from_file(fs, path, 0, &check_str[0], 6));
+    CHECK(file_size(fs, &check_str[0]) == 5);
+    CHECK(!sync_path(fs, path));
+
+    const std::string new_path = std::string(temp_dir)+"/new";
+    CHECK(!move_path(fs, path, new_path));
+    CHECK(!is_file(fs, new_path));
+    CHECK(!delete_file(fs, new_path));
+    CHECK(!delete_dir(fs, temp_dir));
+  }
+
+  // Cleanup temporary dir if it still exists
+  std::string cleanup = std::string("rm -fr ") + temp_dir;
+  system(cleanup.c_str());
+  free(temp_dir);
 }
