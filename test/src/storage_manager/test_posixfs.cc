@@ -161,9 +161,11 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS read/write file", "[read-writ
  
  CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
  CHECK(fs.file_size(test_dir+"/foo") == 10);
+ CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK); // NOP when there is no locking support
  
  CHECK_RC(fs.read_from_file("non-existen-dir/foo", 0, buffer, 5), TILEDB_FS_ERR);
  CHECK_RC(fs.write_to_file("non-existent-dir/foo", "hello", 5), TILEDB_FS_ERR);
+ CHECK_RC(fs.close_file("non-existent-dir/foo"), TILEDB_FS_OK); // NOP when there is no locking support
 
  free(buffer);
 }
@@ -231,6 +233,9 @@ void test_locking_support(const std::string& disable_file_locking_value) {
   std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING="+disable_file_locking_value;
   CHECK(putenv(const_cast<char *>(disable_file_locking_env.c_str())) == 0);
   const char *value = disable_file_locking_value.c_str();
+  const char *env_value = getenv("TILEDB_DISABLE_FILE_LOCKING");
+  REQUIRE(env_value != NULL);
+  CHECK(strcmp(value, env_value) == 0);
   if (strcasecmp(value, "true") == 0 || strcmp(value, "1") == 0) {
     CHECK(!(new PosixFS())->locking_support());
   } else {
@@ -248,4 +253,36 @@ TEST_CASE("Test locking support", "[locking_support]") {
   test_locking_support("false");
   test_locking_support("FALSE");
   test_locking_support("Gibberish");
+}
+
+TEST_CASE("Test writing with locking support that keeps writes open until explicitly closed", "[write_lock_support]") {
+  std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING=1";
+  CHECK(putenv(const_cast<char *>(disable_file_locking_env.c_str())) == 0);
+  const char *env_value = getenv("TILEDB_DISABLE_FILE_LOCKING");
+  REQUIRE(env_value != NULL);
+  REQUIRE(strcmp(env_value, "1") == 0);
+
+  PosixFS fs;
+  REQUIRE(!fs.locking_support());
+
+  std::string test_dir = "test_posixfs_dir_locking";
+  CHECK_RC(fs.create_dir(test_dir), 0);
+  REQUIRE(fs.is_dir(test_dir));
+  CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 6), TILEDB_FS_OK);
+  REQUIRE(fs.is_file(test_dir+"/foo"));
+  CHECK(fs.file_size(test_dir+"/foo") == 6);
+  void *buffer = malloc(20);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 6), TILEDB_FS_ERR); // No simultaneous read/write allowed on open files
+  CHECK_RC(fs.sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 6), TILEDB_FS_OK);
+  CHECK_RC(fs.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
+  char *buffer_str = (char *)buffer;
+  CHECK(strlen(buffer_str) == 5);
+  CHECK(strcmp(buffer_str, "hello") == 0);
+  CHECK_RC(fs.close_file(test_dir+"/foo3232"), TILEDB_FS_ERR);
+
+  CHECK_RC(fs.delete_dir(test_dir), TILEDB_FS_OK);
+
+  free(buffer);
 }
