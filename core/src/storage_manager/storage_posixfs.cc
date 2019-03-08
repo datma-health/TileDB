@@ -558,9 +558,6 @@ int PosixFS::close_file(const std::string& filename) {
         POSIX_ERROR("Cannot close file; File closing error", filename);
         return TILEDB_FS_ERR;
       }
-    } else {
-      POSIX_ERROR("Cannot close file; File does not seem to be open", filename);
-      return TILEDB_FS_ERR;
     }
   }
   return TILEDB_FS_OK;

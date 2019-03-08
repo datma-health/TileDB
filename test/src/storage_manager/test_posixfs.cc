@@ -280,7 +280,7 @@ TEST_CASE("Test writing with locking support that keeps writes open until explic
   char *buffer_str = (char *)buffer;
   CHECK(strlen(buffer_str) == 5);
   CHECK(strcmp(buffer_str, "hello") == 0);
-  CHECK_RC(fs.close_file(test_dir+"/foo3232"), TILEDB_FS_ERR);
+  CHECK_RC(fs.close_file(test_dir+"/foo3232"), TILEDB_FS_OK);
 
   CHECK_RC(fs.delete_dir(test_dir), TILEDB_FS_OK);
 
