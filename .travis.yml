@@ -74,9 +74,9 @@ script:
       else
         make tests -j 4;
         if [[ $TRAVIS_OS_NAME == linux ]]; then
-          echo "======"
+         echo "======";
          echo "Run tests with TILEDB_DISABLE_FILE_LOCKING=1";
-         TILEDB_DISABLE_FILE_LOCKING make tests -j 4;
+         TILEDB_DISABLE_FILE_LOCKING=1 make tests -j 4;
         fi
       fi
 
