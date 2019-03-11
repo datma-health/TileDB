@@ -51,7 +51,10 @@ class PosixFSTestFixture {
   std::string test_dir = "test_posixfs_dir";
 
   PosixFSTestFixture() {
-    CHECK(fs.locking_support());
+    if (getenv( "TILEDB_DISABLE_FILE_LOCKING")) {
+      unsetenv( "TILEDB_DISABLE_FILE_LOCKING");
+    }
+    REQUIRE(fs.locking_support());
   }
 
   ~PosixFSTestFixture() {
@@ -276,11 +279,30 @@ TEST_CASE("Test writing with locking support that keeps writes open until explic
   CHECK_RC(fs.sync_path(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 6), TILEDB_FS_OK);
-  CHECK_RC(fs.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
   char *buffer_str = (char *)buffer;
   CHECK(strlen(buffer_str) == 5);
   CHECK(strcmp(buffer_str, "hello") == 0);
-  CHECK_RC(fs.close_file(test_dir+"/foo3232"), TILEDB_FS_OK);
+
+  CHECK_RC(fs.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
+  REQUIRE(!fs.is_file(test_dir+"/foo"));
+
+  // Test multiple writes
+  int n_iter = 2;
+  for (int i=0; i<n_iter; i++) {
+    CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 6), TILEDB_FS_OK);
+    REQUIRE(fs.is_file(test_dir+"/foo"));
+    CHECK(fs.file_size(test_dir+"/foo") == 6*(i+1));
+  }
+  CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
+  
+  buffer = realloc(buffer, 6*n_iter);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 6*n_iter), TILEDB_FS_OK); 
+  CHECK(fs.file_size(test_dir+"/foo") == 6*n_iter);
+  CHECK_RC(fs.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
+  
+  // Try closing non-existent file
+  REQUIRE(!fs.is_file(test_dir+"/foo"));
+  CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
 
   CHECK_RC(fs.delete_dir(test_dir), TILEDB_FS_OK);
 

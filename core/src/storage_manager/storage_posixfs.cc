@@ -354,13 +354,24 @@ size_t PosixFS::file_size(const std::string& filename) {
   return file_size;
 }
 
-static int get_fd(const std::string& filename, std::unordered_map<std::string, int>& map) {
+static int get_fd(const std::string& filename, std::unordered_map<std::string, int>& map, std::mutex& mtx) {
+  std::lock_guard<std::mutex> lock(mtx);
   auto search = map.find(filename);
   if (search != map.end()) {
     return search->second;
   } else {
     return -1;
   }
+}
+
+static void set_fd(const std::string& filename, int fd, std::unordered_map<std::string, int>& map, std::mutex& mtx) {
+  std::unique_lock<std::mutex> lock(mtx);
+  map.emplace(filename, fd);
+}
+
+static void remove_fd(const std::string& filename, std::unordered_map<std::string, int>& map, std::mutex& mtx) {
+  std::unique_lock<std::mutex> lock(mtx);
+  map.erase(filename);
 }
 
 int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
@@ -371,7 +382,7 @@ int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buf
   }
 
   // Not supporting simultaneous read/writes.
-  if (get_fd(filename, write_map_) >= 0) {
+  if (!locking_support() && get_fd(filename, write_map_, write_map_mtx_) >= 0) {
     POSIX_ERROR("Cannot open simultaneously for reads/writes", filename);
     return TILEDB_FS_ERR;
   }
@@ -428,19 +439,15 @@ static int write_to_file_kernel(int fd, const void *buffer, size_t buffer_size) 
 }
 
 int PosixFS::write_to_file_no_locking_support(const std::string& filename, const void *buffer, size_t buffer_size) {
-  int fd = get_fd(filename, write_map_);
+  int fd = get_fd(filename, write_map_, write_map_mtx_);
   if (fd == -1) {
     // Open file
-    write_map_mtx_.lock();
     fd = open(filename.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXU);
-    if (fd >= 0) {
-      write_map_.emplace(filename, fd);
-    }
-    write_map_mtx_.unlock();
     if(fd == -1) {
       POSIX_ERROR("Cannot write to file; File opening error", filename);
       return TILEDB_FS_ERR;
     }
+    set_fd(filename, fd, write_map_, write_map_mtx_);
   }
 
   if (write_to_file_kernel(fd, buffer, buffer_size)) {
@@ -510,7 +517,7 @@ static int sync_kernel(int fd, bool locking_support, std::string filename) {
 int PosixFS::sync_path(const std::string& filename) {
   reset_errno();
 
-  int fd = get_fd(filename, write_map_);
+  int fd = get_fd(filename, write_map_, write_map_mtx_);
   if (fd != -1) {
     return sync_kernel(fd, locking_support(), filename);
   }
@@ -547,13 +554,10 @@ int PosixFS::sync_path(const std::string& filename) {
 
 int PosixFS::close_file(const std::string& filename) {
   if (!locking_support()) {
-    int fd = get_fd(filename, write_map_);
-    if (fd != -1) {
-      write_map_mtx_.lock();
+    int fd = get_fd(filename, write_map_, write_map_mtx_);
+    if (fd >= 0) {
       int rc = close(fd);
-      write_map_.erase(filename);
-      write_map_mtx_.unlock();
-
+      remove_fd(filename, write_map_, write_map_mtx_);
       if (rc) {
         POSIX_ERROR("Cannot close file; File closing error", filename);
         return TILEDB_FS_ERR;
