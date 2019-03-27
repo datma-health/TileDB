@@ -103,7 +103,7 @@ void Expression::add_attribute(std::string name) {
 
 // Get a map of all variables used by muParserX
 void print_parser_varmap(mup::ParserX *parser) {
-#ifdef DEBUG
+#if 0
   mup::var_maptype vmap = parser->GetVar();
   std::cout << "Map of all variables used by parser" << std::endl;
   for (mup::var_maptype::iterator item = vmap.begin(); item!=vmap.end(); ++item)
@@ -115,7 +115,7 @@ void print_parser_varmap(mup::ParserX *parser) {
 // Get a map of all the variables used in the expression
 void print_parser_expr_varmap(mup::ParserX *parser)
 {
-#ifdef DEBUG
+#if 0
   mup::var_maptype vmap = parser->GetExprVar();
   std::cout << "Map of all variables used in the expression to the parser" << std::endl;
   for (mup::var_maptype::iterator item = vmap.begin(); item!=vmap.end(); ++item)
@@ -173,7 +173,7 @@ bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, std::vector
   
   try {
     mup::Value value = parser_->Eval();
-#ifdef DEBUG
+#if 0
     // print the result
     mup::console() << "Ret=" << value << std::endl;
 #endif
@@ -202,6 +202,7 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
     return TILEDB_EXPR_OK;
   }
 
+  // Get minimum number of cells in buffers for evaluation to account for overflow.
   int number_of_cells = 0;
   for (auto i = 0u, j = 0u; i < attributes_.size(); i++, j++) {
     int attribute_id = array_schema_->attribute_id(attributes_[i]);
