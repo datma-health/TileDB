@@ -71,7 +71,7 @@ class ArrayFixture {
     REQUIRE(buffer_size == expected_size);
 
     int *buffer = reinterpret_cast<int *>(computed[0]);
-    for (auto i=0; i<buffer_size; i++) {
+    for (auto i=0u; i<buffer_size; i++) {
       CHECK(*buffer++ == *expected++);
     }
   }
