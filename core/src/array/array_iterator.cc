@@ -296,10 +296,8 @@ int ArrayIterator::next() {
         tiledb_ait_errmsg = TILEDB_AIT_ERRMSG + errmsg; 
         return TILEDB_AIT_ERR;
       }
-    }
 
-    // Update cell num & pos
-    for(int i=0; i<needs_new_read_num; ++i) {
+      // Update cell num & pos
       buffer_i = buffer_i_[needs_new_read[i]];
 
       // Cell Num
