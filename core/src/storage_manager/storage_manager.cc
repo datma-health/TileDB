@@ -623,7 +623,8 @@ int StorageManager::array_iterator_init(
     const char** attributes,
     int attribute_num,
     void** buffers,
-    size_t* buffer_sizes) {
+    size_t* buffer_sizes,
+    const char* filter_expression) {
   // Create Array object. This also creates/updates an open array entry
   Array* array;
   if(array_init(
@@ -639,7 +640,7 @@ int StorageManager::array_iterator_init(
 
   // Create ArrayIterator object
   array_it = new ArrayIterator();
-  if(array_it->init(array, buffers, buffer_sizes) != TILEDB_AIT_OK) {
+  if(array_it->init(array, buffers, buffer_sizes, filter_expression) != TILEDB_AIT_OK) {
     array_finalize(array);
     delete array_it;
     array_it = NULL;

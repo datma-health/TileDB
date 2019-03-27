@@ -335,6 +335,9 @@ class StorageManager {
    *     memory space for *buffers*. The function will prefetch from the
    *     disk as many cells as can fit in the buffers, whenever it finishes
    *     iterating over the previously prefetched data.
+   * @param filter_expression An expression string that evaluates to a boolean
+   *     to allow for cells to be filtered out from the buffers while reading.
+   *     If NULL or empty, no filter is applied.
    * @return TILEDB_SM_OK on success, and TILEDB_SM_ERR on error.
    */
   int array_iterator_init(
@@ -345,7 +348,8 @@ class StorageManager {
       const char** attributes,
       int attribute_num,
       void** buffers,
-      size_t* buffer_sizes);
+      size_t* buffer_sizes,
+      const char* filter_expression);
 
   /**
    * Finalizes an array iterator, properly freeing the allocating memory space.
