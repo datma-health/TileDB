@@ -115,6 +115,25 @@ class ArrayIteratorFixture {
     CHECK_RC(tiledb_array_finalize(tiledb_array), TILEDB_OK);
   }
 
+  void update_array_with_empty_attributes() {
+    // Initialize the array
+    TileDB_Array* tiledb_array;
+    CHECK_RC(tiledb_array_init(tiledb_ctx_, &tiledb_array, array_name_.c_str(),
+                               TILEDB_ARRAY_WRITE_UNSORTED, NULL, NULL, 0),
+             TILEDB_OK);
+
+    // Write to array. Note that the coords are diagonal elements in the array and
+    // each cell has its attribute value equal to the coordinate.
+    int buffer_a1[8] = { 0, 1, 2, 3, 4, 5, TILEDB_EMPTY_INT32, 7 };
+    int64_t buffer_coords[16] = { 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7 };
+    const void* buffers[] = { buffer_a1, buffer_coords };
+    size_t buffer_sizes[2] = { 8, 16 };
+    buffer_sizes[0] = sizeof(buffer_a1);
+    buffer_sizes[1] = sizeof(buffer_coords);
+    CHECK_RC(tiledb_array_write(tiledb_array, buffers, buffer_sizes), TILEDB_OK);
+    CHECK_RC(tiledb_array_finalize(tiledb_array), TILEDB_OK);
+  }
+
   int buffer_a1[8];
   int64_t buffer_coords[16];
   void* buffers[2];
@@ -140,6 +159,10 @@ class ArrayIteratorFixture {
   }
 
   void check_array_iterator(int nval) {
+    check_array_iterator(nval, false);
+  }
+
+  void check_array_iterator(int nval, bool contains_empty_attributes) {
     int* a1_value;
     size_t a1_size;
     int64_t* coords;
@@ -158,7 +181,9 @@ class ArrayIteratorFixture {
       CHECK(cond);
       CHECK(*coords == *(coords+1));
       
-      CHECK(*a1_value == *coords);
+      if (!contains_empty_attributes) {
+        CHECK(*a1_value == *coords);
+      }
     
       CHECK_RC(tiledb_array_iterator_next(tiledb_array_iterator), TILEDB_OK);
 
@@ -214,6 +239,14 @@ TEST_CASE_METHOD(ArrayIteratorFixture, "Test sparse array iterator with filter w
   int64_t subarray[] = { 0, 4, 0, 4 };
   CHECK_RC(tiledb_array_iterator_reset_subarray(tiledb_array_iterator, subarray), TILEDB_OK);
   check_array_iterator(1);
+  finalize_array_iterator();
+}
+
+TEST_CASE_METHOD(ArrayIteratorFixture, "Test sparse array iterator with filteri with empty value", "[sparse_array_iterator_with_filter_with_empty_value]") {
+  create_sparse_array("test_sparse_array_it_filter_with_empty_value");
+  update_array_with_empty_attributes();  
+  setup_array_iterator("ATTR_INT32 > 3");
+  check_array_iterator(4, true);
   finalize_array_iterator();
 }
 

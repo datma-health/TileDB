@@ -132,10 +132,13 @@ struct EmptyValueException : public std::exception {
 
 template<typename T>
 T get_value(const void *buffer, const uint64_t buffer_index) {
-  if (typeid(T) != typeid(char) && typeid(T) != typeid(int) && typeid(T) == typeid(float)) {
+  T val = *(reinterpret_cast<const T *>(buffer) + buffer_index);
+  if ((typeid(T) == typeid(char) && val == TILEDB_EMPTY_CHAR)
+      || (typeid(T) == typeid(int) && val == TILEDB_EMPTY_INT32)
+      || (typeid(T) == typeid(float) && val == TILEDB_EMPTY_FLOAT32)) {
     throw EmptyValueException();
   }
-  return *(reinterpret_cast<const T *>(buffer) + buffer_index);;
+  return val;
 }
 
 bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, std::vector<int64_t>& buffer_indexes) {
