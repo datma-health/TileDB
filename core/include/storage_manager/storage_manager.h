@@ -304,7 +304,7 @@ class StorageManager {
   /**
    * Initializes an array iterator for reading cells, potentially constraining 
    * it on a subset of attributes, as well as a subarray. The cells will be read
-   * in the order they are stored on the disk, maximing performance. 
+   * in the order they are stored on the disk, maximizing performance.
    *
    * @param array_it The TileDB array iterator to be created. The
    *    function will allocate the appropriate memory space for the iterator. 
@@ -435,7 +435,7 @@ class StorageManager {
   /**
    * Initializes a metadata iterator, potentially constraining it 
    * on a subset of attributes. The values will be read in the order they are
-   * stored on the disk, maximing performance. 
+   * stored on the disk, maximizing performance.
    *
    * @param metadata_it The TileDB metadata iterator to be created. The
    *     function will allocate the appropriate memory space for the iterator. 

@@ -657,7 +657,7 @@ typedef struct TileDB_ArrayIterator TileDB_ArrayIterator;
 /**
  * Initializes an array iterator for reading cells, potentially constraining it
  * on a subset of attributes, as well as a subarray. The cells will be read
- * in the order they are stored on the disk, maximing performance.
+ * in the order they are stored on the disk, maximizing performance.
  *
  * @param tiledb_ctx The TileDB context.
  * @param tiledb_array_it The TileDB array iterator to be created. The function
@@ -708,7 +708,7 @@ TILEDB_EXPORT int tiledb_array_iterator_init(
 /**
  * Initializes an array iterator for reading cells, potentially constraining it
  * on a subset of attributes, as well as a subarray. The cells will be read
- * in the order they are stored on the disk, maximing performance.
+ * in the order they are stored on the disk, maximizing performance.
  *
  * @param tiledb_ctx The TileDB context.
  * @param tiledb_array_it The TileDB array iterator to be created. The function
@@ -1108,7 +1108,7 @@ typedef struct TileDB_MetadataIterator TileDB_MetadataIterator;
 /**
  * Initializes a metadata iterator, potentially constraining it 
  * on a subset of attributes. The values will be read in the order they are
- * stored on the disk (which is random), maximing performance. 
+ * stored on the disk (which is random), maximizing performance.
  *
  * @param tiledb_ctx The TileDB context.
  * @param tiledb_metadata_it The TileDB metadata iterator to be created. The

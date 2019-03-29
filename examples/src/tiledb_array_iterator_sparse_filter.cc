@@ -1,11 +1,10 @@
 /**
- * @file   tiledb_array_iterator_sparse.cc
+ * @file   tiledb_array_iterator_sparse_filter.cc
  *
  * @section LICENSE
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,7 +27,7 @@
  * 
  * @section DESCRIPTION
  *
- * It shows how to use an iterator for sparse arrays.
+ * It shows how to use an iterator with a filter for sparse arrays.
  */
 
 #include "tiledb.h"
