@@ -6,6 +6,7 @@
 # The MIT License
 #
 # Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
+# Copyright (c) 2019 Omics Data Automation Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -90,16 +91,22 @@ run_example ./tiledb_array_update_dense_2 $1 17
 run_example ./tiledb_array_read_dense_1 $1 18
 run_example ./tiledb_array_write_sparse_1 $1 19
 run_example ./tiledb_array_read_sparse_1 $1 20
-run_example ./tiledb_array_read_sparse_2 $1 21
-run_example ./tiledb_array_write_sparse_2 $1 22
-run_example ./tiledb_array_read_sparse_1 $1 23
+run_example ./tiledb_array_read_sparse_filter $1 21
+run_example ./tiledb_array_iterator_sparse $1 22
+run_example ./tiledb_array_iterator_sparse_filter $1 23
 run_example ./tiledb_array_read_sparse_2 $1 24
-run_example ./tiledb_array_update_sparse_1 $1 25
+run_example ./tiledb_array_write_sparse_2 $1 25
 run_example ./tiledb_array_read_sparse_1 $1 26
 run_example ./tiledb_array_read_sparse_2 $1 27
-run_example ./tiledb_array_consolidate $1 28
-run_example ./tiledb_array_read_dense_1 $1 29
-run_example ./tiledb_array_read_sparse_1 $1 30
-run_example ./tiledb_array_read_dense_2 $1 31
-run_example ./tiledb_array_read_sparse_2 $1 32
+run_example ./tiledb_array_update_sparse_1 $1 28
+run_example ./tiledb_array_read_sparse_1 $1 29
+run_example ./tiledb_array_read_sparse_filter $1 30
+run_example ./tiledb_array_iterator_sparse $1 31
+run_example ./tiledb_array_iterator_sparse_filter $1 32
+run_example ./tiledb_array_read_sparse_2 $1 33
+run_example ./tiledb_array_consolidate $1 34
+run_example ./tiledb_array_read_dense_1 $1 35
+run_example ./tiledb_array_read_sparse_1 $1 36
+run_example ./tiledb_array_read_dense_2 $1 37
+run_example ./tiledb_array_read_sparse_2 $1 38
 

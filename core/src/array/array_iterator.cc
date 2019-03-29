@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,6 +71,9 @@ ArrayIterator::ArrayIterator() {
 }
 
 ArrayIterator::~ArrayIterator() {
+  if (expression_) {
+    delete expression_;
+  }
 }
 
 
@@ -131,7 +135,8 @@ int ArrayIterator::get_value(
 int ArrayIterator::init(
     Array* array,
     void** buffers,
-    size_t* buffer_sizes) {
+    size_t* buffer_sizes,
+    const char* filter_expression) {
   // Initial assignments
   array_ = array;
   buffers_ = buffers;
@@ -161,16 +166,20 @@ int ArrayIterator::init(
     }
   }
 
+  // Set up filter expression
+  if (filter_expression != NULL && strlen(filter_expression) > 0) {
+    std::vector<std::string> attributes_vec;
+    for (std::vector<int>::const_iterator it = attribute_ids.begin(); it != attribute_ids.end(); it++) {
+      attributes_vec.push_back(array_schema->attribute(*it));
+    }
+    expression_ = new Expression(filter_expression, attributes_vec, array_schema);
+  }
+
   reset_subarray(0);
 
   // Return
   return TILEDB_AIT_OK;
 }
-
-int ArrayIterator::apply_filter(const char* filter_expression) {
-  return array_->apply_filter(filter_expression);
-}
-
 
 int ArrayIterator::reset_subarray(const void* subarray) {
   end_ = false;
@@ -181,43 +190,17 @@ int ArrayIterator::reset_subarray(const void* subarray) {
   memcpy(buffer_sizes_, &(buffer_allocated_sizes_[0]), buffer_allocated_sizes_.size()*sizeof(size_t));
 
   // Reset subarray
-  if(subarray != 0 && array_->reset_subarray(subarray) != TILEDB_AR_OK) {
+  if(subarray && array_->reset_subarray(subarray) != TILEDB_AR_OK) {
     tiledb_ait_errmsg = tiledb_ar_errmsg;
     return TILEDB_AIT_ERR;
   }
 
-  // Perform first read
-  if(array_->read(buffers_, buffer_sizes_) != TILEDB_AR_OK) {
-    tiledb_ait_errmsg = tiledb_ar_errmsg;
+  // Begin read by invoking next()
+  if (next() && !end_) {
+    std::string errmsg = "Array iterator initialization failed";
+    PRINT_ERROR(errmsg);
+    tiledb_ait_errmsg = TILEDB_AIT_ERRMSG + errmsg;
     return TILEDB_AIT_ERR;
-  }
-
-  const std::vector<int> attribute_ids = array_->attribute_ids();
-  int attribute_id_num = attribute_ids.size();
-  // Check if initialization went well and update internal state
-  for(int i=0; i<attribute_id_num; ++i) {
-    // End
-    if(buffer_sizes_[buffer_i_[i]] == 0 &&
-       !array_->overflow(attribute_ids[i])) {
-      end_ = true;
-      return TILEDB_AIT_OK;
-    }
-
-    // Error
-    if(buffer_sizes_[buffer_i_[i]] == 0 &&
-       array_->overflow(attribute_ids[i])) {
-      std::string errmsg =
-          "Array iterator initialization failed; Buffer overflow";
-      PRINT_ERROR(errmsg);
-      tiledb_ait_errmsg = TILEDB_AIT_ERRMSG + errmsg;
-      return TILEDB_AIT_ERR;
-    }
-
-    // Update cell num
-    if(cell_sizes_[i] == TILEDB_VAR_SIZE)  // VARIABLE
-      cell_num_[i] = buffer_sizes_[buffer_i_[i]] / TILEDB_CELL_VAR_OFFSET_SIZE;
-    else                                   // FIXED
-      cell_num_[i] = buffer_sizes_[buffer_i_[i]] / cell_sizes_[i];
   }
 
   // Return
@@ -253,13 +236,17 @@ int ArrayIterator::next() {
   std::vector<int> needs_new_read;
   const std::vector<int> attribute_ids = array_->attribute_ids();
   int attribute_id_num = attribute_ids.size();
-  for(int i=0; i<attribute_id_num; ++i) {
-    // Advance position
-    ++pos_[i];
 
-    // Record the attributes that need a new read
-    if(pos_[i] == cell_num_[i]) 
+  for(int i=0; i<attribute_id_num; ++i) {
+    if (pos_[i] == 0 && cell_num_[i] == 0) {
       needs_new_read.push_back(i);
+    } else {
+      // Advance position
+      ++pos_[i];
+      // Record the attributes that need a new read
+      if(pos_[i] == cell_num_[i])
+        needs_new_read.push_back(i);
+    }
   }
 
   // Perform a new read
@@ -297,7 +284,7 @@ int ArrayIterator::next() {
       // End
       if(buffer_sizes_[buffer_i] == 0 && 
          !array_->overflow(attribute_ids[needs_new_read[i]])) {
-         end_ = true;
+        end_ = true;
         return TILEDB_AIT_OK;
       } 
 
@@ -310,18 +297,21 @@ int ArrayIterator::next() {
         return TILEDB_AIT_ERR;
       }
 
-      // Update cell num
+      // Update cell num & pos
+      buffer_i = buffer_i_[needs_new_read[i]];
+
+      // Cell Num
       if(cell_sizes_[needs_new_read[i]] == TILEDB_VAR_SIZE)  // VARIABLE
         cell_num_[needs_new_read[i]] = buffer_sizes_[buffer_i] / sizeof(size_t);
       else                                   // FIXED 
         cell_num_[needs_new_read[i]] = 
             buffer_sizes_[buffer_i] / cell_sizes_[needs_new_read[i]]; 
 
-      // Update pos
+      // Reset current cell positions in buffer
       pos_[needs_new_read[i]] = 0;
     }
 
-    // Restore buffer sizes for attributes which still had pending data
+    // Restore buffer sizes for attributes which have pending data
     for(int i=0, needs_new_read_idx=0; i<attribute_id_num; ++i) {
       if(static_cast<size_t>(needs_new_read_idx) < needs_new_read.size() && 
          i == needs_new_read[needs_new_read_idx]) // buffer_size would have been
@@ -332,6 +322,15 @@ int ArrayIterator::next() {
         if(cell_sizes_[i] == TILEDB_VAR_SIZE) 
           buffer_sizes_[buffer_i+1] = copy_buffer_sizes[buffer_i+1]; 
       }
+    }
+  }
+
+  // Evaluate filter expression for cell from current positions in buffer
+  if (expression_ && !expression_->evaluate_cell(buffers_, buffer_sizes_, pos_)) {
+    if (next() && !end_) {
+      std::string errmsg = "Filtering error in Iterator";
+      PRINT_ERROR(errmsg);
+      return TILEDB_AIT_ERR;
     }
   }
 

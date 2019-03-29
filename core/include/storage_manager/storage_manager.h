@@ -304,7 +304,7 @@ class StorageManager {
   /**
    * Initializes an array iterator for reading cells, potentially constraining 
    * it on a subset of attributes, as well as a subarray. The cells will be read
-   * in the order they are stored on the disk, maximing performance. 
+   * in the order they are stored on the disk, maximizing performance.
    *
    * @param array_it The TileDB array iterator to be created. The
    *    function will allocate the appropriate memory space for the iterator. 
@@ -335,6 +335,9 @@ class StorageManager {
    *     memory space for *buffers*. The function will prefetch from the
    *     disk as many cells as can fit in the buffers, whenever it finishes
    *     iterating over the previously prefetched data.
+   * @param filter_expression An expression string that evaluates to a boolean
+   *     to allow for cells to be filtered out from the buffers while reading.
+   *     If NULL or empty, no filter is applied.
    * @return TILEDB_SM_OK on success, and TILEDB_SM_ERR on error.
    */
   int array_iterator_init(
@@ -345,7 +348,8 @@ class StorageManager {
       const char** attributes,
       int attribute_num,
       void** buffers,
-      size_t* buffer_sizes);
+      size_t* buffer_sizes,
+      const char* filter_expression);
 
   /**
    * Finalizes an array iterator, properly freeing the allocating memory space.
@@ -431,7 +435,7 @@ class StorageManager {
   /**
    * Initializes a metadata iterator, potentially constraining it 
    * on a subset of attributes. The values will be read in the order they are
-   * stored on the disk, maximing performance. 
+   * stored on the disk, maximizing performance.
    *
    * @param metadata_it The TileDB metadata iterator to be created. The
    *     function will allocate the appropriate memory space for the iterator. 

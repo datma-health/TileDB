@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,6 +83,8 @@ class Expression {
 
   int add_expression(std::string expression);
 
+  bool evaluate_cell(void **buffers, size_t* buffer_sizes, std::vector<int64_t>& position);
+
   /**
    * The evaluate method is called after array read is done.
    * FIXME: This is extremely inefficient and only works
@@ -91,16 +94,20 @@ class Expression {
    */
   int evaluate(void** buffers, size_t* buffer_sizes);
 
+  std::map<std::string, mup::Value> attribute_map_;
+
  private:
+  void fixup_return_buffers(void** buffers, size_t* buffer_sizes, int number_of_cells, std::vector<int> cells_to_be_dropped);
+  
   std::string expression_;
   std::vector<std::string> attributes_;
+  int coords_index_ = 0;
+  int coords_index_in_buffer_ = 0;
 
   mup::ParserX *parser_ = new mup::ParserX(mup::pckALL_NON_COMPLEX | mup::pckMATRIX);
   const ArraySchema* array_schema_;
- 
-  std::map<std::string, mup::Value> attribute_map_;
 
-  void fixup_return_buffers(void** buffers, size_t* buffer_sizes, int number_of_cells, std::vector<int> cells_to_be_dropped);
+  std::vector<int64_t> last_processed_buffer_index_;
 };
 
 #endif // __EXPRESSION_H__
