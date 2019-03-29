@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +35,7 @@
 #define __ARRAY_ITERATOR_H__
 
 #include "array.h"
-
+#include "expression.h"
 
 
 
@@ -135,23 +136,16 @@ class ArrayIterator {
    *     memory space for *buffers*. The function will prefetch from the
    *     disk as many cells as can fit in the buffers, whenever it finishes
    *     iterating over the previously prefetched data.
+   * @param filter_expression An expression string that evaluates to a boolean
+   *     to allow for cells to be filtered out from the buffers while reading.
+   *     If empty, no filter is applied.
    * @return TILEDB_AIT_OK on success, and TILEDB_AIT_ERR on error.
    */
   int init(
       Array* array, 
       void** buffers, 
-      size_t* buffer_sizes);
-
-  /**
-   * Applies a filter expression to constrain the results returned by
-   * the iterator operations.
-   *
-   * @param filter_expression An expression string that evaluates to a boolean
-   *     to allow for cells to be filtered out from the buffers while reading.
-   *     If NULL, there is no filter applied.
-   * @return TILEDB_AR_OK on success, and TILEDB_AR_ERR on error.
-   */
-  int apply_filter(const char* filter_expression);
+      size_t* buffer_sizes,
+      const char* filter_expression = NULL);
 
   /**
    * Resets the subarray used upon initialization of the iterator. This is useful
@@ -224,6 +218,8 @@ class ArrayIterator {
   
   /** Number of variable attributes. */
   int var_attribute_num_;
+
+  Expression* expression_ = NULL;
 };
 
 #endif

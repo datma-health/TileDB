@@ -863,6 +863,23 @@ int tiledb_array_iterator_init(
     int attribute_num,
     void** buffers,
     size_t* buffer_sizes) {
+  return tiledb_array_iterator_init_with_filter(
+      tiledb_ctx, tiledb_array_it, array, mode,
+      subarray, attributes, attribute_num,
+      buffers, buffer_sizes, "");
+}
+
+int tiledb_array_iterator_init_with_filter(
+    const TileDB_CTX* tiledb_ctx,
+    TileDB_ArrayIterator** tiledb_array_it,
+    const char* array,
+    int mode,
+    const void* subarray,
+    const char** attributes,
+    int attribute_num,
+    void** buffers,
+    size_t* buffer_sizes,
+    const char *filter_expression) {
   // Sanity check
   if(!sanity_check(tiledb_ctx))
     return TILEDB_ERR;
@@ -883,25 +900,14 @@ int tiledb_array_iterator_init(
                attributes,
                attribute_num,
                buffers,
-               buffer_sizes);
+               buffer_sizes,
+               filter_expression);
 
   // Error
   if(rc != TILEDB_SM_OK) {
     free(*tiledb_array_it);
     strcpy(tiledb_errmsg, tiledb_sm_errmsg.c_str());
     return TILEDB_ERR; 
-  }
-
-  // Success
-  return TILEDB_OK;
-}
-
-int tiledb_array_iterator_apply_filter(
-    const TileDB_ArrayIterator* tiledb_array_it,
-    const char *filter_expression) {
-  // Apply filter
-  if (tiledb_array_it->array_it_->apply_filter(filter_expression) != TILEDB_AIT_OK) {
-    strcpy(tiledb_errmsg, tiledb_ait_errmsg.c_str());
   }
 
   // Success
