@@ -212,9 +212,9 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
     int ncells = 0;
     if (buffer_sizes[j] != 0) {
       ncells = get_num_cells(array_schema_, attribute_id, buffer_sizes, j);
+      last_processed_buffer_index_[i] = 0;
     }
     number_of_cells = (!number_of_cells || ncells < number_of_cells)?ncells:number_of_cells;
-    last_processed_buffer_index_[i] = 0;
 
     // Increment buffer index for variable types
     if (array_schema_->cell_size(attribute_id) == TILEDB_VAR_SIZE) j++;
@@ -249,6 +249,10 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
 }
 
 void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, int number_of_cells, std::vector<int> cells_to_be_dropped) {
+  if (!cells_to_be_dropped.size()) {
+    return;
+  }
+
   for (int current_cell=0, next_cell=0; next_cell < number_of_cells; current_cell++, next_cell++) {
     int reduce_by = 0;
     bool next_cell_dropped;
