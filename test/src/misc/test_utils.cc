@@ -570,3 +570,19 @@ TEST_CASE("Test utils file system operations", "[test_utils_fs]") {
   system(cleanup.c_str());
   free(temp_dir);
 }
+
+TEST_CASE("Test storage URLs", "[storage_urls]") {
+  CHECK(!is_supported_cloud_path("gibberish://ddd/d"));
+
+  CHECK(is_supported_cloud_path("hdfs://ddd/d"));
+
+  CHECK(is_supported_cloud_path("s3://ddd/d"));
+
+  CHECK(is_supported_cloud_path("gs://ddd/d"));
+
+  CHECK(is_supported_cloud_path("wasb://ddd/d"));
+  CHECK(is_supported_cloud_path("wasbs://ddd/d"));
+  CHECK(is_supported_cloud_path("abfs://ddd/d"));
+  CHECK(is_supported_cloud_path("abfss://ddd/d"));
+  CHECK(is_supported_cloud_path("adl://ddd/d"));
+}
