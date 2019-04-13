@@ -1032,7 +1032,7 @@ int StorageManager::metadata_iterator_finalize(
 
   // Errors
   if(rc_finalize != TILEDB_MIT_OK) {
-    tiledb_mit_errmsg = tiledb_mit_errmsg;
+    tiledb_sm_errmsg = tiledb_mit_errmsg;
     return TILEDB_SM_ERR;
   }
   if(rc_close != TILEDB_SM_OK)
