@@ -43,14 +43,21 @@
 #include <cstdio>
 #include <string>
 #include <thread>
-
+#include <unistd.h>
 
 class PosixFSTestFixture {
  protected:
   PosixFS fs;
-  std::string test_dir = "test_posixfs_dir";
+  std::string test_dir = "test_posixfs_";
+
+  void remove_test_dir(std::string dir) {
+    std::string command = "rm -rf ";
+    command.append(dir);
+    system(command.c_str());
+  }
 
   PosixFSTestFixture() {
+    remove_test_dir(test_dir + "*");
     if (getenv( "TILEDB_DISABLE_FILE_LOCKING")) {
       unsetenv( "TILEDB_DISABLE_FILE_LOCKING");
     }
@@ -58,11 +65,7 @@ class PosixFSTestFixture {
   }
 
   ~PosixFSTestFixture() {
-    // Remove the temporary dir
-    std::string command = "rm -rf ";
-    command.append(test_dir);
-    CHECK_RC(system(command.c_str()), 0);
-    CHECK_RC(fs.sync_path("."), TILEDB_FS_OK);
+    remove_test_dir(test_dir);
   }
  };
 
@@ -89,6 +92,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS real_dir", "[real_dir]") {
 }
 
 TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS dir", "[dir]") {
+  test_dir += "dir";
   CHECK_RC(fs.create_dir(test_dir), TILEDB_FS_OK);
   CHECK(fs.is_dir(test_dir));
   CHECK(!fs.is_file(test_dir));
@@ -119,6 +123,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS dir", "[dir]") {
 }
 
 TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS file", "[file]") {
+  test_dir += "file";
   CHECK_RC(fs.create_dir(test_dir), 0);
   REQUIRE(fs.is_dir(test_dir));
   CHECK_RC(fs.create_file(test_dir+"/foo", O_WRONLY|O_CREAT,  S_IRWXU), TILEDB_FS_OK);
@@ -147,33 +152,40 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS file", "[file]") {
 }
 
 TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS read/write file", "[read-write]") {
- CHECK_RC(fs.create_dir(test_dir), 0);
- REQUIRE(fs.is_dir(test_dir));
- CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
- REQUIRE(fs.is_file(test_dir+"/foo"));
- CHECK(fs.file_size(test_dir+"/foo") == 5);
+  test_dir += "read_write";
+  CHECK_RC(fs.create_dir(test_dir), TILEDB_FS_OK);
+  REQUIRE(fs.is_dir(test_dir));
+  CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
+  REQUIRE(fs.is_file(test_dir+"/foo"));
+  CHECK(fs.file_size(test_dir+"/foo") == 5);
 
- void *buffer = malloc(20);
- CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 0), TILEDB_FS_OK);
- CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 2), TILEDB_FS_OK);
- CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 5), TILEDB_FS_OK);
- CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 6), TILEDB_FS_ERR);
- CHECK_RC(fs.read_from_file(test_dir+"/foo", 3, buffer, 2), TILEDB_FS_OK);
- CHECK_RC(fs.read_from_file(test_dir+"/foo", 3, buffer, 6), TILEDB_FS_ERR);
- CHECK_RC(fs.read_from_file(test_dir+"/foo", 6, buffer, 2), TILEDB_FS_ERR);
- 
- CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
- CHECK(fs.file_size(test_dir+"/foo") == 10);
- CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK); // NOP when there is no locking support
- 
- CHECK_RC(fs.read_from_file("non-existen-dir/foo", 0, buffer, 5), TILEDB_FS_ERR);
- CHECK_RC(fs.write_to_file("non-existent-dir/foo", "hello", 5), TILEDB_FS_ERR);
- CHECK_RC(fs.close_file("non-existent-dir/foo"), TILEDB_FS_OK); // NOP when there is no locking support
+  void *buffer = malloc(20);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 0), TILEDB_FS_OK);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 2), TILEDB_FS_OK);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 5), TILEDB_FS_OK);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 0, buffer, 6), TILEDB_FS_ERR);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 3, buffer, 2), TILEDB_FS_OK);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 3, buffer, 6), TILEDB_FS_ERR);
+  CHECK_RC(fs.read_from_file(test_dir+"/foo", 6, buffer, 2), TILEDB_FS_ERR);
 
- free(buffer);
+  CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
+  CHECK(fs.file_size(test_dir+"/foo") == 10);
+  CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK); // NOP when there is no locking support
+
+  CHECK_RC(fs.sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(fs.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
+
+  CHECK_RC(fs.sync_path(test_dir), TILEDB_FS_OK);
+
+  CHECK_RC(fs.read_from_file("non-existent-dir/foo", 0, buffer, 5), TILEDB_FS_ERR);
+  CHECK_RC(fs.write_to_file("non-existent-dir/foo", "hello", 5), TILEDB_FS_ERR);
+  CHECK_RC(fs.close_file("non-existent-dir/foo"), TILEDB_FS_OK); // NOP when there is no locking support
+
+  free(buffer);
 }
 
 TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS large read/write file", "[read-write-large]") {
+  test_dir += "read_write_large";
   size_t size = ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*4;
   void *buffer = malloc(size);
   if (buffer) {
@@ -196,6 +208,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS large read/write file", "[rea
 }
 
 TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[parallel]") {
+  test_dir += "parallel";
   REQUIRE(fs.create_dir(test_dir) == TILEDB_FS_OK);
 
   bool complete = true;
@@ -338,7 +351,7 @@ TEST_CASE("Test reading/writing with TILEDB_DISABLE_FILE_LOCKING set for write a
   PosixFS fs;
   REQUIRE(!fs.locking_support());
 
-  std::string test_dir = "test_posixfs_dir_locking1";
+  std::string test_dir = "test_dir_locking1";
   if (fs.is_dir(test_dir)) {
     REQUIRE(fs.delete_dir(test_dir) == TILEDB_OK);
   }
