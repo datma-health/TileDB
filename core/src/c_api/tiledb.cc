@@ -1799,7 +1799,7 @@ bool is_array(const TileDB_CTX* tiledb_ctx, const std::string& dir)  {
   return invoke_bool_fs_fn(tiledb_ctx, dir, &is_array);
 }
 
-bool is_fragment(TileDB_CTX* tiledb_ctx, const std::string& dir) {
+bool is_fragment(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
   return invoke_bool_fs_fn(tiledb_ctx, dir, &is_fragment);
 }
 

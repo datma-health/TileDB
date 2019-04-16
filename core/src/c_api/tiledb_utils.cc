@@ -149,17 +149,51 @@ std::vector<std::string> get_array_names(const std::string& workspace)
     for (std::vector<std::string>::iterator dir = dirs.begin() ; dir != dirs.end(); dir++) {
       std::string path(*dir);
       if (is_array(tiledb_ctx, path)) {
-	size_t pos = path.find_last_of("\\/");
-	if (pos == std::string::npos) {
-	  array_names.push_back(path);
-	} else {
-	  array_names.push_back(path.substr(pos+1));
-	}
+        size_t pos = path.find_last_of("\\/");
+        if (pos == std::string::npos) {
+          array_names.push_back(path);
+        } else {
+          array_names.push_back(path.substr(pos+1));
+        }
       }
     }
   }
   finalize(tiledb_ctx);
   return array_names;
+}
+
+std::vector<std::string> get_fragment_names(const std::string& workspace)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, workspace)) {
+    return std::vector<std::string>{};
+  }
+  std::vector<std::string> fragment_names;
+  std::vector<std::string> dirs = get_dirs(tiledb_ctx, workspace);
+  if (!dirs.empty()) {
+    for (std::vector<std::string>::iterator dir = dirs.begin() ; dir != dirs.end(); dir++) {
+      std::string path(*dir);
+      if (is_array(tiledb_ctx, path)) {
+        std::vector<std::string> fragment_dirs = get_dirs(tiledb_ctx, path);
+        if (!fragment_dirs.empty()) {
+          for (std::vector<std::string>::iterator fragment_dir = fragment_dirs.begin(); 
+               fragment_dir != fragment_dirs.end(); fragment_dir++) {
+            std::string fragment_path(*fragment_dir);
+            if (is_fragment(tiledb_ctx, fragment_path)) {
+              size_t pos = fragment_path.find_last_of("\\/");
+              if (pos == std::string::npos) {
+                fragment_names.push_back(fragment_path);
+              } else {
+                fragment_names.push_back(fragment_path.substr(pos+1));
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  finalize(tiledb_ctx);
+  return fragment_names;
 }
 
 static int check_file(TileDB_CTX *tiledb_ctx, std::string filename) {

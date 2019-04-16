@@ -53,6 +53,8 @@ bool array_exists(const std::string& workspace, const std::string& array_name);
 
 std::vector<std::string> get_array_names(const std::string& workspace);
 
+std::vector<std::string> get_fragment_names(const std::string& workspace);
+
 /**
  * buffer is malloc'ed and has to be freed by calling function
  */
