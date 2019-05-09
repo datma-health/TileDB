@@ -233,7 +233,7 @@ int ArrayIterator::next() {
   }
 
   // Advance iterator
-    do {
+  do {
     std::vector<int> needs_new_read;
     const std::vector<int> attribute_ids = array_->attribute_ids();
     int attribute_id_num = attribute_ids.size();
