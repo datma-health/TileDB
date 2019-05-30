@@ -1589,7 +1589,7 @@ int StorageManager::consolidation_filelock_lock(
 
   // Create consolidation lock file if necessary
   if (!fs_->is_file(filename)) {
-    if (!consolidation_filelock_create(array_name_real)) {
+    if (consolidation_filelock_create(array_name_real)) {
       return TILEDB_SM_ERR;
     }
   }

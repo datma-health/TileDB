@@ -1768,11 +1768,9 @@ inline bool sanity_check_fs(const TileDB_CTX* tiledb_ctx) {
       &&  tiledb_ctx->storage_manager_->get_config()->get_filesystem()) {
     return true;
   }
-
   std::string errmsg = "TileDB configured incorrectly";
   PRINT_ERROR(errmsg);
   strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-
   return false;
 }
 
@@ -1784,6 +1782,8 @@ inline bool invoke_bool_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& d
       strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
     return rc;
   }
+  std::string errmsg = "Could not invoke TileDB functionality. Check TileDB configuration";
+  strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
   return false;
 }
 
