@@ -27,42 +27,56 @@
  * 
  * @section DESCRIPTION
  *
- * CodecJPEG2000 derived from Codec for JPEG2000 support
+ * CodecJPEG2K derived from Codec for JPEG2000 support
  *
  */
 
-#ifndef __CODEC_JPEG2000_H__
-#define  __CODEC_JPEG2000_H__
+#ifndef __CODEC_JPEG2K_H__
+#define  __CODEC_JPEG2K_H__
 
 #include "codec.h"
 
-/* OpenJPEG 2000 includes */
-#include "opj_apps_config.h"
-#include "openjpeg.h"
-#include "opj_getopt.h"
-#include "convert.h"
-#include "index.h"
-
-#include "event.h"
-#include "color.h"
+/* OpenJPEG 2000 include for types and struct definitions */
+#include "opj_types.h"
+#include "string.h"
+//#include "openjpeg.h"
 #include "format_defs.h"
-#include "opj_string.h"
 
 // Function Pointers for JPEG2000
-#if !defined(JPEG2000_EXTERN_DECL)
-#  define JPEG2000_EXTERN_DECL
+#if !defined(JPEG2K_EXTERN_DECL)
+#  define JPEG2K_EXTERN_DECL 
 #endif
 
-/*
-JPEG2000_EXTERN_DECL int(*JPEG2000_compressBound)(int);
-JPEG2000_EXTERN_DECL size_t(*JPEG2000_compress_default)(const char *, char *, int, int);
-JPEG2000_EXTERN_DECL size_t(*JPEG2000_decompress_safe)(const char *, char *, int, int);
-*/
+JPEG2K_EXTERN_DECL void(*opj_set_default_encoder_parameters)(opj_cparameters_t *);
+JPEG2K_EXTERN_DECL opj_codec_t*(*opj_create_compress)(OPJ_CODEC_FORMAT);
+JPEG2K_EXTERN_DECL opj_image_t*(*opj_image_tile_create)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE);
+JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_setup_encoder)(opj_codec_t *, opj_cparameters_t *, opj_image_t *);
+JPEG2K_EXTERN_DECL opj_stream_t*(*opj_stream_create_default_memory_stream)(OPJ_BOOL);
+JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_start_compress)(opj_codec_t *, opj_image_t *, opj_stream_t *);
+JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_write_tile)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *);
+JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_end_compress)(opj_codec_t *, opj_stream_t *);
+JPEG2K_EXTERN_DECL OPJ_BYTE*(*opj_mem_stream_copy)(opj_stream_t *, size_t*);
 
-class CodecJPEG2000 : public Codec {
+JPEG2K_EXTERN_DECL void (*opj_set_default_decoder_parameters)(opj_dparameters_t *);
+JPEG2K_EXTERN_DECL opj_codec_t*(*opj_create_decompress)(OPJ_CODEC_FORMAT);
+JPEG2K_EXTERN_DECL opj_stream_t* (*opj_stream_create_memory_stream)(void *, OPJ_SIZE_T, OPJ_BOOL );
+JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_setup_decoder)(opj_codec_t *, opj_dparameters_t *);
+JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_read_header)(opj_stream_t *, opj_codec_t *, opj_image_t **);
+JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_set_decode_area)(opj_codec_t *, opj_image_t *, int, int, int, int);
+JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_read_tile_header)(opj_codec_t *, opj_stream_t *, OPJ_UINT32 *, OPJ_UINT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_UINT32 *, OPJ_BOOL *);
+JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_decode_tile_data)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *);
+JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_end_decompress)(opj_codec_t *, opj_stream_t *);
+JPEG2K_EXTERN_DECL void (*opj_image_destroy)(opj_image_t *);
+JPEG2K_EXTERN_DECL void (*opj_stream_destroy)(opj_stream_t *);
+JPEG2K_EXTERN_DECL void (*opj_destroy_codec)(opj_codec_t *);
+
+// Maximum number of components within an image allowed
+#define NUM_COMPS_MAX 4
+
+class CodecJPEG2K : public Codec {
  public:
   
-  CodecJPEG2000(int compression_level):Codec(compression_level) {
+  CodecJPEG2K(int compression_level):Codec(compression_level) {
     static bool loaded = false;
     static std::mutex loading;
     
@@ -72,11 +86,35 @@ class CodecJPEG2000 : public Codec {
       if (!loaded) {
         dl_handle_ = get_dlopen_handle("openjp2");
         if (dl_handle_ != NULL) {
-/*
-	  BIND_SYMBOL(dl_handle_, LZ4_compressBound, "LZ4_compressBound", (int(*)(int)));
-	  BIND_SYMBOL(dl_handle_, LZ4_compress_default, "LZ4_compress_default", (size_t(*)(const char *, char *, int, int)));
-	  BIND_SYMBOL(dl_handle_, LZ4_decompress_safe, "LZ4_decompress_safe", (size_t(*)(const char *, char *, int, int)));
-*/
+
+/** compress_tile functions **/
+	  BIND_SYMBOL(dl_handle_, opj_set_default_encoder_parameters, "opj_set_default_encoder_parameters", (void (*)(opj_cparameters_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_create_compress, "opj_create_compress", (opj_codec_t*(*)(OPJ_CODEC_FORMAT)));
+	  BIND_SYMBOL(dl_handle_, opj_image_tile_create, "opj_image_tile_create", (opj_image_t*(*)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE)));
+	  BIND_SYMBOL(dl_handle_, opj_setup_encoder, "opj_setup_encoder", (OPJ_BOOL(*)(opj_codec_t *, opj_cparameters_t *, opj_image_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_stream_create_default_memory_stream, "opj_stream_create_default_memory_stream", (opj_stream_t*(*)(OPJ_BOOL)));
+	  BIND_SYMBOL(dl_handle_, opj_start_compress, "opj_start_compress", (OPJ_BOOL(*)(opj_codec_t *, opj_image_t *, opj_stream_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_write_tile, "opj_write_tile", (OPJ_BOOL(*)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_end_compress, "opj_end_compress", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_mem_stream_copy, "opj_mem_stream_copy", (OPJ_BYTE*(*)(opj_stream_t *, size_t*)));
+
+/** decompress_tile functions **/
+	  BIND_SYMBOL(dl_handle_, opj_set_default_decoder_parameters, "opj_set_default_decoder_parameters", (void(*)(opj_dparameters_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_create_decompress, "opj_create_decompress", (opj_codec_t*(*)(OPJ_CODEC_FORMAT)));
+	  BIND_SYMBOL(dl_handle_, opj_stream_create_memory_stream, "opj_stream_create_memory_stream", (opj_stream_t*(*)(void *, OPJ_SIZE_T, OPJ_BOOL )));
+	  BIND_SYMBOL(dl_handle_, opj_setup_decoder, "opj_setup_decoder", (OPJ_BOOL(*)(opj_codec_t *, opj_dparameters_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_read_header, "opj_read_header", (OPJ_BOOL(*)(opj_stream_t *, opj_codec_t *, opj_image_t **)));
+	  BIND_SYMBOL(dl_handle_, opj_set_decode_area, "opj_set_decode_area", (OPJ_BOOL(*)(opj_codec_t *, opj_image_t *, int, int, int, int)));
+	  BIND_SYMBOL(dl_handle_, opj_read_tile_header, "opj_read_tile_header", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *, OPJ_UINT32 *, OPJ_UINT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_UINT32 *, OPJ_BOOL *)));
+	  BIND_SYMBOL(dl_handle_, opj_decode_tile_data, "opj_decode_tile_data", (OPJ_BOOL(*)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_end_decompress, "opj_end_decompress", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *)));
+
+/** Common functions **/
+	  BIND_SYMBOL(dl_handle_, opj_image_destroy, "opj_image_destroy", (void(*)(opj_image_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_stream_destroy, "opj_stream_destroy", (void(*)(opj_stream_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_destroy_codec, "opj_destroy_codec", (void(*)(opj_codec_t *)));
+	  //BIND_SYMBOL(dl_handle_, opj_destroy_image, "opj_image_destroy", (void(*)(opj_image_t *)));
+
 	  loaded = true;
 	}
       }
@@ -100,27 +138,5 @@ class CodecJPEG2000 : public Codec {
   int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
   
 };
-
-/**********************************
- ** Memory (sub)stream structure **
- **********************************/
-typedef OPJ_BOOL (* mem_stream_resize_fn )( void *m_buffer);
-
-typedef struct mem_stream {
-
-/** The holder of actual data; can be increased with mem_resize_fn **/
-    OPJ_BYTE *mem_data;
-
-/** Index value of current element of mem_data **/
-    OPJ_UINT64 mem_curidx;
-
-/** Current size of mem_data array **/
-    OPJ_UINT64 mem_cursize;
-
-/** Resize function to increase the current array size in mem_data **/
-    mem_stream_resize_fn  mem_resize_fn;
-
-} mem_stream_t;
-
 
 #endif /*__CODEC_JPEG200_H__*/

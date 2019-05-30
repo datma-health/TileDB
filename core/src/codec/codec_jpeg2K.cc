@@ -32,287 +32,367 @@
 
 #ifdef ENABLE_JPEG2K
 
-#define JPEG2000_EXTERN_DECL extern
+#define JPEG2K_EXTERN_DECL extern
 #include "codec_jpeg2K.h"
 
-void image_copy_out(opj_stream_t *s, OPJ_BYTE** return_buff, size_t* size_out)
+void cleanup(void *l_data, opj_stream_t *l_stream, opj_codec_t *l_codec, opj_image_t *l_image)
 {
-   opj_stream_private_t* p = (opj_stream_private_t*) s;
-   //size_t img_bytes = p->m_bytes_in_buffer;
-   mem_stream_t* m = (mem_stream_t*) p->m_user_data;
-
-   size_t img_bytes = m->mem_curidx;
-
-   *return_buff = (char *) malloc(img_bytes * sizeof(char));
-   if (!(*return_buff)) {
-     printf("Fail to allocate %d bytes: image_copy_out\n", img_bytes);
-     return;
-   }
-   memcpy(*return_buff, &(m->mem_data[0]), img_bytes);
-   *size_out = img_bytes;
-
-/*
-   printf ("Compare First 16 bytes in compressed buffer with buff_out:\n");
-   int i;
-   for (i = 0; i < 16 ; ++i) {
-      printf("%3d: %02x  ",i, ((OPJ_BYTE*)(p->m_stored_data[i])));
-      printf("%02x  ",m->mem_data[i]);
-      printf("%02x \n",(*return_buff)[i]);
-   }
-   printf("\n");
-*/
+   if (l_data)   free(l_data);
+   if (l_stream) opj_stream_destroy(l_stream);
+   if (l_image)  opj_image_destroy(l_image);
+   if (l_codec)  opj_destroy_codec(l_codec);
 }
 
+void get_header_values(unsigned char *tile_in,
+                       OPJ_UINT32 *nc,
+                       int *ih, int *iw)
+{
+   int *buffer = (int *) tile_in;
 
-int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
-   opj_cparameters_t parameters;   /* compression parameters */
-   opj_image_t *image = (opj_image_t *) tile;
+   *nc = buffer[0];       // number of color components
+   *ih = buffer[1];       // image height
+   *iw = buffer[2];       // image width
 
-   opj_stream_t *l_stream = 00;
-   opj_codec_t* l_codec = 00;
-   OPJ_BOOL bSuccess;
+/** Do we need these? **
+   *c_space = buffer[5];  // color space ASSUME set from num_comps
+   *t_num = buffer[6];    // tile number ASSUME the number makes no difference
+**/
 
-   /* set encoding parameters to default values */
-   opj_set_default_encoder_parameters(&parameters);
+   return;
+}
 
-   parameters.decod_format = TIF_DFMT; // hard-code to TIF format
-   parameters.cod_format = 1; // hard-code JP2 format for compression
-   parameters.tcp_numlayers = 1;
-   parameters.cp_disto_alloc = 1; // hardwired to match example compress
-   parameters.cp_fixed_alloc = 0;
-   parameters.cp_fixed_quality = 0;
-   if (image->numcomps > 1) {
-      parameters.tcp_mct = 1;
+int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void** tile_compressed, size_t& tile_compressed_size) 
+{
+   opj_cparameters_t l_param;
+   opj_codec_t * l_codec;
+   opj_image_t * l_image;
+   opj_image_cmptparm_t l_image_params[NUM_COMPS_MAX];
+   opj_stream_t * l_stream;
+   //OPJ_UINT32 l_nb_tiles_width, l_nb_tiles_height, l_nb_tiles;
+   //OPJ_UINT32 l_data_size;
+   //size_t len;
+
+   opj_image_cmptparm_t * l_current_param_ptr;
+   OPJ_UINT32 i;
+   OPJ_BYTE *l_data;
+
+   OPJ_UINT32 num_comps;
+   int image_width;
+   int image_height;
+   int tile_width;
+   int tile_height;
+
+// Fixed parameter values. May need to amend if different image types are used
+   int comp_prec = 8;
+   int irreversible = 1;
+   int cblockw_init = 64;
+   int cblockh_init = 64;
+   int numresolution = 6;
+   OPJ_UINT32 offsetx = 0;
+   OPJ_UINT32 offsety = 0;
+   int quality_loss = 0; // lossless
+
+   get_header_values(tile_in, &num_comps, &image_height, &image_width);
+
+// Use whole tile as single "image"; tiling set in TileDB level
+   tile_height = image_height;
+   tile_width = image_width;
+
+   opj_set_default_encoder_parameters(&l_param); // Default parameters
+
+   if (num_comps > NUM_COMPS_MAX) {
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: num_comps %d > NUM_COMPS_MAX %d\n", num_comps, NUM_COMPS_MAX);
+      return print_errmsg(msg);
    }
 
-   /* JPEG-2000 compressed image data */
-   /* Get a decoder handle */
-   //l_codec = opj_create_compress(OPJ_CODEC_J2K);
+//  Set data pointer to the first pixel byte beyond the header values
+   OPJ_UINT32 header_offset = 3 * sizeof(int);
+   l_data = (OPJ_BYTE*) &tile_in[header_offset];
+   OPJ_UINT32 tilesize = tile_size_in - header_offset;
+
+   /** number of quality layers in the stream */
+   if (quality_loss) {
+      l_param.tcp_numlayers = 1;
+      l_param.cp_fixed_quality = 1;
+      l_param.tcp_distoratio[0] = 20;
+   }
+
+   /* tile definitions parameters */
+   /* position of the tile grid aligned with the image */
+   l_param.cp_tx0 = 0;
+   l_param.cp_ty0 = 0;
+   /* tile size, we are using tile based encoding */
+   l_param.tile_size_on = OPJ_TRUE;
+   l_param.cp_tdx = tile_width;
+   l_param.cp_tdy = tile_height;
+
+   /* code block size */
+   l_param.cblockw_init = cblockw_init;
+   l_param.cblockh_init = cblockh_init;
+
+   /* use irreversible encoding ?*/
+   l_param.irreversible = irreversible;
+
+   /** number of resolutions */
+   l_param.numresolution = numresolution;
+
+   /** progression order to use*/
+   l_param.prog_order = OPJ_LRCP; // default
+
+   /* image definition */
+   l_current_param_ptr = l_image_params;
+   for (i = 0; i < num_comps; ++i) {
+       /* do not bother bpp useless */
+       /*l_current_param_ptr->bpp = COMP_PREC;*/
+       l_current_param_ptr->dx = 1;
+       l_current_param_ptr->dy = 1;
+
+       l_current_param_ptr->h = (OPJ_UINT32)image_height;
+       l_current_param_ptr->w = (OPJ_UINT32)image_width;
+
+       l_current_param_ptr->sgnd = 0;
+       l_current_param_ptr->prec = (OPJ_UINT32)comp_prec;
+
+       l_current_param_ptr->x0 = offsetx;
+       l_current_param_ptr->y0 = offsety;
+
+       ++l_current_param_ptr;
+   }
+
+   /* should we do j2k or jp2 ?*/
    l_codec = opj_create_compress(OPJ_CODEC_JP2);
+   // l_codec = opj_create_compress(OPJ_CODEC_J2K);
 
-   if (! opj_setup_encoder(l_codec, &parameters, image)) {
-      opj_destroy_codec(l_codec);
-      //opj_image_destroy(image);
-      return print_errmsg("Failed to encode with JPEG 2000: opj_setup_encoder");
+   if (! l_codec) {
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: failed to setup codec!\n");
+      return print_errmsg(msg);
    }
 
-/* open a byte stream for writing and allocate memory for all tiles */
-   l_stream = (opj_stream_t *) opj_stream_create_default_memory(OPJ_FALSE);
-   if (! l_stream) { 
-      return print_errmsg("Failed to open memory byte stream JPEG 2000: opj_stream_create_default_memory");
+   if (num_comps == 3)
+      l_image = opj_image_tile_create(num_comps, l_image_params, OPJ_CLRSPC_SRGB);
+   else if (num_comps == 1)
+      l_image = opj_image_tile_create(num_comps, l_image_params, OPJ_CLRSPC_GRAY);
+   else
+      l_image = opj_image_tile_create(num_comps, l_image_params, OPJ_CLRSPC_UNKNOWN);
+   if (! l_image) {
+      cleanup(NULL, NULL, l_codec, NULL);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: failed to setup tile image!\n");
+      return print_errmsg(msg);
    }
 
-/* encode the image */
-   bSuccess = opj_start_compress(l_codec, image, l_stream);
-   if (!bSuccess)  {
-      return print_errmsg("Failed compressing with JPEG 2000: opj_start_compress");
+   l_image->x0 = offsetx;
+   l_image->y0 = offsety;
+   l_image->x1 = offsetx + (OPJ_UINT32)image_width;
+   l_image->y1 = offsety + (OPJ_UINT32)image_height;
+/** should be set in opj_image_tile_create() **
+   if (num_comps == 3)
+      l_image->color_space = OPJ_CLRSPC_SRGB;
+   else if (num_comps == 1)
+      l_image->color_space = OPJ_CLRSPC_GRAY;
+   else
+      l_image->color_space = OPJ_CLRSPC_UNKNOWN;
+**/
+
+printf("JPEG200 compresion\n");
+   if (! opj_setup_encoder(l_codec, &l_param, l_image)) {
+      cleanup(NULL, NULL, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: failed to setup the codec!\n");
+      return print_errmsg(msg);
    }
 
-   bSuccess = opj_encode(l_codec, l_stream);
-   if (!bSuccess)  {
-      return print_errmsg("Failed compressing with JPEG 2000: opj_encode");
+   l_stream = (opj_stream_t *) opj_stream_create_default_memory_stream(OPJ_FALSE);
+   if (! l_stream) {
+      cleanup(NULL, NULL, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: failed to create the memory stream!\n");
+      return print_errmsg(msg);
    }
 
-   bSuccess = opj_end_compress(l_codec, l_stream);
-   if (!bSuccess)  {
-      return print_errmsg("Failed compressing with JPEG 2000: opj_end_compress");
+   if (! opj_start_compress(l_codec, l_image, l_stream)) {
+      cleanup(NULL, l_stream, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: failed to start compress!\n");
+      return print_errmsg(msg);
    }
-   
-   image_copy_out(l_stream, tile_compressed, tile_compressed_size);
-   
-   /* close and free the byte stream */
-   opj_stream_destroy(l_stream);
-   
-   /* free remaining compression structures */
-   opj_destroy_codec(l_codec);
-   
-   /* free image data */
-   //opj_image_destroy(image); // Don't need to free input parameter
- 
+
+  /** Always write tile 0 **/
+   if (! opj_write_tile(l_codec, 0, l_data, tilesize, l_stream)) {
+      cleanup(NULL, l_stream, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: failed to write the tile %d!\n", i);
+      return print_errmsg(msg);
+   }
+
+   if (! opj_end_compress(l_codec, l_stream)) {
+      cleanup(NULL, l_stream, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_compress: failed to end compress!\n");
+      return print_errmsg(msg);
+   }
+
+   *tile_compressed = opj_mem_stream_copy(l_stream, &tile_compressed_size);
+
+   cleanup(NULL, l_stream, l_codec, l_image);
+
    // Success
    return TILEDB_CD_OK;
 }
 
-int CodecLZ4::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
-    // Decompress tile 
-   opj_decompress_parameters parameters;   /* decompression parameters */
 
-   opj_stream_t *l_stream = 00;
-   opj_codec_t* l_codec = 00;
-   opj_image_t *image = NULL;
-   OPJ_BOOL bSuccess;
+int CodecJPEG2K::decompress_tile(unsigned char* tile_compressed, size_t tile_compressed_size, unsigned char* tile_out, size_t size_out) 
+{
+   opj_dparameters_t l_param;
+   opj_codec_t * l_codec;
+   opj_image_t * l_image;
+   opj_stream_t * l_stream;
+   OPJ_UINT32 l_data_size;
+   OPJ_UINT32 l_max_data_size = 1000;
+   OPJ_BYTE * l_data = (OPJ_BYTE *) malloc(1000);
 
-   /* set decoding parameters to default values */
-   //set_default_parameters(&parameters);
-   if (parameters) {
-      memset(parameters, 0, sizeof(opj_decompress_parameters));
+   OPJ_UINT32 l_tile_index;
+   OPJ_INT32 l_current_tile_x0;
+   OPJ_INT32 l_current_tile_y0;
+   OPJ_INT32 l_current_tile_x1;
+   OPJ_INT32 l_current_tile_y1;
+   OPJ_UINT32 l_nb_comps=0;
+   OPJ_BOOL l_go_on = OPJ_TRUE;
 
-      /* default decoding parameters (command line specific) */
-      parameters->decod_format = -1;
-      parameters->cod_format = -1;
+   OPJ_UINT32 image_height;
+   OPJ_UINT32 image_width;
+   OPJ_UINT32 numcomps;
 
-      /* default decoding parameters (core) */
-      opj_set_default_decoder_parameters(&(parameters->core));
-   }
+   /* Set the default decoding parameters */
+   opj_set_default_decoder_parameters(&l_param);
+   l_param.decod_format = JP2_CFMT;
 
-   // NEED TO FIX -- How can the decode format be sent into this function?
-   // Is this really needed/used if result of this operation is image_t
-   parameters.decod_format = TIF_DFMT; // hard-code to TIF format
+   /** you may here add custom decoding parameters */
+   /* do not use layer decoding limitations */
+   l_param.cp_layer = 0;
 
-   /* create stream in memory and set m_stored_data pointer */
-   /* ----------------------------------------------------- */
-   l_stream = (opj_stream_t *) opj_stream_create_default_memory(OPJ_TRUE);
-   if (!l_stream) {
-      return print_errmsg("Failed to create stream for decompress: opj_stream_create_default_memory");
-   }
-   opj_stream_mem_set_user_data(l_stream, (void*)tile_compressed, tile_compressed_size, NULL);
+   /* do not use resolutions reductions */
+   l_param.cp_reduce = 0;
 
-   opj_stream_private_t *p_stream = (opj_stream_private_t *) l_stream;
-   mem_stream_t * m_stream = (mem_stream_t *) p_stream->m_user_data;
-
-   /* decode the JPEG2000 stream */
-   /* Get a decoder handle */
-   //l_codec = opj_create_decompress(OPJ_CODEC_J2K);
+   /** Fixed to match Compress format **/
    l_codec = opj_create_decompress(OPJ_CODEC_JP2);
+   if (!l_codec){
+      cleanup(l_data, NULL, NULL, NULL);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_decompress: failed to create decompress codec\n");
+      return print_errmsg(msg);
+   }
 
-   /* catch events using our callbacks and give a local context */
-    //opj_set_info_handler(l_codec, info_callback, 00);
-    //opj_set_warning_handler(l_codec, warning_callback, 00);
-    //opj_set_error_handler(l_codec, error_callback, 00);
+   /** Setup stream with user data into stream **/
+   l_stream = opj_stream_create_memory_stream((void *)tile_compressed, tile_compressed_size, OPJ_TRUE);
+   if (!l_stream){
+      cleanup(l_data, NULL, l_codec, NULL);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_decompress: failed to create the memory stream\n");
+      return print_errmsg(msg);
+   }
 
    /* Setup the decoder decoding parameters using user parameters */
-   if (!opj_setup_decoder(l_codec, &(parameters.core))) {
-      opj_stream_destroy(l_stream);
-      opj_destroy_codec(l_codec);
-      return print_errmsg("Failed to setup the decoder: opj_setup_decoder");
+   if (! opj_setup_decoder(l_codec, &l_param)) {
+      cleanup(l_data, l_stream, l_codec, NULL);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_decompress: failed to setup the decoder\n");
+      return print_errmsg(msg);
    }
 
    /* Read the main header of the codestream and if necessary the JP2 boxes*/
-   if (! opj_read_header(l_stream, l_codec, &image)) {
-      opj_stream_destroy(l_stream);
-      opj_destroy_codec(l_codec);
-      opj_image_destroy(image);
-      return print_errmsg("Failed to read the header: opj_read_header");
+   if (! opj_read_header(l_stream, l_codec, &l_image)) {
+      cleanup(l_data, l_stream, l_codec, NULL);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_decompress: failed to read the header\n");
+      return print_errmsg(msg);
    }
 
-   if (parameters.numcomps) {
-       if (! opj_set_decoded_components(l_codec,
-                                        parameters.numcomps,
-                                        parameters.comps_indices,
-                                        OPJ_FALSE)) {
-           opj_destroy_codec(l_codec);
-           opj_stream_destroy(l_stream);
-           opj_image_destroy(image);
-           return print_errmsg("Failed to set the component indices: opj_set_decoded_components");
-           return EXIT_FAILURE;
-       }
+   // PULL OUT numcomps, image_height, image_width from  l_stream
+   image_height = l_image->comps[0].h;
+   image_width = l_image->comps[0].w;
+   numcomps = l_image->numcomps;
+
+   if (!opj_set_decode_area(l_codec, l_image, 0, 0, 0, 0)){ // whole image
+      cleanup(l_data, l_stream, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_decompress: failed to set the decoded area\n");
+      return print_errmsg(msg);
    }
 
-   /* decode the entire image */
-   if (!opj_set_decode_area(l_codec, image, (OPJ_INT32)parameters.DA_x0,
-                                            (OPJ_INT32)parameters.DA_y0,
-                                            (OPJ_INT32)parameters.DA_x1,
-                                            (OPJ_INT32)parameters.DA_y1)) {
-       opj_stream_destroy(l_stream);
-       opj_destroy_codec(l_codec);
-       opj_image_destroy(image);
-       return print_errmsg("Failed to set the decoded area: opj_set_decode_area");
-       return EXIT_FAILURE;
+   if (! opj_read_tile_header( l_codec, l_stream, &l_tile_index, &l_data_size,
+                               &l_current_tile_x0, &l_current_tile_y0,
+                               &l_current_tile_x1, &l_current_tile_y1,
+                               &l_nb_comps, &l_go_on)) {
+      cleanup(l_data, l_stream, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_decompress: failed to read_tile_header\n");
+      return print_errmsg(msg);
    }
 
-   /* Get the decoded image */
-   if (!(opj_decode(l_codec, l_stream, image) &&
-         opj_end_decompress(l_codec,   l_stream))) {
-      opj_destroy_codec(l_codec);
-      opj_stream_destroy(l_stream);
-      opj_image_destroy(image);
-      return print_errmsg("Failed to decode the image: opj_decode && opj_end_decompress");
-   }
-
-   if (image->comps[0].data == NULL) {
-      fprintf(stderr, "ERROR -> opj_decompress: no image data!\n");
-      opj_destroy_codec(l_codec);
-      opj_stream_destroy(l_stream);
-      opj_image_destroy(image);
-      return print_errmsg("ERROR -> decompress_tile: no image data generated");
-   }
-
-   /** Assume RGB output is desired **/
-   image->color_space = OPJ_CLRSPC_SRGB:
-
-   /* Close the byte stream */
-   opj_stream_destroy(l_stream);
-
-   /** From opj_decompress.c **/
-/*
-   if (image->color_space != OPJ_CLRSPC_SYCC
-           && image->numcomps == 3 && image->comps[0].dx == image->comps[0].dy
-           && image->comps[1].dx != 1) {
-       image->color_space = OPJ_CLRSPC_SYCC;
-   }
-   else if (image->numcomps <= 2) {
-       image->color_space = OPJ_CLRSPC_GRAY;
-   }
-
-   if (image->color_space == OPJ_CLRSPC_SYCC) {
-       color_sycc_to_rgb(image);
-   }
-   else if ((image->color_space == OPJ_CLRSPC_CMYK) &&
-              (parameters.cod_format != TIF_DFMT)) {
-       color_cmyk_to_rgb(image);
-   }
-   else if (image->color_space == OPJ_CLRSPC_EYCC) {
-       color_esycc_to_rgb(image);
-   }
-
-   if (image->icc_profile_buf) {
-#if defined(OPJ_HAVE_LIBLCMS1) || defined(OPJ_HAVE_LIBLCMS2)
-     if (image->icc_profile_len) {
-         color_apply_icc_profile(image);
-     }
-     else {
-         color_cielab_to_rgb(image);
-     }
-#endif
-     free(image->icc_profile_buf);
-     image->icc_profile_buf = NULL;
-     image->icc_profile_len = 0;
-   }
-   // Force RGB output //
-   // ---------------- //
-   if (parameters.force_rgb) {
-      switch (image->color_space) {
-      case OPJ_CLRSPC_SRGB:
-           break;
-      case OPJ_CLRSPC_GRAY:
-           image = convert_gray_to_rgb(image);
-           break;
-      default:
-           //"ERROR -> opj_decompress: don't know how to convert image to RGB colorspace!"
-           opj_image_destroy(image);
-           image = NULL;
-           break;
+   if (l_go_on) {
+      if (l_data_size > l_max_data_size) {
+         OPJ_BYTE *l_new_data = (OPJ_BYTE *) realloc(l_data, l_data_size+12);
+         if (! l_new_data) {
+            cleanup(l_data, l_stream, l_codec, l_image);
+            char msg[100];
+            sprintf(msg, "ERROR -> j2k_decompress: failed to realloc new data of size %d\n", l_data_size+12);
+            return print_errmsg(msg);
+         }
+         l_data = l_new_data;
+         l_max_data_size = l_data_size;
       }
 
-      if (image == NULL) {
-         opj_destroy_codec(l_codec);
-         return print_errmsg("ERROR -> opj_decompress: failed to convert to RGB image!");
+      if (! opj_decode_tile_data(l_codec,l_tile_index,l_data,l_data_size,l_stream)) {
+         cleanup(l_data, l_stream, l_codec, l_image);
+         char msg[100];
+         sprintf(msg, "ERROR -> j2k_decompress: unable to decode_tile_data\n");
+         return print_errmsg(msg);
+      }
+      else {
+         cleanup(l_data, l_stream, l_codec, l_image);
+         char msg[100];
+         sprintf(msg, "ERROR -> j2k_decompress: Current tile number and total number of tiles problem\n");
+         return print_errmsg(msg);
       }
    }
 
-*/
-   /* return image data */
-   *tile = (char *)image;
-   // ESTIMATE size of decompressed image
-   //   Number of bytes is computed from number of components and 
-   //   size of the data arrays holding each color component.
-   *tile_size = (size_t) image->numcomps * (image->comps->w * image->comps->h);
+   if (! opj_end_decompress(l_codec,l_stream)) {
+      cleanup(l_data, l_stream, l_codec, l_image);
+      char msg[100];
+      sprintf(msg, "ERROR -> j2k_decompress: Failed to end_decompress correctly\n");
+      return print_errmsg(msg);
+   }
 
-   /* free remaining compression structures */
-   opj_destroy_codec(l_codec);
+   // Double check space in tile for decompressed data 
+   size_t image_bytes = 3*sizeof(OPJ_UINT32) + l_data_size;
+   if (image_bytes > size_out) {
+      char msg[100];
+      sprintf(msg, "Tile decompresss size (%lu) greater than expectef tile size (%lu)\n", image_bytes, size_out);
+      return print_errmsg(msg);
+   }
 
-  // Success
-  return TILEDB_CD_OK;
+   size_t copy_bytes = size_out - 3*sizeof(OPJ_UINT32);
+
+   // Add header portion -- write ints into char array
+   OPJ_UINT32 *buffer = (OPJ_UINT32 *)tile_out;
+   buffer[0] = numcomps;      // number of color components
+   buffer[1] = image_height;  // image height
+   buffer[2] = image_width;   // image width
+
+   OPJ_BYTE *ob = tile_out;
+   ob += 3*sizeof(OPJ_UINT32);
+
+   // Copy pixel data to output buffer
+   memcpy(ob, l_data, copy_bytes);
+
+   /* Free memory */
+   cleanup(l_data, l_stream, l_codec, l_image);
+   
+   // Success
+   return TILEDB_CD_OK;
 }
 
 #endif
