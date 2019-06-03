@@ -34,16 +34,32 @@
 
 #include "examples.h"
 
-// Black, Red, Orange, Pink, White, Yellow, Purple, Blue, Green, Grey
-   char R[10] = {  0, 201, 234, 233, 255, 255, 101,  12,   0, 130};
-   char G[10] = {  0,  23,  85,  82, 255, 234,  49,   2,  85, 130};
-   char B[10] = {  0,  30,   6, 149, 255,   0, 142, 196,  46, 130};
-
 char *build_image(size_t num_comps, size_t height, size_t width)
 {
    size_t buffer_size = num_comps * height * width + 12;
    char *image_buffer = (char *)malloc(buffer_size);
    char *l_data = image_buffer;
+
+   char R[10], G[10], B[10];
+//        Black,              Red,                Orange
+   R[0] = char(  0);   R[1] = char(201);   R[2] = char(234);
+   G[0] = char(  0);   G[1] = char( 23);   G[2] = char( 85);
+   B[0] = char(  0);   B[1] = char( 30);   B[2] = char(  6);
+
+//        Pink,               White,              Yellow
+   R[3] = char(233);   R[4] = char(255);   R[5] = char(255);
+   G[3] = char( 82);   G[4] = char(255);   G[5] = char(234);
+   B[3] = char(149);   B[4] = char(255);   B[5] = char(  0);
+
+//        Purple,             Blue,               Green
+   R[6] = char(101);   R[7] = char( 12);   R[8] = char(  0);
+   G[6] = char( 49);   G[7] = char(  2);   G[8] = char( 85);
+   B[6] = char(142);   B[7] = char(196);   B[8] = char( 46);
+
+//         Grey (unused)
+   R[9] = char(130);
+   G[9] = char(130);
+   B[9] = char(130);
 
    // Insert "header" info into image buffer
    int *header = (int *)image_buffer; 

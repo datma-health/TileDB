@@ -39,7 +39,7 @@ void cleanup(void *l_data, opj_stream_t *l_stream, opj_codec_t *l_codec, opj_ima
 {
    if (l_data)   free(l_data);
    if (l_stream) opj_stream_destroy(l_stream);
-   if (l_image)  opj_image_destroy(l_image);
+   if (l_image)  opj_destroy_image(l_image);
    if (l_codec)  opj_destroy_codec(l_codec);
 }
 
@@ -236,6 +236,13 @@ printf("JPEG200 compresion\n");
 
    *tile_compressed = opj_mem_stream_copy(l_stream, &tile_compressed_size);
 
+/* Can the image_buffer be output as a binary file recognized as JP2? */
+   char JP2fileName[22] = "encode_image_TDB.jp2";
+   FILE *write_ptr;
+   write_ptr = fopen(JP2fileName,"wb");  // w for write, b for binary
+   fwrite(*tile_compressed, tile_compressed_size, 1, write_ptr);
+   fclose(write_ptr);
+
    cleanup(NULL, l_stream, l_codec, l_image);
 
    // Success
@@ -351,12 +358,12 @@ int CodecJPEG2K::decompress_tile(unsigned char* tile_compressed, size_t tile_com
          sprintf(msg, "ERROR -> j2k_decompress: unable to decode_tile_data\n");
          return print_errmsg(msg);
       }
-      else {
-         cleanup(l_data, l_stream, l_codec, l_image);
-         char msg[100];
-         sprintf(msg, "ERROR -> j2k_decompress: Current tile number and total number of tiles problem\n");
-         return print_errmsg(msg);
-      }
+   }  // if (l_go_on) 
+   else { i              // Problem in the opj_read_tile_header() 
+       cleanup(l_data, l_stream, l_codec, l_image);
+       char msg[100];
+       sprintf(msg, "ERROR -> j2k_decompress: Current tile number and total number of tiles problem\n");
+       return print_errmsg(msg);
    }
 
    if (! opj_end_decompress(l_codec,l_stream)) {
@@ -390,7 +397,7 @@ int CodecJPEG2K::decompress_tile(unsigned char* tile_compressed, size_t tile_com
 
    /* Free memory */
    cleanup(l_data, l_stream, l_codec, l_image);
-   
+
    // Success
    return TILEDB_CD_OK;
 }
