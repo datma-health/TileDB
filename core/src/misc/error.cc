@@ -31,6 +31,6 @@
 
 #include "error.h"
 
-inline void reset_errno() {
+void reset_errno() {
   errno = 0;
 }
