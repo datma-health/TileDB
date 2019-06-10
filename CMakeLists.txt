@@ -112,7 +112,6 @@ add_subdirectory(${MUPARSERX_SOURCE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} muparserx)
 
 # Find optional library dependencies
-find_package(GTest)
 find_package(Doxygen)
 if(USE_MPI)
   find_package(MPI REQUIRED)
