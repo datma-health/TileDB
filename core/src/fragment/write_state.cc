@@ -317,7 +317,7 @@ int WriteState::sync_attribute(const std::string& attribute) {
 #endif
   int attribute_id = array_schema->attribute_id(attribute); 
   std::string filename;
-  int rc;
+  int rc = TILEDB_OK;
 
   // Sync attribute
   filename = fragment_->fragment_name() + "/" + attribute + TILEDB_FILE_SUFFIX;
