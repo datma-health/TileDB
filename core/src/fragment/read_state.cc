@@ -855,7 +855,7 @@ int ReadState::get_fragment_cell_ranges_sparse(
 
   // Get the cell ranges
   const void* cell;
-  int64_t current_start_pos, current_end_pos = -2; 
+  int64_t current_start_pos = 0, current_end_pos = -2; 
   for(int64_t i=start_pos; i<=end_pos; ++i) {
      if(GET_COORDS_PTR_FROM_SEARCH_TILE(i, cell) != TILEDB_RS_OK)
        return TILEDB_RS_ERR;
