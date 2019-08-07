@@ -825,9 +825,10 @@ int Array::reset_subarray(const void* subarray) {
     // Finalize last fragment
     if(fragments_.size() != 0) {
       assert(fragments_.size() == 1);
-      if(fragments_[0]->finalize() != TILEDB_FG_OK)
+      if(fragments_[0]->finalize() != TILEDB_FG_OK) {
         tiledb_ar_errmsg = tiledb_fg_errmsg;
         return TILEDB_AR_ERR;
+      }
       delete fragments_[0];
       fragments_.clear();
     }
