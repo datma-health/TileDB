@@ -196,7 +196,6 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       l_image->color_space = OPJ_CLRSPC_UNKNOWN;
 **/
 
-printf("JPEG200 compresion\n");
    if (! opj_setup_encoder(l_codec, &l_param, l_image)) {
       cleanup(NULL, NULL, l_codec, l_image);
       char msg[100];
@@ -359,7 +358,7 @@ int CodecJPEG2K::decompress_tile(unsigned char* tile_compressed, size_t tile_com
          return print_errmsg(msg);
       }
    }  // if (l_go_on) 
-   else { i              // Problem in the opj_read_tile_header() 
+   else {               // Problem in the opj_read_tile_header() 
        cleanup(l_data, l_stream, l_codec, l_image);
        char msg[100];
        sprintf(msg, "ERROR -> j2k_decompress: Current tile number and total number of tiles problem\n");
