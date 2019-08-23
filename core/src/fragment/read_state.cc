@@ -151,8 +151,9 @@ ReadState::ReadState(
 
 ReadState::~ReadState() {
   // Delete codec instances
-  for(int i=0; i<attribute_num_+1; ++i) {
-    delete codec_[i];
+  for(auto i=0u; i<codec_.size(); ++i) {
+    if(codec_[i])
+      delete codec_[i];
   }
 
   if(last_tile_coords_ != NULL)
