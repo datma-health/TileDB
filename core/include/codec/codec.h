@@ -75,7 +75,7 @@ class Codec {
 
   static int normalize_level(const int compression_type, const int compression_level);
 
-  static int print_errmsg(const std::string& msg);
+  int print_errmsg(const std::string& msg) const;
   
   /* ********************************* */
   /*     CONSTRUCTORS & DESTRUCTORS    */

@@ -38,6 +38,9 @@
 #ifdef ENABLE_LZ4
 #  include "codec_lz4.h"
 #endif
+#ifdef ENABLE_JPEG2K
+#  include "codec_jpeg2K.h"
+#endif
 #ifdef ENABLE_BLOSC
 #  include "codec_blosc.h"
 #endif
@@ -80,6 +83,8 @@ static std::string get_blosc_compressor(const int compression_type) {
       return "zlib";
     case TILEDB_BLOSC_ZSTD:
       return "zstd";
+    case TILEDB_BLOSC_JPEG2K:
+      return "jp2k";
     default:
       return "";
   };
@@ -102,6 +107,10 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
 #ifdef ENABLE_LZ4
   case TILEDB_LZ4:
     return new CodecLZ4(compression_level);
+#endif
+#ifdef ENABLE_JPEG2K
+  case TILEDB_JPEG2K:
+    return new CodecJPEG2K(compression_level);
 #endif
 #ifdef ENABLE_BLOSC
   case TILEDB_BLOSC:
@@ -157,7 +166,7 @@ int Codec::normalize_level(const int compression_type, const int compression_lev
   }
 }
 
-int Codec::print_errmsg(const std::string& msg) {
+int Codec::print_errmsg(const std::string& msg) const {
   if (msg.length() > 0) {
     PRINT_ERROR(msg);
     tiledb_cd_errmsg = TILEDB_CD_ERRMSG + msg;

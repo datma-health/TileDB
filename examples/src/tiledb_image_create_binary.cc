@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Prepare parameters for array schema
-  const char* array_name = "my_workspace/image_arrays/wholeimage063";
+  const char* array_name = "my_workspace/image_arrays/D02";
   const char* attributes[] = { "image" };  // One attributes
   const char* dimensions[] = { "d1" };        // Single dimensions
   int64_t domain[] = 
@@ -56,8 +56,7 @@ int main(int argc, char *argv[]) {
   };                
   const int cell_val_num[] = 
   { 
-      //270012                      // image
-      11919                      // image (63x63)
+      485466636                      // image 
   };
   const int compression[] = 
   { 

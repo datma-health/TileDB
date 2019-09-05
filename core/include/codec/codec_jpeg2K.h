@@ -49,11 +49,11 @@
 
 JPEG2K_EXTERN_DECL void(*opj_set_default_encoder_parameters)(opj_cparameters_t *);
 JPEG2K_EXTERN_DECL opj_codec_t*(*opj_create_compress)(OPJ_CODEC_FORMAT);
-JPEG2K_EXTERN_DECL opj_image_t*(*opj_image_tile_create)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE);
+JPEG2K_EXTERN_DECL opj_image_t*(*opj_image_create)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE);
 JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_setup_encoder)(opj_codec_t *, opj_cparameters_t *, opj_image_t *);
 JPEG2K_EXTERN_DECL opj_stream_t*(*opj_stream_create_default_memory_stream)(OPJ_BOOL);
 JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_start_compress)(opj_codec_t *, opj_image_t *, opj_stream_t *);
-JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_write_tile)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *);
+JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_encode)(opj_codec_t *, opj_stream_t *);
 JPEG2K_EXTERN_DECL OPJ_BOOL(*opj_end_compress)(opj_codec_t *, opj_stream_t *);
 JPEG2K_EXTERN_DECL OPJ_BYTE*(*opj_mem_stream_copy)(opj_stream_t *, size_t*);
 
@@ -66,7 +66,7 @@ JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_set_decode_area)(opj_codec_t *, opj_image_t *,
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_read_tile_header)(opj_codec_t *, opj_stream_t *, OPJ_UINT32 *, OPJ_UINT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_UINT32 *, OPJ_BOOL *);
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_decode_tile_data)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *);
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_end_decompress)(opj_codec_t *, opj_stream_t *);
-JPEG2K_EXTERN_DECL void (*opj_image_destroy)(opj_image_t *);
+JPEG2K_EXTERN_DECL void (*opj_destroy_image)(opj_image_t *);
 JPEG2K_EXTERN_DECL void (*opj_stream_destroy)(opj_stream_t *);
 JPEG2K_EXTERN_DECL void (*opj_destroy_codec)(opj_codec_t *);
 
@@ -90,11 +90,11 @@ class CodecJPEG2K : public Codec {
 /** compress_tile functions **/
 	  BIND_SYMBOL(dl_handle_, opj_set_default_encoder_parameters, "opj_set_default_encoder_parameters", (void (*)(opj_cparameters_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_create_compress, "opj_create_compress", (opj_codec_t*(*)(OPJ_CODEC_FORMAT)));
-	  BIND_SYMBOL(dl_handle_, opj_image_tile_create, "opj_image_tile_create", (opj_image_t*(*)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE)));
+	  BIND_SYMBOL(dl_handle_, opj_image_create, "opj_image_create", (opj_image_t*(*)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE)));
 	  BIND_SYMBOL(dl_handle_, opj_setup_encoder, "opj_setup_encoder", (OPJ_BOOL(*)(opj_codec_t *, opj_cparameters_t *, opj_image_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_stream_create_default_memory_stream, "opj_stream_create_default_memory_stream", (opj_stream_t*(*)(OPJ_BOOL)));
 	  BIND_SYMBOL(dl_handle_, opj_start_compress, "opj_start_compress", (OPJ_BOOL(*)(opj_codec_t *, opj_image_t *, opj_stream_t *)));
-	  BIND_SYMBOL(dl_handle_, opj_write_tile, "opj_write_tile", (OPJ_BOOL(*)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_encode, "opj_encode", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_end_compress, "opj_end_compress", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_mem_stream_copy, "opj_mem_stream_copy", (OPJ_BYTE*(*)(opj_stream_t *, size_t*)));
 
@@ -110,10 +110,9 @@ class CodecJPEG2K : public Codec {
 	  BIND_SYMBOL(dl_handle_, opj_end_decompress, "opj_end_decompress", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *)));
 
 /** Common functions **/
-	  BIND_SYMBOL(dl_handle_, opj_image_destroy, "opj_image_destroy", (void(*)(opj_image_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_stream_destroy, "opj_stream_destroy", (void(*)(opj_stream_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_destroy_codec, "opj_destroy_codec", (void(*)(opj_codec_t *)));
-	  //BIND_SYMBOL(dl_handle_, opj_destroy_image, "opj_image_destroy", (void(*)(opj_image_t *)));
+	  BIND_SYMBOL(dl_handle_, opj_destroy_image, "opj_image_destroy", (void(*)(opj_image_t *)));
 
 	  loaded = true;
 	}

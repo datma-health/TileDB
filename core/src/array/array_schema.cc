@@ -1579,7 +1579,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_int[2*i] > domain_int[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (INT) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
@@ -1591,7 +1591,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_int64[2*i] > domain_int64[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (INT64) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
@@ -1603,7 +1603,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_float[2*i] > domain_float[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (FLOAT) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
@@ -1615,7 +1615,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_double[2*i] > domain_double[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (FLOAT64) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
