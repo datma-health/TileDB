@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
    CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                       // Context
       &tiledb_array,                                    // Array object
-      "my_workspace/image_arrays/D02",           // Array name
+      "my_workspace/image_arrays/tissue",               // Array name
       TILEDB_ARRAY_READ,                                // Mode
       NULL,                                             // Whole domain
       NULL,                                             // All attributes
@@ -90,8 +90,8 @@ int main(int argc, char *argv[]) {
 
    // Prepare cell buffer 
    size_t num_comps = 3;
-   size_t width  = 6152;
-   size_t height = 6576;
+   size_t width  = 150;
+   size_t height = 150;
    size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
  
    char *buffer_image = (char*)malloc(image_bytes);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
    FILE *bin_ptr;
-   bin_ptr = fopen("D02_decode.bin","wb");
+   bin_ptr = fopen("tissue_decode.bin","wb");
    fwrite(buffer_image, image_bytes, 1, bin_ptr);
    fclose(bin_ptr);
 

@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_image_create_whole.cc
+ * @file   tiledb_image_create_binary.cc
  *
  * @section LICENSE
  *
@@ -28,8 +28,8 @@
  * 
  * @section DESCRIPTION
  *
- * Example to create dense array to hold whole 300x300 pixel image of 
- *   3x3 color palette
+ * Example to create dense array to hold whole 150x150 binary image
+ *
  */
 
 #include "examples.h"
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Prepare parameters for array schema
-  const char* array_name = "my_workspace/image_arrays/D02";
+  const char* array_name = "my_workspace/image_arrays/tissue";
   const char* attributes[] = { "image" };  // One attributes
   const char* dimensions[] = { "d1" };        // Single dimensions
   int64_t domain[] = 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
   };                
   const int cell_val_num[] = 
   { 
-      485466636                      // image 
+      270012                      // image 
   };
   const int compression[] = 
   { 
