@@ -233,97 +233,99 @@ int ArrayIterator::next() {
   }
 
   // Advance iterator
-  std::vector<int> needs_new_read;
-  const std::vector<int> attribute_ids = array_->attribute_ids();
-  int attribute_id_num = attribute_ids.size();
-
-  for(int i=0; i<attribute_id_num; ++i) {
-    if (pos_[i] == 0 && cell_num_[i] == 0) {
-      needs_new_read.push_back(i);
-    } else {
-      // Advance position
-      ++pos_[i];
-      // Record the attributes that need a new read
-      if(pos_[i] == cell_num_[i])
+  do {
+    std::vector<int> needs_new_read;
+    const std::vector<int> attribute_ids = array_->attribute_ids();
+    int attribute_id_num = attribute_ids.size();
+  
+    for(int i=0; i<attribute_id_num; ++i) {
+      if (pos_[i] == 0 && cell_num_[i] == 0) {
         needs_new_read.push_back(i);
+      } else {
+        // Advance position
+        ++pos_[i];
+        // Record the attributes that need a new read
+        if(pos_[i] == cell_num_[i])
+          needs_new_read.push_back(i);
+      }
     }
-  }
-
-  // Perform a new read
-  if(needs_new_read.size() > 0) {
-    // Need to copy buffer_sizes_ and restore at the end.
-    // buffer_sizes_ must be set to 0 for array->read() to work correctly, i.e.,
-    // do not fetch new data for fields which still have pending data in
-    // buffers_. However, the correct value of buffer_sizes_ for such fields is
-    // required for correct operation of the iterator in subsequent calls
-    std::vector<size_t> copy_buffer_sizes(attribute_id_num+var_attribute_num_);
-    // Properly set the buffer sizes
-    for(int i=0; i<attribute_id_num + var_attribute_num_; ++i) {
-      copy_buffer_sizes[i] = buffer_sizes_[i];
-      buffer_sizes_[i] = 0;
-    }
-    int buffer_i;
-    int needs_new_read_num = needs_new_read.size();
-    for(int i=0; i<needs_new_read_num; ++i) {
-      buffer_i = buffer_i_[needs_new_read[i]];
-      buffer_sizes_[buffer_i] = buffer_allocated_sizes_[buffer_i]; 
-      if(cell_sizes_[needs_new_read[i]] == TILEDB_VAR_SIZE) 
-        buffer_sizes_[buffer_i+1] = buffer_allocated_sizes_[buffer_i+1]; 
-    }
-
-    // Perform first read
-    if(array_->read(buffers_, buffer_sizes_) != TILEDB_AR_OK) {
-      tiledb_ait_errmsg = tiledb_ar_errmsg;
-      return TILEDB_AIT_ERR;
-    }
-
-    // Check if read went well and update internal state
-    for(int i=0; i<needs_new_read_num; ++i) {
-      buffer_i = buffer_i_[needs_new_read[i]];
-
-      // End
-      if(buffer_sizes_[buffer_i] == 0 && 
-         !array_->overflow(attribute_ids[needs_new_read[i]])) {
-        end_ = true;
-        return TILEDB_AIT_OK;
-      } 
-
-      // Error
-      if(buffer_sizes_[buffer_i] == 0 && 
-         array_->overflow(attribute_ids[needs_new_read[i]])) {
-        std::string errmsg = "Cannot advance iterator; Buffer overflow";
-        PRINT_ERROR(errmsg);
-        tiledb_ait_errmsg = TILEDB_AIT_ERRMSG + errmsg; 
+  
+    // Perform a new read
+    if(needs_new_read.size() > 0) {
+      // Need to copy buffer_sizes_ and restore at the end.
+      // buffer_sizes_ must be set to 0 for array->read() to work correctly, i.e.,
+      // do not fetch new data for fields which still have pending data in
+      // buffers_. However, the correct value of buffer_sizes_ for such fields is
+      // required for correct operation of the iterator in subsequent calls
+      std::vector<size_t> copy_buffer_sizes(attribute_id_num+var_attribute_num_);
+      // Properly set the buffer sizes
+      for(int i=0; i<attribute_id_num + var_attribute_num_; ++i) {
+        copy_buffer_sizes[i] = buffer_sizes_[i];
+        buffer_sizes_[i] = 0;
+      }
+      int buffer_i;
+      int needs_new_read_num = needs_new_read.size();
+      for(int i=0; i<needs_new_read_num; ++i) {
+        buffer_i = buffer_i_[needs_new_read[i]];
+        buffer_sizes_[buffer_i] = buffer_allocated_sizes_[buffer_i]; 
+        if(cell_sizes_[needs_new_read[i]] == TILEDB_VAR_SIZE) 
+          buffer_sizes_[buffer_i+1] = buffer_allocated_sizes_[buffer_i+1]; 
+      }
+  
+      // Perform first read
+      if(array_->read(buffers_, buffer_sizes_) != TILEDB_AR_OK) {
+        tiledb_ait_errmsg = tiledb_ar_errmsg;
         return TILEDB_AIT_ERR;
       }
-
-      // Update cell num & pos
-      buffer_i = buffer_i_[needs_new_read[i]];
-
-      // Cell Num
-      if(cell_sizes_[needs_new_read[i]] == TILEDB_VAR_SIZE)  // VARIABLE
-        cell_num_[needs_new_read[i]] = buffer_sizes_[buffer_i] / sizeof(size_t);
-      else                                   // FIXED 
-        cell_num_[needs_new_read[i]] = 
-            buffer_sizes_[buffer_i] / cell_sizes_[needs_new_read[i]]; 
-
-      // Reset current cell positions in buffer
-      pos_[needs_new_read[i]] = 0;
-    }
-
-    // Restore buffer sizes for attributes which have pending data
-    for(int i=0, needs_new_read_idx=0; i<attribute_id_num; ++i) {
-      if(static_cast<size_t>(needs_new_read_idx) < needs_new_read.size() && 
-         i == needs_new_read[needs_new_read_idx]) // buffer_size would have been
-        ++needs_new_read_idx;                     // set by array->read()
-      else { //restore buffer size from copy
-        buffer_i = buffer_i_[i];
-        buffer_sizes_[buffer_i] = copy_buffer_sizes[buffer_i];
-        if(cell_sizes_[i] == TILEDB_VAR_SIZE) 
-          buffer_sizes_[buffer_i+1] = copy_buffer_sizes[buffer_i+1]; 
+  
+      // Check if read went well and update internal state
+      for(int i=0; i<needs_new_read_num; ++i) {
+        buffer_i = buffer_i_[needs_new_read[i]];
+  
+        // End
+        if(buffer_sizes_[buffer_i] == 0 && 
+           !array_->overflow(attribute_ids[needs_new_read[i]])) {
+          end_ = true;
+          return TILEDB_AIT_OK;
+        } 
+  
+        // Error
+        if(buffer_sizes_[buffer_i] == 0 && 
+           array_->overflow(attribute_ids[needs_new_read[i]])) {
+          std::string errmsg = "Cannot advance iterator; Buffer overflow";
+          PRINT_ERROR(errmsg);
+          tiledb_ait_errmsg = TILEDB_AIT_ERRMSG + errmsg; 
+          return TILEDB_AIT_ERR;
+        }
+  
+        // Update cell num & pos
+        buffer_i = buffer_i_[needs_new_read[i]];
+  
+        // Cell Num
+        if(cell_sizes_[needs_new_read[i]] == TILEDB_VAR_SIZE)  // VARIABLE
+          cell_num_[needs_new_read[i]] = buffer_sizes_[buffer_i] / sizeof(size_t);
+        else                                   // FIXED 
+          cell_num_[needs_new_read[i]] = 
+              buffer_sizes_[buffer_i] / cell_sizes_[needs_new_read[i]]; 
+  
+        // Reset current cell positions in buffer
+        pos_[needs_new_read[i]] = 0;
+      }
+  
+      // Restore buffer sizes for attributes which have pending data
+      for(int i=0, needs_new_read_idx=0; i<attribute_id_num; ++i) {
+        if(static_cast<size_t>(needs_new_read_idx) < needs_new_read.size() && 
+           i == needs_new_read[needs_new_read_idx]) // buffer_size would have been
+          ++needs_new_read_idx;                     // set by array->read()
+        else { //restore buffer size from copy
+          buffer_i = buffer_i_[i];
+          buffer_sizes_[buffer_i] = copy_buffer_sizes[buffer_i];
+          if(cell_sizes_[i] == TILEDB_VAR_SIZE) 
+            buffer_sizes_[buffer_i+1] = copy_buffer_sizes[buffer_i+1]; 
+        }
       }
     }
-  }
+  } while(expression_ && !expression_->evaluate_cell(buffers_, buffer_sizes_, pos_));
 
   // Evaluate filter expression for cell from current positions in buffer
   if (expression_ && !expression_->evaluate_cell(buffers_, buffer_sizes_, pos_)) {

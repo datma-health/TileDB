@@ -38,6 +38,10 @@
 #    e.g for ./run_examples.sh gs://my_bucket/my_dir/my_test, expect results in test.log
 # Check the log file against the <install>/examples/expected_results file.
 
+#
+# Set to the install directory of the TileDB source code
+TILE_DB_BASE=${HOME}/TileDB
+
 check_rc() {
   if [[ $# -eq 1 ]]; then
     if [[ $1 -ne 0 ]]; then
@@ -70,6 +74,7 @@ then
 else
   rm -fr log
 fi
+
 
 run_example ./tiledb_workspace_group_create $1 1
 run_example ./tiledb_ls_workspaces $1 2
@@ -112,4 +117,17 @@ run_example ./tiledb_array_read_dense_1 $1 38
 run_example ./tiledb_array_read_sparse_1 $1 39
 run_example ./tiledb_array_read_dense_2 $1 40
 run_example ./tiledb_array_read_sparse_2 $1 41
+run_example ./tiledb_image_create_whole $1 42
+run_example ./tiledb_image_write_whole $1 43
+run_example ./tiledb_image_read_whole $1 44
+run_example ./tiledb_image_create_component $1 45
+run_example ./tiledb_image_write_component $1 46
+run_example ./tiledb_image_read_component $1 47
+run_example ./tiledb_image_create_panels $1 48
+run_example ./tiledb_image_write_panels $1 49
+run_example ./tiledb_image_read_panels $1 50
+cp $TILE_DB_BASE/examples/data/tissue150px.bin .
+run_example ./tiledb_image_create_binary $1 51
+run_example ./tiledb_image_write_binary $1 52
+run_example ./tiledb_image_read_binary $1 53
 

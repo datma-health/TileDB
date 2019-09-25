@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_array_write_binary.cc
+ * @file   tiledb_image_write_binary_2.cc
  *
  * @section LICENSE
  *
@@ -28,7 +28,7 @@
  * 
  * @section DESCRIPTION
  *
- * Example to write dense array to hold whole 150x150 pixel image
+ * Example to write dense array to hold whole 165x150 pixel image
  *
  */
 
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
   CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                // Context 
       &tiledb_array,                             // Array object
-      "my_workspace/image_arrays/tissue",        // Array name
+      "my_workspace/image_arrays/tissue165150",  // Array name
       TILEDB_ARRAY_WRITE,                        // Mode
       NULL,                                      // Entire domain
       NULL,                                      // All attributes
@@ -71,11 +71,11 @@ int main(int argc, char *argv[]) {
 
   // Prepare cell buffer
   size_t num_comps = 3;
-  size_t width  = 150;
+  size_t width  = 165;
   size_t height = 150;
   size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
 
-  const char* filename = "tissue150px.bin";
+  const char* filename = "tissue165x150.bin";
 
   char * buffer_image = read_image(filename, image_bytes);
 

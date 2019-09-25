@@ -1032,7 +1032,7 @@ int StorageManager::metadata_iterator_finalize(
 
   // Errors
   if(rc_finalize != TILEDB_MIT_OK) {
-    tiledb_mit_errmsg = tiledb_mit_errmsg;
+    tiledb_sm_errmsg = tiledb_mit_errmsg;
     return TILEDB_SM_ERR;
   }
   if(rc_close != TILEDB_SM_OK)
@@ -1589,7 +1589,7 @@ int StorageManager::consolidation_filelock_lock(
 
   // Create consolidation lock file if necessary
   if (!fs_->is_file(filename)) {
-    if (!consolidation_filelock_create(array_name_real)) {
+    if (consolidation_filelock_create(array_name_real)) {
       return TILEDB_SM_ERR;
     }
   }

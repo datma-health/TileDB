@@ -34,32 +34,32 @@
 
 #include "examples.h"
 
-char *build_image(size_t num_comps, size_t height, size_t width)
+int *build_image(size_t num_comps, size_t height, size_t width)
 {
-   size_t buffer_size = num_comps * height * width + 12;
-   char *image_buffer = (char *)malloc(buffer_size);
-   char *l_data = image_buffer;
+   size_t buffer_size = num_comps * height * width * sizeof(int) + 12;
+   int *image_buffer = (int *)malloc(buffer_size);
+   int *l_data = image_buffer;
 
-   char R[10], G[10], B[10];
-//        Black,              Red,                Orange
-   R[0] = char(  0);   R[1] = char(201);   R[2] = char(234);
-   G[0] = char(  0);   G[1] = char( 23);   G[2] = char( 85);
-   B[0] = char(  0);   B[1] = char( 30);   B[2] = char(  6);
+   int R[10], G[10], B[10];
+//       Black,        Red,          Orange
+   R[0] =   0;   R[1] = 201;   R[2] = 234;
+   G[0] =   0;   G[1] =  23;   G[2] =  85;
+   B[0] =   0;   B[1] =  30;   B[2] =   6;
 
-//        Pink,               White,              Yellow
-   R[3] = char(233);   R[4] = char(255);   R[5] = char(255);
-   G[3] = char( 82);   G[4] = char(255);   G[5] = char(234);
-   B[3] = char(149);   B[4] = char(255);   B[5] = char(  0);
+//       Pink,         White,        Yellow
+   R[3] = 233;   R[4] = 255;   R[5] = 255;
+   G[3] =  82;   G[4] = 255;   G[5] = 234;
+   B[3] = 149;   B[4] = 255;   B[5] =   0;
 
-//        Purple,             Blue,               Green
-   R[6] = char(101);   R[7] = char( 12);   R[8] = char(  0);
-   G[6] = char( 49);   G[7] = char(  2);   G[8] = char( 85);
-   B[6] = char(142);   B[7] = char(196);   B[8] = char( 46);
+//       Purple,       Blue,         Green
+   R[6] = 101;   R[7] =  12;   R[8] =   0;
+   G[6] =  49;   G[7] =   2;   G[8] =  85;
+   B[6] = 142;   B[7] = 196;   B[8] =  46;
 
-//         Grey (unused)
-   R[9] = char(130);
-   G[9] = char(130);
-   B[9] = char(130);
+//      Grey (unused)
+   R[9] = 130;
+   G[9] = 130;
+   B[9] = 130;
 
    // Insert "header" info into image buffer
    int *header = (int *)image_buffer; 
@@ -69,11 +69,9 @@ char *build_image(size_t num_comps, size_t height, size_t width)
 
    int p = 0, q = width*height, r = 2*width*height;
    for (int c = 0; c < 9; c += 3) {
-      //for (int i = 0; i < 100; ++i) {
-      for (int i = 0; i < 21; ++i) {              // image 63x63
+      for (int i = 0; i < 100; ++i) {
          for (int j = c; j < c+3; ++j) {
-            //for (int k = 0; k < 100; ++k) {
-            for (int k = 0; k < 21; ++k) {        // image 63x63
+            for (int k = 0; k < 100; ++k) {
                l_data[p++] = R[j];
                l_data[q++] = G[j];
                l_data[r++] = B[j];
@@ -102,7 +100,7 @@ int main(int argc, char *argv[]) {
   CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                // Context 
       &tiledb_array,                             // Array object
-      "my_workspace/image_arrays/wholeimage063",    // Array name
+      "my_workspace/image_arrays/wholeimage",    // Array name
       TILEDB_ARRAY_WRITE,                        // Mode
       NULL,                                      // Entire domain
       NULL,                                      // All attributes
@@ -110,20 +108,12 @@ int main(int argc, char *argv[]) {
 
   // Prepare cell buffer
   size_t num_comps = 3;
-  size_t height = 63;
-  size_t width  = 63;
-  size_t image_bytes = num_comps * height * width + 12;
+  size_t width  = 300;
+  size_t height = 300;
+  size_t image_bytes = num_comps * width * height * sizeof(int) + 12;
 
-  char * buffer_image = build_image(num_comps, height, width);
+  int * buffer_image = build_image(num_comps, height, width);
 
-/*
-   FILE *bin_ptr;
-
-   bin_ptr = fopen("palette_063.bin","wb");  // w for write, b for binary
-   fwrite(buffer_image, image_bytes, 1, bin_ptr);
-   fclose(bin_ptr);
-*/
-  
   const void* buffers[] = { buffer_image };
   size_t buffer_sizes[] = 
   { 

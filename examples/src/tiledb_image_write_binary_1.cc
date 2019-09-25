@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_array_write_whole.cc
+ * @file   tiledb_image_write_binary_1.cc
  *
  * @section LICENSE
  *
@@ -28,57 +28,20 @@
  * 
  * @section DESCRIPTION
  *
- * Example to write dense array to hold 300x300 pixel image of
- *    3x3 color palette by 100x100 panels
+ * Example to write dense array to hold whole 150x165 pixel image
+ *
  */
 
 #include "examples.h"
 
-int *build_image(size_t num_comps, size_t width, size_t height)
+char *read_image(const char* filename, size_t num_bytes)
 {
-   size_t panel_bytes = (num_comps * width * height + 3) * sizeof(int);
-   size_t buffer_size = 9 * panel_bytes;
-   int *image_buffer = (int *)malloc(buffer_size);
-   int *l_data = image_buffer;
+   char *image_buffer = (char *)malloc(num_bytes);
 
-   int R[10], G[10], B[10];
-//       Black,        Red,          Orange
-   R[0] =   0;   R[1] = 201;   R[2] = 234;
-   G[0] =   0;   G[1] =  23;   G[2] =  85;
-   B[0] =   0;   B[1] =  30;   B[2] =   6;
-
-//       Pink,         White,        Yellow
-   R[3] = 233;   R[4] = 255;   R[5] = 255;
-   G[3] =  82;   G[4] = 255;   G[5] = 234;
-   B[3] = 149;   B[4] = 255;   B[5] =   0;
-
-//       Purple,       Blue,         Green
-   R[6] = 101;   R[7] =  12;   R[8] =   0;
-   G[6] =  49;   G[7] =   2;   G[8] =  85;
-   B[6] = 142;   B[7] = 196;   B[8] =  46;
-
-//       Grey (unused)
-   R[9] = 130;
-   G[9] = 130;
-   B[9] = 130;
-
-   for (int panel = 0; panel < 9; ++panel) {
-
-      // Insert "header" info into image buffer
-      *l_data = num_comps; ++l_data;
-      *l_data = width    ; ++l_data;
-      *l_data = height   ; ++l_data;
-   
-      for (size_t i = 0; i < width*height; ++i) {
-         *l_data = R[panel]; ++l_data;
-      }
-      for (size_t j = 0; j < width*height; ++j) {
-         *l_data = G[panel]; ++l_data;
-      }
-      for (size_t k = 0; k < width*height; ++k) {
-         *l_data = B[panel]; ++l_data;
-      }
-   }
+   FILE *infile;
+   infile = fopen(filename, "rb"); // r for read, b for binary
+   fread(image_buffer, num_bytes, 1, infile);
+   fclose(infile);
 
    return image_buffer;
 }
@@ -100,21 +63,21 @@ int main(int argc, char *argv[]) {
   CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                // Context 
       &tiledb_array,                             // Array object
-      "my_workspace/image_arrays/panelimage",    // Array name
+      "my_workspace/image_arrays/tissue150165",  // Array name
       TILEDB_ARRAY_WRITE,                        // Mode
       NULL,                                      // Entire domain
       NULL,                                      // All attributes
-      0));                                        // Number of attributes
+      0));                                       // Number of attributes
 
   // Prepare cell buffer
   size_t num_comps = 3;
-  size_t width  = 100;  // per panel
-  size_t height = 100;  // per panel
-  size_t num_panels = 9;
-  size_t num_panel_elements = num_comps * width * height + 3;
-  size_t image_bytes = num_panels * (num_panel_elements * sizeof(int));
+  size_t width  = 150;
+  size_t height = 165;
+  size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
 
-  int* buffer_image = build_image(num_comps, width, height);
+  const char* filename = "tissue150x165.bin";
+
+  char * buffer_image = read_image(filename, image_bytes);
 
   const void* buffers[] = { buffer_image };
   size_t buffer_sizes[] = 

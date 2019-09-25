@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_image_read_whole.cc
+ * @file   tiledb_image_read_binary_1.cc
  *
  * @section LICENSE
  *
@@ -28,8 +28,8 @@
  * 
  * @section DESCRIPTION
  *
- * Example to read dense array holding whole 300x300 pixel image of
- *    3x3 color palette
+ * Example to read dense array holding whole 150x165 pixel image
+ *
  */
 
 #include "examples.h"
@@ -37,7 +37,7 @@
 void check_results(char *buffer_image, size_t num_bytes)
 {
    size_t i, errors = 0;
-   const char* filename = "D02.28.18_0008_R1.bin";
+   const char* filename = "tissue150x165.bin";
    char *original_image = (char *)malloc(num_bytes);
    FILE *infile;
    infile = fopen(filename, "rb"); // r for read, b for binary
@@ -45,12 +45,12 @@ void check_results(char *buffer_image, size_t num_bytes)
    fclose(infile);
 
    FILE *errfile;
-   errfile = fopen("D02_err", "w");
+   errfile = fopen("t150x165_err", "w");
 
    unsigned int b, o;
    for (i = 0; i < num_bytes; ++i) {
-      b = (0x000000FF & buffer_image[i]);
-      o = (0x000000FF & original_image[i]);
+      b = buffer_image[i];
+      o = original_image[i];
       if (b != o) {
          fprintf(errfile, "%8lu: %4u  %4u   %2dc\n", i, b, o, abs(b - o));
          ++errors;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
    CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                       // Context
       &tiledb_array,                                    // Array object
-      "my_workspace/image_arrays/tissue",               // Array name
+      "my_workspace/image_arrays/tissue150165",         // Array name
       TILEDB_ARRAY_READ,                                // Mode
       NULL,                                             // Whole domain
       NULL,                                             // All attributes
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
    // Prepare cell buffer 
    size_t num_comps = 3;
    size_t width  = 150;
-   size_t height = 150;
+   size_t height = 165;
    size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
  
    char *buffer_image = (char*)malloc(image_bytes);
@@ -112,10 +112,12 @@ int main(int argc, char *argv[]) {
    /* Finalize context. */
    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
+/*
    FILE *bin_ptr;
    bin_ptr = fopen("tissue_decode.bin","wb");
    fwrite(buffer_image, image_bytes, 1, bin_ptr);
    fclose(bin_ptr);
+*/
 
    return 0;
 }

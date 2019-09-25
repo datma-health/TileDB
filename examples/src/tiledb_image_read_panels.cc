@@ -34,88 +34,93 @@
 
 #include "examples.h"
 
-void check_results(char *buffer_image)
+void check_results(int *buffer_image)
 {
 
-   char R[10], G[10], B[10];
-//        Black,              Red,                Orange 
-   R[0] = char(  0);   R[1] = char(201);   R[2] = char(234);
-   G[0] = char(  0);   G[1] = char( 23);   G[2] = char( 85);
-   B[0] = char(  0);   B[1] = char( 30);   B[2] = char(  6);
+   int R[10], G[10], B[10];
+//       Black,        Red,          Orange 
+   R[0] =   0;   R[1] = 201;   R[2] = 234;
+   G[0] =   0;   G[1] =  23;   G[2] =  85;
+   B[0] =   0;   B[1] =  30;   B[2] =   6;
 
-//        Pink,               White,              Yellow 
-   R[3] = char(233);   R[4] = char(255);   R[5] = char(255);
-   G[3] = char( 82);   G[4] = char(255);   G[5] = char(234);
-   B[3] = char(149);   B[4] = char(255);   B[5] = char(  0);
+//       Pink,         White,        Yellow 
+   R[3] = 233;   R[4] = 255;   R[5] = 255;
+   G[3] =  82;   G[4] = 255;   G[5] = 234;
+   B[3] = 149;   B[4] = 255;   B[5] =   0;
 
-//        Purple,             Blue,               Green 
-   R[6] = char(101);   R[7] = char( 12);   R[8] = char(  0);
-   G[6] = char( 49);   G[7] = char(  2);   G[8] = char( 85);
-   B[6] = char(142);   B[7] = char(196);   B[8] = char( 46);
+//       Purple,       Blue,         Green 
+   R[6] = 101;   R[7] =  12;   R[8] =   0;
+   G[6] =  49;   G[7] =   2;   G[8] =  85;
+   B[6] = 142;   B[7] = 196;   B[8] =  46;
 
-//         Grey (unused)
-   R[9] = char(130);
-   G[9] = char(130);
-   B[9] = char(130);
+//       Grey (unused}
+   R[9] = 130;
+   G[9] = 130;
+   B[9] = 130;
    
    // Print midpoint RGB value of each palette block and check
-   char *l_data = buffer_image;
-   size_t num_comps, height, width;
+   int *l_data = buffer_image;
+   size_t num_comps, width, height;
    int *header = (int*) buffer_image;
    num_comps = header[0];
-   height = header[1];
-   width = header[2];
+   width =     header[1];
+   height =    header[2];
 
-   int i;
-   char Rvalue[9];
-   char Gvalue[9];
-   char Bvalue[9];
-   size_t Rmidpoint = (height*width)/2 + 12;
-   size_t Gmidpoint = height*width + Rmidpoint;
-   size_t Bmidpoint = height*width + Gmidpoint;
-   size_t offset    = 3*height*width + 12;
+   size_t i, j;
+   int Rerrs[9] = {0,0,0,0,0,0,0,0,0};
+   int Gerrs[9] = {0,0,0,0,0,0,0,0,0};
+   int Berrs[9] = {0,0,0,0,0,0,0,0,0};
 
-   for (i = 0; i < 9; ++i) {
-      Rvalue[i] = l_data[Rmidpoint + i * offset];
-      Gvalue[i] = l_data[Gmidpoint + i * offset];
-      Bvalue[i] = l_data[Bmidpoint + i * offset];
-   }
-
-   printf("Image Palette RGB values: %lu components\n", num_comps);
+   printf("Expected Image Palette RGB values: %lu components\n", num_comps);
    printf("----------------------------\n");
    for (i = 0; i < 9; i+=3) {
      printf("| R: %3u | R: %3u | R: %3u |\n",
-             0x000000FF & Rvalue[i],
-             0x000000FF & Rvalue[i+1],
-             0x000000FF & Rvalue[i+2]);
+                 R[i],    R[i+1],  R[i+2]);
      printf("| G: %3u | G: %3u | G: %3u |\n",
-             0x000000FF & Gvalue[i],
-             0x000000FF & Gvalue[i+1],
-             0x000000FF & Gvalue[i+2]);
+                 G[i],    G[i+1],  G[i+2]);
      printf("| B: %3u | B: %3u | B: %3u |\n",
-             0x000000FF & Bvalue[i],
-             0x000000FF & Bvalue[i+1],
-             0x000000FF & Bvalue[i+2]);
+                 B[i],    B[i+1],  B[i+2]);
      printf("----------------------------\n");
    }
 
    int errors = 0;
    for (i = 0; i < 9; ++i) {
-      if (Rvalue[i] != R[i]) {
-         printf("ERROR: Red[%d] should be %3lu\n",i,(size_t)R[i]);
-         ++errors;
+      l_data += 3; // skip over header
+      for (j = 0; j < width*height; ++j) {
+         if (*l_data != R[i]) {
+            ++Rerrs[i];
+            ++errors;
+         }
+         ++l_data;
       }
-      if (Gvalue[i] != G[i]) {
-         printf("ERROR: Green[%d] should be %3lu\n",i,(size_t)G[i]);
-         ++errors;
+      for (j = 0; j < width*height; ++j) {
+         if (*l_data != G[i]) {
+            ++Gerrs[i];
+            ++errors;
+         }
+         ++l_data;
       }
-      if (Bvalue[i] != B[i]) {
-         printf("ERROR: Blue[%d] should be %3lu\n",i,(size_t)B[i]);
-         ++errors;
+      for (j = 0; j < width*height; ++j) {
+         if (*l_data != B[i]) {
+            ++Berrs[i];
+            ++errors;
+         }
+         ++l_data;
       }
    }
    if (!errors) printf("\nCheck SUCCESSFUL\n");
-
+   else {
+      printf("\nERRORS found; Counts: \n");
+      for (i = 0; i < 9; ++i) {
+         if (Rerrs[i] + Gerrs[i] + Berrs[i]) {
+            printf("   Panel %lu errors: ", i);
+            if (Rerrs[i]) printf("R - %d  ", Rerrs[i]);
+            if (Gerrs[i]) printf("G - %d  ", Gerrs[i]);
+            if (Berrs[i]) printf("B - %d  ", Berrs[i]);
+            printf("\n");
+         }
+      }
+   }
 }
 
 
@@ -145,12 +150,12 @@ int main(int argc, char *argv[]) {
 
    // Prepare cell buffer 
    size_t num_comps = 3;
-   size_t height = 100;  // per panel
    size_t width  = 100;  // per panel
+   size_t height = 100;  // per panel
    size_t num_panels = 9;
-   size_t image_bytes = num_panels * (12 + num_comps * height * width);
+   size_t image_bytes = num_panels * (num_comps * width * height * sizeof(int) + 12);
  
-   char *buffer_image = (char*)malloc(image_bytes);
+   int *buffer_image = (int*)malloc(image_bytes);
    void* buffers[] = { buffer_image };
    size_t buffer_sizes[] = 
    { 

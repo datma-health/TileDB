@@ -166,7 +166,7 @@ int Codec::normalize_level(const int compression_type, const int compression_lev
   }
 }
 
-int Codec::print_errmsg(const std::string& msg) const {
+int Codec::print_errmsg(const std::string& msg) {
   if (msg.length() > 0) {
     PRINT_ERROR(msg);
     tiledb_cd_errmsg = TILEDB_CD_ERRMSG + msg;

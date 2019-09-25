@@ -34,7 +34,7 @@
 
 #include "examples.h"
 
-void check_results(char *buffer_image)
+void check_results(int *buffer_image)
 {
 
    char R[10], G[10], B[10];
@@ -59,7 +59,7 @@ void check_results(char *buffer_image)
    B[9] = char(130);
    
    // Print midpoint RGB value of each palette block and check
-   char *l_data = buffer_image;
+   int *l_data = buffer_image;
    size_t num_comps, height, width;
    int *header = (int*) buffer_image;
    num_comps = header[0];
@@ -76,10 +76,8 @@ void check_results(char *buffer_image)
    size_t Boffset = 2*height*width;
 
    int t = 0;
-   //for (i = 50; i < 300; i+=100) {
-   //   for (j = 50; j < 300; j+=100) {
-   for (i = 11; i < 63; i+=21) {
-      for (j = 11; j < 63; j+=21) {
+   for (i = 50; i < 300; i+=100) {
+      for (j = 50; j < 300; j+=100) {
          Rvalue[t] = l_data[Roffset + i * width + j];
          Gvalue[t] = l_data[Goffset + i * width + j];
          Bvalue[t] = l_data[Boffset + i * width + j];
@@ -142,7 +140,7 @@ int main(int argc, char *argv[]) {
    CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                       // Context
       &tiledb_array,                                    // Array object
-      "my_workspace/image_arrays/wholeimage063",           // Array name
+      "my_workspace/image_arrays/wholeimage",           // Array name
       TILEDB_ARRAY_READ,                                // Mode
       NULL,                                             // Whole domain
       NULL,                                             // All attributes
@@ -150,11 +148,11 @@ int main(int argc, char *argv[]) {
 
    // Prepare cell buffer 
    size_t num_comps = 3;
-   size_t height = 63;
-   size_t width  = 63;
-   size_t image_bytes = num_comps * height * width + 12;
+   size_t width  = 300;
+   size_t height = 300;
+   size_t image_bytes = num_comps * width * height * sizeof(int) + 12;
  
-   char *buffer_image = (char*)malloc(image_bytes);
+   int *buffer_image = (int*)malloc(image_bytes);
    void* buffers[] = { buffer_image };
    size_t buffer_sizes[] = 
    { 

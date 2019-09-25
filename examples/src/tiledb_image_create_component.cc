@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_image_create_compenent.cc
+ * @file   tiledb_image_create_component.cc
  *
  * @section LICENSE
  *
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
   };                
   const int cell_val_num[] = 
   { 
-      90012                      // image 300x300 + 12
+      360012                      // image (300x300 + 3) * sizeof(int)
   };
   const int compression[] = 
   { 

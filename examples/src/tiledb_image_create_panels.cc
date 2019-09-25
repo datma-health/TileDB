@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
   };                
   const int cell_val_num[] = 
   { 
-      30012                      // image 100x100x3 + 12
+     120012                       // image (100*100*3 + 3)*sizeof(int)
   };
   const int compression[] = 
   { 
