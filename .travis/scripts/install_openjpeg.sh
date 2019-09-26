@@ -3,7 +3,7 @@ set -ev
 
 # Install OpenJPEG2000 library with memory stream support 
 
-if [[ $INSTALL_TYPE != basic && $TRAVIS_OS_NAME == linux ]]; then
+if [[ $TRAVIS_OS_NAME == linux ]]; then
 
    git clone -b clay-dev https://github.com/OmicsDataAutomation/openjpeg.git
 

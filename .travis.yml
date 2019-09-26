@@ -56,7 +56,6 @@ install:
 
     # Install and Build OpenJPEG
     - source $TRAVIS_BUILD_DIR/.travis/scripts/install_openjpeg.sh;
-    - ENABLE_JPEG2K=True
 
     # Build TileDB
     - rm -rf $TILEDB_BUILD_DIR
