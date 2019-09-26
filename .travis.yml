@@ -54,15 +54,19 @@ install:
     - source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
     - source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
 
+    # Install and Build OpenJPEG
+    - source $TRAVIS_BUILD_DIR/.travis/scripts/install_openjpeg.sh;
+    - ENABLE_JPEG2K=True
+
     # Build TileDB
     - rm -rf $TILEDB_BUILD_DIR
     - mkdir -p $TILEDB_BUILD_DIR
     - cd $TILEDB_BUILD_DIR
 
     - echo "Invoking cmake"
-    - echo "cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 .."
+    - echo "cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 -DENABLE_JPEG2K=$ENABLE_JPEG2K .."
 
-    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 ..
+    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 -DENABLE_JPEG2K=$ENABLE_JPEG2K ..
     - make -j 4
 
 before_script:
