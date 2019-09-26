@@ -73,6 +73,11 @@ script:
         $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
       else
         make tests -j 4;
+        if [[ $TRAVIS_OS_NAME == linux ]]; then
+          echo "======";
+          echo "Run tests with TILEDB_DISABLE_FILE_LOCKING=1";
+          export TILEDB_DISABLE_FILE_LOCKING=1 && cd $TILEDB_BUILD_DIR && make examples && cd examples && $TRAVIS_BUILD_DIR/examples/run_examples.sh;
+        fi
       fi
 
 after_success:
