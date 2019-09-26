@@ -126,8 +126,8 @@ run_example ./tiledb_image_read_component $1 47
 run_example ./tiledb_image_create_panels $1 48
 run_example ./tiledb_image_write_panels $1 49
 run_example ./tiledb_image_read_panels $1 50
-cp $TILE_DB_BASE/examples/data/tissue150px.bin .
-run_example ./tiledb_image_create_binary $1 51
-run_example ./tiledb_image_write_binary $1 52
-run_example ./tiledb_image_read_binary $1 53
+cp $TILE_DB_BASE/examples/data/tissue150x165.bin .
+run_example ./tiledb_image_create_binary_1 $1 51
+run_example ./tiledb_image_write_binary_1 $1 52
+run_example ./tiledb_image_read_binary_1 $1 53
 
