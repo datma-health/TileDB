@@ -38,10 +38,6 @@
 #    e.g for ./run_examples.sh gs://my_bucket/my_dir/my_test, expect results in test.log
 # Check the log file against the <install>/examples/expected_results file.
 
-#
-# Set to the install directory of the TileDB source code
-TILE_DB_BASE=${HOME}/TileDB
-
 check_rc() {
   if [[ $# -eq 1 ]]; then
     if [[ $1 -ne 0 ]]; then
@@ -126,7 +122,6 @@ run_example ./tiledb_image_read_component $1 47
 run_example ./tiledb_image_create_panels $1 48
 run_example ./tiledb_image_write_panels $1 49
 run_example ./tiledb_image_read_panels $1 50
-cp $TILE_DB_BASE/examples/data/tissue150x165.bin .
 run_example ./tiledb_image_create_binary_1 $1 51
 run_example ./tiledb_image_write_binary_1 $1 52
 run_example ./tiledb_image_read_binary_1 $1 53

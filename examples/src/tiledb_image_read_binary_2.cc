@@ -37,10 +37,10 @@
 void check_results(char *buffer_image, size_t num_bytes)
 {
    size_t i, errors = 0;
-   const char* filename = "tissue165x150.bin";
+   std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue165x150.bin";
    char *original_image = (char *)malloc(num_bytes);
    FILE *infile;
-   infile = fopen(filename, "rb"); // r for read, b for binary
+   infile = fopen(filename.c_str(), "rb"); // r for read, b for binary
    fread(original_image, num_bytes, 1, infile);
    fclose(infile);
 

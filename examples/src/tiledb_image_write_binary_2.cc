@@ -37,7 +37,6 @@
 char *read_image(const char* filename, size_t num_bytes)
 {
    char *image_buffer = (char *)malloc(num_bytes);
-
    FILE *infile;
    infile = fopen(filename, "rb"); // r for read, b for binary
    fread(image_buffer, num_bytes, 1, infile);
@@ -75,9 +74,9 @@ int main(int argc, char *argv[]) {
   size_t height = 150;
   size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
 
-  const char* filename = "tissue165x150.bin";
+   std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue165x150.bin";
 
-  char * buffer_image = read_image(filename, image_bytes);
+  char * buffer_image = read_image(filename.c_str(), image_bytes);
 
   const void* buffers[] = { buffer_image };
   size_t buffer_sizes[] = 
