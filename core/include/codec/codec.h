@@ -137,7 +137,11 @@ class Codec {
       if (version.empty()) {
         handle = dlopen((dl_path+prefix+name+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
       } else {
+#ifdef __APPLE__
         handle = dlopen((dl_path+prefix+name+"."+version+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+#else
+        handle = dlopen((dl_path+prefix+name+suffix+"."+version).c_str(), RTLD_GLOBAL|RTLD_NOW);
+#endif
       }
       if (handle) {
         return handle;
