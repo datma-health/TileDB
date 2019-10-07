@@ -493,8 +493,11 @@ ssize_t gzip(
   (void)deflateEnd(&strm);
 
   // Return 
-  if(ret == Z_STREAM_ERROR || strm.avail_in != 0) {
-    UTILS_ERROR("Cannot compress with GZIP: deflate error");
+  if(ret == Z_STREAM_ERROR) {
+    UTILS_ERROR("Encountered Z_STREAM_ERROR; Could not compress buffer; deflate error");
+    return TILEDB_UT_ERR;
+  } else if (strm.avail_in != 0){
+    UTILS_ERROR("All input could not be compressed: deflate error");
     return TILEDB_UT_ERR;
   } else {
     // Return size of compressed data
@@ -1652,10 +1655,14 @@ int write_to_file_after_compression(StorageFS *fs, const std::string& filename, 
     }
   } while (strm.avail_out == 0);
   
-  assert(strm.avail_in == 0);     /* all input is used */
   assert(rc == Z_STREAM_END);     /* stream is complete */
-
   deflateEnd(&strm);
+
+  if (strm.avail_in != 0) { // All input has not been compressed
+    UTILS_PATH_ERROR("All input could not be compressed: deflate error", filename);
+    delete gzip_buffer;
+    return TILEDB_UT_ERR;
+  }
 
   if (write_to_file(fs, filename, gzip_buffer->get_buffer(), gzip_buffer->get_buffer_size()) == TILEDB_UT_ERR) {
     UTILS_PATH_ERROR("Could not write compressed bytes to internal buffer", filename);
