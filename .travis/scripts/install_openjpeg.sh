@@ -7,7 +7,7 @@ if [[ $TRAVIS_OS_NAME == linux ]]; then
 
    git clone -b clay-dev https://github.com/OmicsDataAutomation/openjpeg.git
 
-   pushd openjpeg
+   pushd ~/openjpeg
    mkdir build ; cd build
    cmake ..
    make clean

@@ -113,16 +113,16 @@ run_example ./tiledb_array_read_dense_1 $1 38
 run_example ./tiledb_array_read_sparse_1 $1 39
 run_example ./tiledb_array_read_dense_2 $1 40
 run_example ./tiledb_array_read_sparse_2 $1 41
-run_example ./tiledb_image_create_whole $1 42
-run_example ./tiledb_image_write_whole $1 43
-run_example ./tiledb_image_read_whole $1 44
+run_example ./tiledb_image_create_binary_1 $1 42
+run_example ./tiledb_image_write_binary_1 $1 43
+run_example ./tiledb_image_read_binary_1 $1 44
 run_example ./tiledb_image_create_component $1 45
 run_example ./tiledb_image_write_component $1 46
 run_example ./tiledb_image_read_component $1 47
 run_example ./tiledb_image_create_panels $1 48
 run_example ./tiledb_image_write_panels $1 49
 run_example ./tiledb_image_read_panels $1 50
-run_example ./tiledb_image_create_binary_1 $1 51
-run_example ./tiledb_image_write_binary_1 $1 52
-run_example ./tiledb_image_read_binary_1 $1 53
+run_example ./tiledb_image_create_binary_2 $1 51
+run_example ./tiledb_image_write_binary_2 $1 52
+run_example ./tiledb_image_read_binary_2 $1 53
 

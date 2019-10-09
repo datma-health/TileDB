@@ -13,7 +13,7 @@ install_prereqs() {
   if [[ ! -d /usr/java ]]; then
       sudo mkdir /usr/java
   fi
-  if [[ -f /usr/java/latest ]]; then
+  if [[ -e /usr/java/latest ]]; then
       sudo rm /usr/java/latest
   fi
 #  sudo apt update &&
