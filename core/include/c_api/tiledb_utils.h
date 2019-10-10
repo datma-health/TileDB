@@ -42,10 +42,9 @@ namespace TileDBUtils {
 
 bool is_cloud_path(const std::string& path);
 
-int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite,
-    const bool disable_file_locking=false);
+int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite=false, const bool disable_file_locking=false);
 
-int create_workspace(const std::string &workspace, bool replace);
+int create_workspace(const std::string &workspace, bool replace=false);
 
 bool workspace_exists(const std::string& workspace);
 
@@ -62,7 +61,7 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
 
 int read_file(const std::string& filename, off_t offset, void *buffer, size_t length);
 
-int write_file(const std::string& filename, const void *buffer, size_t length, const bool overwrite);
+int write_file(const std::string& filename, const void *buffer, size_t length, const bool overwrite=false);
 
 int delete_file(const std::string& filename);
 
