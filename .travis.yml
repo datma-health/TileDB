@@ -70,7 +70,7 @@ before_script:
 
 script:
     - if [[ $INSTALL_TYPE != basic ]]; then
-        $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
+        make check && $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
       else
         make tests -j 4;
       fi
