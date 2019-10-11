@@ -60,6 +60,7 @@ class TempDir {
       if (!delete_test_dir_in_destructor_.empty()) {
         delete_dir(tiledb_ctx, delete_test_dir_in_destructor_);
       }
+      CHECK(tiledb_ctx_finalize(tiledb_ctx) == TILEDB_OK);
     } else {
       if (strlen(get_temp_dir()) != 0) {
         posix_fs.delete_dir(get_temp_dir());
@@ -95,7 +96,6 @@ class TempDir {
       } else {
         snprintf(tmp_dir_, PATH_MAX, "%s/TileDBTest%d", g_test_dir.c_str(), test_num++);
       }
-      std::cerr << "Nalini" << tmp_dir_ << std::endl;
       TileDB_Config tiledb_config;
       memset(&tiledb_config, 0, sizeof(TileDB_Config));
       tiledb_config.home_ = g_test_dir.c_str();
