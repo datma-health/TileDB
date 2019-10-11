@@ -3,10 +3,13 @@
 if [[ $INSTALL_TYPE != basic ]]; then
 	cd $TILEDB_BUILD_DIR && make examples && cd examples
 	if [[ $INSTALL_TYPE == hdfs ]]; then
-		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test"
+    $TILEDB_BUILD_DIR/test/test_tiledb_utils.h "hdfs://localhost:9000/travis_unit_test" && 
+		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test" 
 	elif [[ $INSTALL_TYPE == gcs ]]; then
+    $TILEDB_BUILD_DIR/test/test_tiledb_utils.h "gs://$GS_BUCKET/travis_unit_test" &&
 		time GOOGLE_APPLICATION_CREDENTIALS=$TRAVIS_BUILD_DIR/.travis/resources/gcs/GCS.json $TRAVIS_BUILD_DIR/examples/run_examples.sh "gs://$GS_BUCKET/travis_test"
 	elif [[ $INSTALL_TYPE == azure ]]; then
+    $TILEDB_BUILD_DIR/test/test_tiledb_utils.h "wasbs://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_unit_test" &&
 		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "wasbs://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_test"
 	fi
 	if [[ ! $! -eq 0 ]]; then

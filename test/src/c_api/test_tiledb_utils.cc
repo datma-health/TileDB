@@ -30,10 +30,12 @@
  * Unit Tests for tiledb_utils.cc 
  */
 
-#include "catch.h"
+#define CATCH_CONFIG_RUNNER
+#include "catch.hpp"
 
 #include "storage_posixfs.h"
 #include "tiledb.h"
+#include "tiledb_storage.h"
 #include "tiledb_utils.h"
 
 #include <string.h>
@@ -41,6 +43,8 @@
 
 const std::string& workspace("WORKSPACE");
 PosixFS posix_fs;
+std::string g_test_dir = "";
+int test_num = 0;
 
 class TempDir {
  public:
@@ -49,8 +53,17 @@ class TempDir {
   }
 
   ~TempDir() {
-    if (strlen(get_temp_dir()) != 0) {
-      posix_fs.delete_dir(get_temp_dir());
+    if (tiledb_ctx) {
+      if (strlen(get_temp_dir()) != 0) {
+        delete_dir(tiledb_ctx, get_temp_dir());
+      }
+      if (!delete_test_dir_in_destructor_.empty()) {
+        delete_dir(tiledb_ctx, delete_test_dir_in_destructor_);
+      }
+    } else {
+      if (strlen(get_temp_dir()) != 0) {
+        posix_fs.delete_dir(get_temp_dir());
+      }
     }
   }
 
@@ -61,24 +74,40 @@ class TempDir {
  private:
   char tmp_dir_[PATH_MAX];
   char *tmp_dirname_;
-  
+  TileDB_CTX *tiledb_ctx = NULL;
+  std::string delete_test_dir_in_destructor_;
   void create_temp_directory() {
-#ifdef TEST_HDFS
-#   error NYI: Port to run hdfs tests
-#else
-    const char *tmp_dir = getenv("TMPDIR");
-    if (tmp_dir == NULL) {
-      tmp_dir = P_tmpdir; // defined in stdio
-    }
-    assert(tmp_dir != NULL);
-    if (tmp_dir[strlen(tmp_dir)-1]=='/') {
-      snprintf(tmp_dir_, PATH_MAX, "%sTileDBTestXXXXXX", tmp_dir);
+    if (g_test_dir.empty()) {
+      const char *tmp_dir = getenv("TMPDIR");
+      if (tmp_dir == NULL) {
+        tmp_dir = P_tmpdir; // defined in stdio
+      }
+      assert(tmp_dir != NULL);
+      if (tmp_dir[strlen(tmp_dir)-1]=='/') {
+        snprintf(tmp_dir_, PATH_MAX, "%sTileDBTestXXXXXX", tmp_dir);
+      } else {
+        snprintf(tmp_dir_, PATH_MAX, "%s/TileDBTestXXXXXX", tmp_dir);
+      }
+      tmp_dirname_ = mkdtemp(tmp_dir_);
     } else {
-      snprintf(tmp_dir_, PATH_MAX, "%s/TileDBTestXXXXXX", tmp_dir);
+      if (g_test_dir[g_test_dir.size()]=='/') {
+        snprintf(tmp_dir_, PATH_MAX, "%sTileDBTest%d", g_test_dir.c_str(), test_num++);
+      } else {
+        snprintf(tmp_dir_, PATH_MAX, "%s/TileDBTest%d", g_test_dir.c_str(), test_num++);
+      }
+      std::cerr << "Nalini" << tmp_dir_ << std::endl;
+      TileDB_Config tiledb_config;
+      memset(&tiledb_config, 0, sizeof(TileDB_Config));
+      tiledb_config.home_ = g_test_dir.c_str();
+      CHECK(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == TILEDB_OK);
+      if (!is_dir(tiledb_ctx, g_test_dir)) {
+        REQUIRE(create_dir(tiledb_ctx, g_test_dir) == TILEDB_OK);
+        delete_test_dir_in_destructor_ = g_test_dir;
+      }
+      REQUIRE(create_dir(tiledb_ctx, tmp_dir_) == TILEDB_OK);
+      tmp_dirname_ = &tmp_dir_[0];
     }
-    tmp_dirname_ = mkdtemp(tmp_dir_);
     REQUIRE(tmp_dirname_ != NULL);
-#endif
   }
 };
 
@@ -220,4 +249,27 @@ TEST_CASE("Test create temp file", "[create_temp_file]") {
   char path[PATH_MAX];
   CHECK(TileDBUtils::create_temp_filename(path, PATH_MAX) == TILEDB_OK);
   CHECK(TileDBUtils::delete_file(path) == TILEDB_OK);
+}
+
+int main( int argc, char* argv[] )
+{
+  Catch::Session session; // There must be exactly one instance
+
+  // Build a new parser on top of Catch's
+  using namespace Catch::clara;
+  auto cli
+    = session.cli() // Get Catch's composite command line parser
+    | Opt( g_test_dir, "Specify test dir, default is $TMPDIR" ) // bind variable to a new option, with a hint string
+     ["--test-dir"] // the option names it will respond to
+    ("Specify test dir, default is $TMPDIR if not specified");        // description string for the help output
+
+  // Now pass the new composite back to Catch so it uses that
+  session.cli(cli);
+
+  // Let Catch (using Clara) parse the command line
+  int rc = session.applyCommandLine( argc, argv );
+  if(rc != 0) // Indicates a command line error
+    return rc;
+
+  return session.run();
 }
