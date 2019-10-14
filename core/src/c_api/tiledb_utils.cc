@@ -208,6 +208,50 @@ std::vector<std::string> get_fragment_names(const std::string& workspace)
   return fragment_names;
 }
 
+bool is_dir(const std::string& dirpath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    return false;
+  }
+  bool check = is_dir(tiledb_ctx, dirpath);
+  finalize(tiledb_ctx);
+  return check;
+}
+
+int create_dir(const std::string& dirpath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    return false;
+  }
+  int rc = create_dir(tiledb_ctx, dirpath);
+  finalize(tiledb_ctx);
+  return rc;
+}
+
+int delete_dir(const std::string& dirpath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    return false;
+  }
+  int rc = delete_dir(tiledb_ctx, dirpath);
+  finalize(tiledb_ctx);
+  return rc;
+}
+
+bool is_file(const std::string& filepath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(filepath))) {
+    return false;
+  }
+  bool check = is_file(tiledb_ctx, filepath);
+  finalize(tiledb_ctx);
+  return check;
+}
+
 static int check_file(TileDB_CTX *tiledb_ctx, std::string filename) {
   if (is_dir(tiledb_ctx, filename)) {
     finalize(tiledb_ctx);

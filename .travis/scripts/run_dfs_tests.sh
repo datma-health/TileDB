@@ -1,6 +1,7 @@
 #!/bin/bash
 
 tiledb_utils_tests() {
+  echo "tiledb_utils_tests: $TILEDB_BUILD_DIR/test/test_tiledb_utils [initialize-workspace] --test-dir $1"
 	$TILEDB_BUILD_DIR/test/test_tiledb_utils [initialize-workspace] --test-dir $1 && 
   $TILEDB_BUILD_DIR/test/test_tiledb_utils [create-workspace] --test-dir $1
 }

@@ -54,6 +54,14 @@ std::vector<std::string> get_array_names(const std::string& workspace);
 
 std::vector<std::string> get_fragment_names(const std::string& workspace);
 
+bool is_dir(const std::string& dirpath);
+
+int create_dir(const std::string& dirpath);
+
+int delete_dir(const std::string& dirpath);
+
+bool is_file(const std::string& filepath);
+
 /**
  * buffer is malloc'ed and has to be freed by calling function
  */

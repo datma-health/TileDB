@@ -1860,6 +1860,13 @@ std::vector<std::string> get_files(const TileDB_CTX* tiledb_ctx, const std::stri
 
 }
 
+int create_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, int flags, mode_t mode) {
+    if (sanity_check_fs(tiledb_ctx)) {
+      return create_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, flags, mode);
+    }
+    return TILEDB_ERR;
+}
+
 int read_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, off_t offset, void *buffer, size_t length) {
   if (sanity_check_fs(tiledb_ctx)) {
     if (!read_from_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, offset, buffer, length)) {

@@ -158,6 +158,8 @@ std::vector<std::string> get_files(const TileDB_CTX* tiledb_ctx, const std::stri
  */
 size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file);
 
+int create_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, int flags, mode_t mode);
+
 /**
  * Reads data from a file into a buffer.
  *
