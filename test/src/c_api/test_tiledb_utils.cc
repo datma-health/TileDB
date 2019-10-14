@@ -110,7 +110,7 @@ class TempDir {
 
 TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]") {
   return;
-  std::string workspace_path = std::string(get_temp_dir())+"/"+workspace;
+  std::string workspace_path = get_temp_dir()+"/"+workspace;
 
   TileDB_CTX *tiledb_ctx;
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, false) == 0); // OK
@@ -130,7 +130,7 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
 }
 
 TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
-  std::string workspace_path = std::string(get_temp_dir())+"/"+workspace;
+  std::string workspace_path = get_temp_dir()+"/"+workspace;
 
   CHECK(!TileDBUtils::workspace_exists(workspace_path));
   
@@ -163,7 +163,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
-  std::string workspace_path = std::string(get_temp_dir())+"/"+workspace;
+  std::string workspace_path = get_temp_dir()+"/"+workspace;
   std::string non_existent_array = std::string("non_existent_array");
 
   // No workspace or array
@@ -182,7 +182,7 @@ TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
-  std::string workspace_path = std::string(get_temp_dir())+"/"+workspace;
+  std::string workspace_path = get_temp_dir()+"/"+workspace;
 
   // No workspace or array or fragments
   CHECK(TileDBUtils::get_fragment_names(workspace_path).size() == 0);
@@ -205,7 +205,7 @@ TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
-  std::string filename = std::string(get_temp_dir())+"/"+"test_file";
+  std::string filename = get_temp_dir()+"/"+"test_file";
   char buffer[1024];
   memset(buffer, 'H', 1024);
   CHECK(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);
@@ -249,6 +249,28 @@ TEST_CASE("Test create temp file", "[create_temp_file]") {
   char path[PATH_MAX];
   CHECK(TileDBUtils::create_temp_filename(path, PATH_MAX) == TILEDB_OK);
   CHECK(TileDBUtils::delete_file(path) == TILEDB_OK);
+  CHECK(!TileDBUtils::is_file(path));
+}
+
+TEST_CASE_METHOD(TempDir, "Test move across filesystems", "[move_across_filesystems]") {
+  std::string filename = get_temp_dir()+"/"+"test_file";
+  char buffer[1024];
+  memset(buffer, 'H', 1024);
+  CHECK(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);
+  CHECK(TileDBUtils::is_file(filename));
+
+  char path[PATH_MAX];
+  CHECK(TileDBUtils::create_temp_filename(path, PATH_MAX) == TILEDB_OK);
+
+  CHECK(TileDBUtils::move_across_filesystems(filename, path) == TILEDB_OK);
+  CHECK(TileDBUtils::is_file(path));
+  CHECK(TileDBUtils::is_file(filename)); // src should not be deleted!
+
+  CHECK(TileDBUtils::delete_file(path) == TILEDB_OK);
+  CHECK(TileDBUtils::delete_file(filename) == TILEDB_OK);
+
+  CHECK(!TileDBUtils::is_file(path));
+  CHECK(!TileDBUtils::is_file(filename));
 }
 
 int main( int argc, char* argv[] )
