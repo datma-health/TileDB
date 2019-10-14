@@ -69,8 +69,8 @@ install:
 before_script:
     - if [[ $TRAVIS_OS_NAME == osx ]]; then
         echo "Nalini - Locating lcov";
-        ls -l /usr/local/bin/*;
-        ls -l /usr/local/Cellar/*
+        ls -l /usr/local/bin/;
+        ls -l /usr/local/Cellar/;
       fi
     - lcov --directory $TILEDB_BUILD_DIR --zerocounters
 
