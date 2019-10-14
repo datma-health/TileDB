@@ -78,6 +78,11 @@ script:
 after_success:
     - cd $TILEDB_BUILD_DIR
     - find deps -name *.gcda -type f -delete
+    - if [[ $TRAVIS_OS_NAME == osx ]]; then
+        echo "Nalini - Locating lcov"
+        ls -l /usr/local/bin/*
+        ls -l /usr/local/Cellar/*
+      fi
     - if [[ $DEBUG_LCOV == true ]]; then
         lcov --directory core --capture --output-file coverage.info;
         lcov --remove coverage.info '/opt*' '*/usr/*' -o coverage.info;
