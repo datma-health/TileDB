@@ -87,23 +87,16 @@ class TempDir {
         tmp_dir = P_tmpdir; // defined in stdio
       }
       assert(tmp_dir != NULL);
-          //snprintf(tmp_dir_, PATH_MAX, "%s%s", append_slash(tmp_dir).c_str(), dirname_pattern.c_str());
       tmp_dirname_ = mkdtemp(const_cast<char *>((append_slash(tmp_dir)+dirname_pattern).c_str()));
     } else {
-      //snprintf(tmp_dir_, PATH_MAX, "%s%s", append_slash(g_test_dir).c_str(), get_pathname(mktemp(dirname_pattern.c_str())).c_str());
       tmp_dirname_ = append_slash(g_test_dir)+mktemp(const_cast<char *>(dirname_pattern.c_str()));
-      TileDB_CTX *tiledb_ctx;
-      TileDB_Config tiledb_config;
-      tiledb_config.home_ = parent_dir(g_test_dir).c_str();
-      CHECK(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == 0);
-      if (!is_dir(tiledb_ctx, g_test_dir)) {
-        CHECK(create_dir(tiledb_ctx, g_test_dir) == 0);
+      if (!TileDBUtils::is_dir(g_test_dir)) {
+        CHECK(TileDBUtils::create_dir(g_test_dir) == 0);
         delete_test_dir_in_destructor_ = g_test_dir;
       }
-      if (!is_dir(tiledb_ctx, tmp_dirname_)) {
-        CHECK(create_dir(tiledb_ctx, tmp_dirname_) == TILEDB_OK);
+      if (!TileDBUtils::is_dir(tmp_dirname_)) {
+        CHECK(TileDBUtils::create_dir(tmp_dirname_) == TILEDB_OK);
       }
-      CHECK(tiledb_ctx_finalize(tiledb_ctx) == 0);
     }
   }
 };
