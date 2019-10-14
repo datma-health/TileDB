@@ -47,6 +47,7 @@ install:
         brew install cmake lcov mpich ;
         brew install openssl ossp-uuid;
         export OPENSSL_ROOT_DIR=/usr/local/opt/openssl;
+        export PATH=$PATH:/usr/local/bin
       else
         echo "Platform $TRAVIS_OS_NAME not yet supported";
         exit 1;
@@ -66,6 +67,11 @@ install:
     - make -j 4
 
 before_script:
+    - if [[ $TRAVIS_OS_NAME == osx ]]; then
+        echo "Nalini - Locating lcov";
+        ls -l /usr/local/bin/*;
+        ls -l /usr/local/Cellar/*
+      fi
     - lcov --directory $TILEDB_BUILD_DIR --zerocounters
 
 script:
@@ -79,8 +85,8 @@ after_success:
     - cd $TILEDB_BUILD_DIR
     - find deps -name *.gcda -type f -delete
     - if [[ $TRAVIS_OS_NAME == osx ]]; then
-        echo "Nalini - Locating lcov"
-        ls -l /usr/local/bin/*
+        echo "Nalini - Locating lcov";
+        ls -l /usr/local/bin/*;
         ls -l /usr/local/Cellar/*
       fi
     - if [[ $DEBUG_LCOV == true ]]; then
