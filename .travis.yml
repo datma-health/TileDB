@@ -44,7 +44,13 @@ install:
         sudo apt-get -y install cmake lcov mpich;
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
-        brew install cmake lcov mpich ;
+        brew install cmake mpich;
+        echo "Installing lcov";
+        brew install -v lcov;
+        echo "Installing lcov DONE";
+        echo "Finding lcov";
+        find /usr/local -name lcov -print;
+        echo "Findong lcov DONE";
         brew install openssl ossp-uuid;
         export OPENSSL_ROOT_DIR=/usr/local/opt/openssl;
         export PATH=$PATH:/usr/local/bin;
