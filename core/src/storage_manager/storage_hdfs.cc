@@ -238,6 +238,13 @@ std::string HDFS::current_dir() {
   return working_dir;
 }
 
+int HDFS::set_working_dir(const std::string& dir) {
+  if (hdfsSetWorkingDirectory(hdfs_handle_, dir.c_str())) {
+    return print_errmsg(std::string("Error setting up hdfs working directory to ") + dir);
+  }
+  return TILEDB_FS_OK;
+}
+
 static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind) {
   if (!hdfsExists(hdfs_handle, path)) {
     hdfsFileInfo *file_info = hdfsGetPathInfo(hdfs_handle, path);

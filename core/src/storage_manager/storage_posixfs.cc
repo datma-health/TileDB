@@ -58,6 +58,15 @@ std::string PosixFS::current_dir() {
 
   return dir;
 }
+
+int PosixFS::set_working_dir(const std::string& dir) {
+  reset_errno();
+  if (chdir(dir.c_str())) {
+    POSIX_ERROR("Cannot set working dir", dir);
+    return TILEDB_FS_ERR;
+  }
+  return TILEDB_FS_OK;
+}
   
 bool PosixFS::is_dir(const std::string& dir) {
   struct stat st;
@@ -161,7 +170,7 @@ std::string PosixFS::real_dir(const std::string& dir) {
 
   return ret_dir;
 }
-  
+
 int PosixFS::create_dir(const std::string& dir) {
   reset_errno();
   
