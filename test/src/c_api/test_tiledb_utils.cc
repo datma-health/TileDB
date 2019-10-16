@@ -102,11 +102,12 @@ class TempDir {
 };
 
 TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]") {
-  return;
   std::string workspace_path = get_temp_dir()+"/"+workspace;
 
   TileDB_CTX *tiledb_ctx;
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, false) == 0); // OK
+  CHECK(!set_working_dir(tiledb_ctx, workspace_path));
+  CHECK(set_working_dir(tiledb_ctx, workspace_path+".non-existent"));
   CHECK(!tiledb_ctx_finalize(tiledb_ctx));
   CHECK(TileDBUtils::workspace_exists(workspace_path));
 
