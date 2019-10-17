@@ -144,8 +144,8 @@ HDFS::HDFS(const std::string& home) {
     throw std::system_error(ECONNREFUSED, std::generic_category(), "Error getting hdfs connection");
   }
 
-  if (hdfsSetWorkingDirectory(hdfs_handle_, home.c_str())) {
-    PRINT_ERROR("Error setting up hdfs working directory");
+  if (hdfsSetWorkingDirectory(hdfs_handle_, ((path_url.path().empty())?(home+"/"):home).c_str())) {
+    PRINT_ERROR(std::string("Error setting up hdfs working directory ") + home);
     throw std::system_error(ENOENT, std::generic_category(), "Error setting up hdfs working directory");
   }
 

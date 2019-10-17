@@ -1846,34 +1846,43 @@ int delete_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
 }
 
 std::vector<std::string> get_dirs(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
-  if (sanity_check_fs(tiledb_ctx)) {;
+  if (sanity_check_fs(tiledb_ctx)) {
     return get_dirs(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
   }
   return std::vector<std::string>{};
 }
  
 std::vector<std::string> get_files(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
-  if (sanity_check_fs(tiledb_ctx)) {;
+  if (sanity_check_fs(tiledb_ctx)) {
     return get_files(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
   }
   return std::vector<std::string>{};
 
 }
 
+int create_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, int flags, mode_t mode) {
+    if (sanity_check_fs(tiledb_ctx)) {
+      return create_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, flags, mode);
+    }
+    return TILEDB_ERR;
+}
+
 int read_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, off_t offset, void *buffer, size_t length) {
   if (sanity_check_fs(tiledb_ctx)) {
-    if (!read_from_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, offset, buffer, length))
-       strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str());
-    return TILEDB_OK;
+    if (!read_from_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, offset, buffer, length)) {
+      return TILEDB_OK;
+    }
+    strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str());
   }
   return TILEDB_ERR;
 }
 
 int write_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, const void *buffer, size_t buffer_size) {
   if (sanity_check(tiledb_ctx)) {
-    if (!write_to_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, buffer, buffer_size))
-      strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
-    return TILEDB_OK;
+    if (!write_to_file(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), filename, buffer, buffer_size)) {
+      return TILEDB_OK;
+    }
+    strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str());
   }
   return TILEDB_ERR;
 }
