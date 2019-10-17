@@ -1837,6 +1837,10 @@ inline bool invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& di
   return false;
 }
 
+int set_working_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
+  return invoke_int_fs_fn(tiledb_ctx, dir, &set_working_dir);
+}
+
 int create_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
   return invoke_int_fs_fn(tiledb_ctx, dir, &create_dir);
 }

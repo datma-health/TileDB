@@ -355,6 +355,10 @@ std::string current_dir(StorageFS *fs) {
   return fs->current_dir();
 }
 
+int set_working_dir(StorageFS *fs, const std::string& dir) {
+  return fs->set_working_dir(dir);
+}
+
 std::vector<std::string> get_dirs(StorageFS *fs, const std::string& dir) {
   return fs->get_dirs(dir);
 }
