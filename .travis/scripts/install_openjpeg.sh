@@ -2,7 +2,7 @@
 set -ev
 
 # Install OpenJPEG2000 library with memory stream support 
-git clone -b clay-dev https://github.com/OmicsDataAutomation/openjpeg.git
+git clone https://github.com/OmicsDataAutomation/openjpeg.git
 
 pushd openjpeg
 mkdir build ; cd build
