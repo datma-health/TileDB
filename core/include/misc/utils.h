@@ -270,6 +270,15 @@ int create_fragment_file(StorageFS *fs, const std::string& dir);
 std::string current_dir(StorageFS *fs);
 
 /**
+ * Set working directory to path
+ *
+ * @param fs The storage filesystem type in use. e.g. posix, hdfs, etc.
+ * @param dir The directory to be set as working dir
+ * @return TILEDB_UT_OK for success, and TILEDB_UT_ERR for error.
+ */
+int set_working_dir(StorageFS *fs, const std::string& dir);
+
+/**
  * Deletes a directory. Note that the directory must not contain other
  * directories, but it should only contain files.
  *
