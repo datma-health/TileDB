@@ -40,6 +40,7 @@
 #include <cstdio>
 #include <dirent.h>
 #include <fcntl.h>
+#include <ftw.h>
 #include <iostream>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -56,6 +57,15 @@ std::string PosixFS::current_dir() {
   }
 
   return dir;
+}
+
+int PosixFS::set_working_dir(const std::string& dir) {
+  reset_errno();
+  if (chdir(dir.c_str())) {
+    POSIX_ERROR("Cannot set working dir", dir);
+    return TILEDB_FS_ERR;
+  }
+  return TILEDB_FS_OK;
 }
   
 bool PosixFS::is_dir(const std::string& dir) {
@@ -160,7 +170,7 @@ std::string PosixFS::real_dir(const std::string& dir) {
 
   return ret_dir;
 }
-  
+
 int PosixFS::create_dir(const std::string& dir) {
   reset_errno();
   
@@ -181,47 +191,23 @@ int PosixFS::create_dir(const std::string& dir) {
   return TILEDB_FS_OK;
 }
 
+static int delete_file_nftw_cb(const char *filepath, const struct stat *ptr, int flag, struct FTW *ftwbuf) {
+  if (remove(filepath)) {
+    POSIX_ERROR("Could not remove file", filepath);
+    return TILEDB_FS_ERR;
+  }
+  return TILEDB_FS_OK;
+}
+
 int PosixFS::delete_dir(const std::string& dirname) {
   reset_errno();
-  
+
   // Get real path
   std::string dirname_real = this->real_dir(dirname); 
 
-  // Delete the contents of the directory
-  std::string filename; 
-  struct dirent *next_file;
-  DIR* dir = opendir(dirname_real.c_str());
-
-  if(dir == NULL) {
-    POSIX_ERROR("Cannot open directory", dirname);
+  if (nftw(dirname_real.c_str(), delete_file_nftw_cb, 64, FTW_DEPTH | FTW_PHYS)) {
+    POSIX_ERROR("Could not recursively delete directory", dirname);
     return TILEDB_FS_ERR;
-  }
-
-  std::vector<std::string> all_filenames;
-  while((next_file = readdir(dir))) {
-    if(!strcmp(next_file->d_name, ".") ||
-       !strcmp(next_file->d_name, ".."))
-      continue;
-    filename = dirname_real + "/" + next_file->d_name;
-    all_filenames.emplace_back(filename);
-  }
-
-  for(const auto& curr_filename : all_filenames) {
-    if(remove(curr_filename.c_str())) {
-      POSIX_ERROR("Cannot delete file", curr_filename);   
-      return TILEDB_FS_ERR;
-    }
-  } 
- 
-  // Close directory 
-  if(closedir(dir)) {
-    POSIX_ERROR("Cannot close directory", dirname);
-    return TILEDB_FS_ERR;
-  }
-
-  // Remove directory
-  if(rmdir(dirname.c_str())) {
-    POSIX_ERROR("Cannot delete directory", dirname);
   }
 
   // Success

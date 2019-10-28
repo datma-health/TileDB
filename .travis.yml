@@ -44,9 +44,11 @@ install:
         sudo apt-get -y install cmake lcov mpich;
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
-        brew install cmake lcov mpich ;
+        brew install cmake mpich;
+        brew install lcov;
         brew install openssl ossp-uuid;
         export OPENSSL_ROOT_DIR=/usr/local/opt/openssl;
+        export PATH=$PATH:/usr/local/bin;
       else
         echo "Platform $TRAVIS_OS_NAME not yet supported";
         exit 1;
@@ -73,7 +75,7 @@ before_script:
 
 script:
     - if [[ $INSTALL_TYPE != basic ]]; then
-        $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
+        make check && $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
       else
         make tests -j 4;
       fi

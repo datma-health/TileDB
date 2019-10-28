@@ -144,8 +144,8 @@ HDFS::HDFS(const std::string& home) {
     throw std::system_error(ECONNREFUSED, std::generic_category(), "Error getting hdfs connection");
   }
 
-  if (hdfsSetWorkingDirectory(hdfs_handle_, home.c_str())) {
-    PRINT_ERROR("Error setting up hdfs working directory");
+  if (hdfsSetWorkingDirectory(hdfs_handle_, ((path_url.path().empty())?(home+"/"):home).c_str())) {
+    PRINT_ERROR(std::string("Error setting up hdfs working directory ") + home);
     throw std::system_error(ENOENT, std::generic_category(), "Error setting up hdfs working directory");
   }
 
@@ -236,6 +236,13 @@ std::string HDFS::current_dir() {
   }
   std::string cwd = working_dir;
   return working_dir;
+}
+
+int HDFS::set_working_dir(const std::string& dir) {
+  if (hdfsSetWorkingDirectory(hdfs_handle_, dir.c_str())) {
+    return print_errmsg(std::string("Error setting up hdfs working directory to ") + dir);
+  }
+  return TILEDB_FS_OK;
 }
 
 static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind) {

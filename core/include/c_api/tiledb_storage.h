@@ -98,7 +98,7 @@ bool is_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir);
  *
  * @param tiledb_ctx TileDB Context
  * @param file The file to be checked.
- * @return tTrue* if *file* is an existing file, and *false* otherwise.
+ * @return *true* if *file* is an existing file, and *false* otherwise.
  */
 bool is_file(const TileDB_CTX* tiledb_ctx, const std::string& file);
 
@@ -113,6 +113,15 @@ std::string parent_dir(const std::string& path);
 /**
  */
 std::string parent_dir(const std::string& path);
+
+/**
+ * Set working directory to dir
+ *
+ * @param tiledb_ctx TileDB Context
+ * @param dir The directory to be set as working dir
+ * @return TILEDB_UT_OK for success, and TILEDB_UT_ERR for error.
+ */
+int set_working_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir);
 
 /**
  * Creates a new directory.
@@ -157,6 +166,8 @@ std::vector<std::string> get_files(const TileDB_CTX* tiledb_ctx, const std::stri
  * @return The file size on success, and TILEDB_UT_ERR for error.
  */
 size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file);
+
+int create_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, int flags, mode_t mode);
 
 /**
  * Reads data from a file into a buffer.
