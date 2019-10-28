@@ -83,8 +83,6 @@ static std::string get_blosc_compressor(const int compression_type) {
       return "zlib";
     case TILEDB_BLOSC_ZSTD:
       return "zstd";
-    case TILEDB_BLOSC_JPEG2K:
-      return "jp2k";
     default:
       return "";
   };

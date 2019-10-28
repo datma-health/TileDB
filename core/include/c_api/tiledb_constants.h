@@ -145,8 +145,6 @@
 #define TILEDB_BLOSC_ZSTD                            9
 #define TILEDB_RLE                                  10
 #define TILEDB_JPEG2K                               11
-// CPB: Not sure how or if this would ever be implemented
-#define TILEDB_BLOSC_JPEG2K                         12
 /**@}*/
 
 /**@{*/
