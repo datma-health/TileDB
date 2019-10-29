@@ -44,7 +44,10 @@ set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
-set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing - recommended when TileDB is included as a submodule")
+
+# Set the following to true downstream when TileDB is added as a subdirectory 
+set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
+set(TILEDB_DISABLE_UNINSTALL False CACHE BOOL "Disable TileDB Uninstall")
 
 # Only for Mac OS X
 if(APPLE)
@@ -232,11 +235,13 @@ if(DOXYGEN_FOUND)
 endif(DOXYGEN_FOUND)
 
 # Uninstall
-set(CMD "xargs printf '-- Uninstalling: %s\\\\n' <install_manifest.txt")
-add_custom_target(
-  uninstall_tiledb
-  COMMAND echo "Uninstalling TileDB..."
-  COMMAND eval "${CMD}"
-  COMMAND xargs rm -f < install_manifest.txt
-  COMMAND echo "TileDB uninstalled"
-  )
+if(NOT TILEDB_DISABLE_UNINSTALL)
+  set(CMD "xargs printf '-- Uninstalling: %s\\\\n' <install_manifest.txt")
+  add_custom_target(
+    uninstall_tiledb
+    COMMAND echo "Uninstalling TileDB..."
+    COMMAND eval "${CMD}"
+    COMMAND xargs rm -f < install_manifest.txt
+    COMMAND echo "TileDB uninstalled"
+    )
+endif()
