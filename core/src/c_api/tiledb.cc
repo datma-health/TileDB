@@ -1819,8 +1819,15 @@ std::string parent_dir(const std::string& path) {
   return parent_dir(NULL, path);
 }
 
+std::string current_working_dir(const TileDB_CTX* tiledb_ctx) {
+   if (sanity_check_fs(tiledb_ctx)) {
+     return current_dir(tiledb_ctx->storage_manager_->get_config()->get_filesystem());
+   }
+   return "";
+}
+
 size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
-  if (sanity_check_fs(tiledb_ctx)) {;
+  if (sanity_check_fs(tiledb_ctx)) {
     return file_size(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), file);
   }
   return 0;

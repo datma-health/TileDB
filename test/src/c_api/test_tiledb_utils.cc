@@ -107,7 +107,10 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
   TileDB_CTX *tiledb_ctx;
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, false) == 0); // OK
   CHECK(!set_working_dir(tiledb_ctx, workspace_path));
+  std::string cwd = current_working_dir(tiledb_ctx);
+  CHECK(cwd.size() > 0);
   CHECK(set_working_dir(tiledb_ctx, workspace_path+".non-existent"));
+  CHECK(current_working_dir(tiledb_ctx) == cwd);
 
   CHECK(!tiledb_ctx_finalize(tiledb_ctx));
   CHECK(TileDBUtils::workspace_exists(workspace_path));
