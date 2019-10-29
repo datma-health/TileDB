@@ -238,7 +238,7 @@ endif(DOXYGEN_FOUND)
 if(NOT TILEDB_DISABLE_UNINSTALL)
   set(CMD "xargs printf '-- Uninstalling: %s\\\\n' <install_manifest.txt")
   add_custom_target(
-    uninstall_tiledb
+    uninstall
     COMMAND echo "Uninstalling TileDB..."
     COMMAND eval "${CMD}"
     COMMAND xargs rm -f < install_manifest.txt
