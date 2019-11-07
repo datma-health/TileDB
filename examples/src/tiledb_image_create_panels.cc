@@ -35,6 +35,7 @@
 #include "examples.h"
 
 int main(int argc, char *argv[]) {
+#ifdef ENABLE_JPEG2K
   // Initialize context with home dir if specified in command line, else
   // initialize with the default configuration parameters
   TileDB_CTX* tiledb_ctx;
@@ -112,5 +113,8 @@ int main(int argc, char *argv[]) {
   /* Finalize context. */
   CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
+#else
+  printf("*** %s test unable to run; \n*** Enable JPEG2K library to execute\n", argv[0]);
+#endif
   return 0;
 }
