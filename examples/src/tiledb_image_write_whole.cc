@@ -34,9 +34,9 @@
 
 #include "examples.h"
 
-int *build_image(size_t num_comps, size_t height, size_t width)
+int *build_image(size_t num_comps, size_t width, size_t height)
 {
-   size_t buffer_size = num_comps * height * width * sizeof(int) + 12;
+   size_t buffer_size = (num_comps * width * height + 3) * sizeof(int);
    int *image_buffer = (int *)malloc(buffer_size);
    int *l_data = image_buffer;
 
@@ -63,15 +63,15 @@ int *build_image(size_t num_comps, size_t height, size_t width)
 
    // Insert "header" info into image buffer
    int *header = (int *)image_buffer; 
-   header[0] = num_comps; l_data += sizeof(int);
-   header[1] = height;    l_data += sizeof(int);
-   header[2] = width;     l_data += sizeof(int);
+   header[0] = num_comps; ++l_data;
+   header[1] = width;     ++l_data;
+   header[2] = height;    ++ l_data;
 
    int p = 0, q = width*height, r = 2*width*height;
    for (int c = 0; c < 9; c += 3) {
-      for (int i = 0; i < 100; ++i) {
+      for (int i = 0; i < height/3; ++i) {
          for (int j = c; j < c+3; ++j) {
-            for (int k = 0; k < 100; ++k) {
+            for (int k = 0; k < width/3; ++k) {
                l_data[p++] = R[j];
                l_data[q++] = G[j];
                l_data[r++] = B[j];
@@ -84,7 +84,6 @@ int *build_image(size_t num_comps, size_t height, size_t width)
 }
 
 int main(int argc, char *argv[]) {
-#ifdef ENABLE_JPEG2K
   // Initialize context with home dir if specified in command line, else
   // initialize with the default configuration parameters
   TileDB_CTX* tiledb_ctx;
@@ -111,9 +110,9 @@ int main(int argc, char *argv[]) {
   size_t num_comps = 3;
   size_t width  = 300;
   size_t height = 300;
-  size_t image_bytes = num_comps * width * height * sizeof(int) + 12;
+  size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
 
-  int * buffer_image = build_image(num_comps, height, width);
+  int * buffer_image = build_image(num_comps, width, height);
 
   const void* buffers[] = { buffer_image };
   size_t buffer_sizes[] = 
@@ -130,8 +129,5 @@ int main(int argc, char *argv[]) {
   // Finalize context
   CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
-#else
-  printf("*** %s test unable to run; \n*** Enable JPEG2K library to execute\n", argv[0]);
-#endif
   return 0;
 }

@@ -37,94 +37,91 @@
 void check_results(int *buffer_image)
 {
 
-   char R[10], G[10], B[10];
-//        Black,              Red,                Orange 
-   R[0] = char(  0);   R[1] = char(201);   R[2] = char(234);
-   G[0] = char(  0);   G[1] = char( 23);   G[2] = char( 85);
-   B[0] = char(  0);   B[1] = char( 30);   B[2] = char(  6);
+   int R[10], G[10], B[10];
+//       Black,        Red,          Orange
+   R[0] =   0;   R[1] = 201;   R[2] = 234;
+   G[0] =   0;   G[1] =  23;   G[2] =  85;
+   B[0] =   0;   B[1] =  30;   B[2] =   6;
 
-//        Pink,               White,              Yellow 
-   R[3] = char(233);   R[4] = char(255);   R[5] = char(255);
-   G[3] = char( 82);   G[4] = char(255);   G[5] = char(234);
-   B[3] = char(149);   B[4] = char(255);   B[5] = char(  0);
+//       Pink,         White,        Yellow
+   R[3] = 233;   R[4] = 255;   R[5] = 255;
+   G[3] =  82;   G[4] = 255;   G[5] = 234;
+   B[3] = 149;   B[4] = 255;   B[5] =   0;
 
-//        Purple,             Blue,               Green 
-   R[6] = char(101);   R[7] = char( 12);   R[8] = char(  0);
-   G[6] = char( 49);   G[7] = char(  2);   G[8] = char( 85);
-   B[6] = char(142);   B[7] = char(196);   B[8] = char( 46);
+//       Purple,       Blue,         Green
+   R[6] = 101;   R[7] =  12;   R[8] =   0;
+   G[6] =  49;   G[7] =   2;   G[8] =  85;
+   B[6] = 142;   B[7] = 196;   B[8] =  46;
 
-//         Grey (unused)
-   R[9] = char(130);
-   G[9] = char(130);
-   B[9] = char(130);
-   
+//       Grey (unused}
+   R[9] = 130;
+   G[9] = 130;
+   B[9] = 130;
+
    // Print midpoint RGB value of each palette block and check
    int *l_data = buffer_image;
-   size_t num_comps, height, width;
-   int *header = (int*) buffer_image;
-   num_comps = header[0];
-   height = header[1];
-   width = header[2];
-   l_data += 12; // skip header
+   int num_comps, width, height;
 
-   int i, j;
-   char Rvalue[9];
-   char Gvalue[9];
-   char Bvalue[9];
-   size_t Roffset = 0*height*width;
-   size_t Goffset = 1*height*width;
-   size_t Boffset = 2*height*width;
+   num_comps = buffer_image[0];
+   if (num_comps != 3)  // known number of components
+      printf("** Header error: num_comps = %d, should be 3\n", num_comps);
+   width =  buffer_image[1];
+   if (width != 300)  // known width of image
+      printf("** Header error: width = %d, should be 300\n", width);
+   height =  buffer_image[2];
+   if (height != 300)  // known height of image
+      printf("** Header error: height = %d, should be 300\n", height);
 
-   int t = 0;
-   for (i = 50; i < 300; i+=100) {
-      for (j = 50; j < 300; j+=100) {
-         Rvalue[t] = l_data[Roffset + i * width + j];
-         Gvalue[t] = l_data[Goffset + i * width + j];
-         Bvalue[t] = l_data[Boffset + i * width + j];
-         ++t;
-      }
-   }
+   l_data += 3; // skip over header
 
-   printf("Image Palette RGB values: %lu components\n", num_comps);
+   size_t c, i, j, k;
+   int Rerrs[9] = {0,0,0,0,0,0,0,0,0};
+   int Gerrs[9] = {0,0,0,0,0,0,0,0,0};
+   int Berrs[9] = {0,0,0,0,0,0,0,0,0};
+
+
+   printf("Expected Image Palette RGB values: %lu components\n", num_comps);
    printf("----------------------------\n");
    for (i = 0; i < 9; i+=3) {
      printf("| R: %3u | R: %3u | R: %3u |\n",
-             0x000000FF & Rvalue[i],
-             0x000000FF & Rvalue[i+1],
-             0x000000FF & Rvalue[i+2]);
+                 R[i],    R[i+1],  R[i+2]);
      printf("| G: %3u | G: %3u | G: %3u |\n",
-             0x000000FF & Gvalue[i],
-             0x000000FF & Gvalue[i+1],
-             0x000000FF & Gvalue[i+2]);
+                 G[i],    G[i+1],  G[i+2]);
      printf("| B: %3u | B: %3u | B: %3u |\n",
-             0x000000FF & Bvalue[i],
-             0x000000FF & Bvalue[i+1],
-             0x000000FF & Bvalue[i+2]);
+                 B[i],    B[i+1],  B[i+2]);
      printf("----------------------------\n");
    }
 
+   int p = 0, q =  width*height, r = 2*width*height;
    int errors = 0;
-   for (i = 0; i < 9; ++i) {
-      if (Rvalue[i] != R[i]) {
-         printf("ERROR: Red[%d] should be %3lu\n",i,(size_t)R[i]);
-         ++errors;
-      }
-      if (Gvalue[i] != G[i]) {
-         printf("ERROR: Green[%d] should be %3lu\n",i,(size_t)G[i]);
-         ++errors;
-      }
-      if (Bvalue[i] != B[i]) {
-         printf("ERROR: Blue[%d] should be %3lu\n",i,(size_t)B[i]);
-         ++errors;
+   for (c = 0; c < 9; c+=3) {
+      for (i = 0; i < width/3; ++i) {
+         for (j = c; j < c+3; ++j) {
+            for (k = 0; k < height/3; ++k) {
+               if (l_data[p++] != R[j]) { ++Rerrs[j]; ++errors; }
+               if (l_data[q++] != G[j]) { ++Gerrs[j]; ++errors; }
+               if (l_data[r++] != B[j]) { ++Berrs[j]; ++errors; }
+            }
+         }
       }
    }
-   if (!errors) printf("\nCheck SUCCESSFUL\n");
 
+   if (!errors) printf("\nCheck SUCCESSFUL\n");
+   else {
+      printf("\nERRORS found; Counts: \n");
+      for (i = 0; i < 9; ++i) {
+         if (Rerrs[i] + Gerrs[i] + Berrs[i]) {
+            printf("   Panel %lu errors: ", i);
+            if (Rerrs[i]) printf("R - %d  ", Rerrs[i]);
+            if (Gerrs[i]) printf("G - %d  ", Gerrs[i]);
+            if (Berrs[i]) printf("B - %d  ", Berrs[i]);
+            printf("\n");
+         }
+      }
+   }
 }
 
-
 int main(int argc, char *argv[]) {
-#ifdef ENABLE_JPEG2K
    // Initialize context with home dir if specified in command line, else
    // initialize with the default configuration parameters
    TileDB_CTX* tiledb_ctx;
@@ -151,7 +148,7 @@ int main(int argc, char *argv[]) {
    size_t num_comps = 3;
    size_t width  = 300;
    size_t height = 300;
-   size_t image_bytes = num_comps * width * height * sizeof(int) + 12;
+   size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
  
    int *buffer_image = (int*)malloc(image_bytes);
    void* buffers[] = { buffer_image };
@@ -171,8 +168,5 @@ int main(int argc, char *argv[]) {
    /* Finalize context. */
    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
  
-#else
-  printf("*** %s test unable to run; \n*** Enable JPEG2K library to execute\n", argv[0]);
-#endif
    return 0;
 }

@@ -35,7 +35,6 @@
 #include "examples.h"
 
 int main(int argc, char *argv[]) {
-#ifdef ENABLE_JPEG2K
   // Initialize context with home dir if specified in command line, else
   // initialize with the default configuration parameters
   TileDB_CTX* tiledb_ctx;
@@ -57,7 +56,7 @@ int main(int argc, char *argv[]) {
   };                
   const int cell_val_num[] = 
   { 
-      297012                      // image 
+      74253                      // image 
   };
   const int compression[] = 
   { 
@@ -75,10 +74,14 @@ int main(int argc, char *argv[]) {
   };               
   const int types[] = 
   { 
-      TILEDB_CHAR,                // image
+      TILEDB_INT32,                // image
       TILEDB_INT64                // coordinates
   };
   
+#ifndef ENABLE_JPEG2K
+  printf("INFO: Image saved as raw pixels\n");
+#endif
+
   // Set array schema
   TileDB_ArraySchema array_schema;
   CHECK_RC(tiledb_array_set_schema(
@@ -111,8 +114,5 @@ int main(int argc, char *argv[]) {
   /* Finalize context. */
   CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
-#else
-  printf("*** %s test unable to run; \n*** Enable JPEG2K library to execute\n", argv[0]);
-#endif
   return 0;
 }

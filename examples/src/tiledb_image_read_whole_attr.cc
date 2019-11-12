@@ -28,27 +28,27 @@
  * 
  * @section DESCRIPTION
  *
- * Example to read dense array holding 300x300 pixel image of
- *    3x3 color palette as 100x100 panels
+ * Example to read dense array holding whole 300x300 pixel image of
+ *    3x3 color palette
  */
 
 #include "examples.h"
 
-void check_results(int *buffer_image)
+void check_results(int *buffer_image, int* image_info)
 {
 
    int R[10], G[10], B[10];
-//       Black,        Red,          Orange 
+//       Black,        Red,          Orange
    R[0] =   0;   R[1] = 201;   R[2] = 234;
    G[0] =   0;   G[1] =  23;   G[2] =  85;
    B[0] =   0;   B[1] =  30;   B[2] =   6;
 
-//       Pink,         White,        Yellow 
+//       Pink,         White,        Yellow
    R[3] = 233;   R[4] = 255;   R[5] = 255;
    G[3] =  82;   G[4] = 255;   G[5] = 234;
    B[3] = 149;   B[4] = 255;   B[5] =   0;
 
-//       Purple,       Blue,         Green 
+//       Purple,       Blue,         Green
    R[6] = 101;   R[7] =  12;   R[8] =   0;
    G[6] =  49;   G[7] =   2;   G[8] =  85;
    B[6] = 142;   B[7] = 196;   B[8] =  46;
@@ -57,19 +57,36 @@ void check_results(int *buffer_image)
    R[9] = 130;
    G[9] = 130;
    B[9] = 130;
-   
+
    // Print midpoint RGB value of each palette block and check
    int *l_data = buffer_image;
-   size_t num_comps, width, height;
-   int *header = (int*) buffer_image;
-   num_comps = header[0];
-   width =     header[1];
-   height =    header[2];
+   int num_comps, height, width;
+   int num_parts, tileW1, tileH1, tileW2, tileH2;
 
-   size_t i, j;
+   num_comps = image_info[0];
+   width = image_info[1];
+   height = image_info[2];
+   num_parts = image_info[3];
+   tileW1 = image_info[4];
+   tileH1 = image_info[5];
+   tileW2 = image_info[6];
+   tileH2 = image_info[7];
+
+   l_data += 3; // skip header
+
+   size_t c, i, j, k;
    int Rerrs[9] = {0,0,0,0,0,0,0,0,0};
    int Gerrs[9] = {0,0,0,0,0,0,0,0,0};
    int Berrs[9] = {0,0,0,0,0,0,0,0,0};
+
+printf("Tiling attributes:\n  Original comp, w, h : %d  %d x %d\n", num_comps, width, height);
+printf("  Number of partitions: %d\n", num_parts);
+   if (num_parts > 1) {
+      printf("        %3ld x %3ld     %3ld x %3ld\n        %3d x %3d     %3d x %3d\n\n", tileW1, tileH1, tileW2, tileH1, tileW1, tileH2, tileW2, tileH2);
+   }
+   else {
+      printf("        %3ld x %3ld                \n                               \n\n", tileW2, tileH2);
+   }
 
    printf("Expected Image Palette RGB values: %lu components\n", num_comps);
    printf("----------------------------\n");
@@ -83,31 +100,20 @@ void check_results(int *buffer_image)
      printf("----------------------------\n");
    }
 
+   int p = 0, q =  width*height, r = 2*width*height;
    int errors = 0;
-   for (i = 0; i < 9; ++i) {
-      l_data += 3; // skip over header
-      for (j = 0; j < width*height; ++j) {
-         if (*l_data != R[i]) {
-            ++Rerrs[i];
-            ++errors;
+   for (c = 0; c < 9; c+=3) {
+      for (i = 0; i < width/3; ++i) {
+         for (j = c; j < c+3; ++j) {
+            for (k = 0; k < height/3; ++k) {
+               if (l_data[p++] != R[j]) { ++Rerrs[j]; ++errors; }
+               if (l_data[q++] != G[j]) { ++Gerrs[j]; ++errors; }
+               if (l_data[r++] != B[j]) { ++Berrs[j]; ++errors; }
+            }
          }
-         ++l_data;
-      }
-      for (j = 0; j < width*height; ++j) {
-         if (*l_data != G[i]) {
-            ++Gerrs[i];
-            ++errors;
-         }
-         ++l_data;
-      }
-      for (j = 0; j < width*height; ++j) {
-         if (*l_data != B[i]) {
-            ++Berrs[i];
-            ++errors;
-         }
-         ++l_data;
       }
    }
+
    if (!errors) printf("\nCheck SUCCESSFUL\n");
    else {
       printf("\nERRORS found; Counts: \n");
@@ -123,7 +129,6 @@ void check_results(int *buffer_image)
    }
 }
 
-
 int main(int argc, char *argv[]) {
    // Initialize context with home dir if specified in command line, else
    // initialize with the default configuration parameters
@@ -132,9 +137,8 @@ int main(int argc, char *argv[]) {
      TileDB_Config tiledb_config;
      tiledb_config.home_ = argv[1];
      CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
-   } 
-   else {
-     CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
+   } else {
+       CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
    }
 
    // Initialize array 
@@ -142,36 +146,45 @@ int main(int argc, char *argv[]) {
    CHECK_RC(tiledb_array_init(
       tiledb_ctx,                                       // Context
       &tiledb_array,                                    // Array object
-      "my_workspace/image_arrays/panelimage",           // Array name
+      "my_workspace/image_arrays/wholeimage_attr",      // Array name
       TILEDB_ARRAY_READ,                                // Mode
       NULL,                                             // Whole domain
       NULL,                                             // All attributes
       0));                                              // Number of attributes
 
    // Prepare cell buffer 
-   size_t num_comps = 3;
-   size_t width  = 100;  // per panel
-   size_t height = 100;  // per panel
-   size_t num_panels = 9;
-   size_t image_bytes = num_panels * (num_comps * width * height * sizeof(int) + 12);
+   int num_comps = 3;
+   int width  = 300;
+   int height = 300;
+   int num_parts = 1;
+   int tileW1 = 300;
+   int tileH1 = 300;
+   int tileW2 = 300;
+   int tileH2 = 300;
+
+   size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
+   size_t info_bytes = 8 * sizeof(int);
  
    int *buffer_image = (int*)malloc(image_bytes);
-   void* buffers[] = { buffer_image };
+   int image_info[8];
+   void* buffers[] = { buffer_image, image_info };
    size_t buffer_sizes[] = 
    { 
-       image_bytes             // sizeof(buffer_image)  
+       image_bytes,        // sizeof(buffer_image)  
+       info_bytes          // sizeof( image_info )
+
    };
 
    // Read from array
    CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes)); 
 
-   check_results(buffer_image); 
+   check_results(buffer_image, image_info); 
 
    // Finalize the array
    CHECK_RC(tiledb_array_finalize(tiledb_array));
  
    /* Finalize context. */
    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
- 
+
    return 0;
 }

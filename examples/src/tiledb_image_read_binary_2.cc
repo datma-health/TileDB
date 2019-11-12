@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_image_read_binary_1.cc
+ * @file   tiledb_image_read_binary_2.cc
  *
  * @section LICENSE
  *
@@ -28,7 +28,7 @@
  * 
  * @section DESCRIPTION
  *
- * Example to read dense array holding 165x150 pixel image
+ * Example to read dense array holding whole 165x150 pixel image
  *
  */
 
@@ -66,7 +66,6 @@ void check_results(char *buffer_image, size_t num_bytes)
 }
 
 int main(int argc, char *argv[]) {
-#ifdef ENABLE_JPEG2K
    // Initialize context with home dir if specified in command line, else
    // initialize with the default configuration parameters
    TileDB_CTX* tiledb_ctx;
@@ -95,7 +94,7 @@ int main(int argc, char *argv[]) {
    size_t height = 150;
    size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
  
-   char *buffer_image = (char*)malloc(image_bytes);
+   int *buffer_image = (int*)malloc(image_bytes);
    void* buffers[] = { buffer_image };
    size_t buffer_sizes[] = 
    { 
@@ -105,7 +104,7 @@ int main(int argc, char *argv[]) {
    // Read from array
    CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes)); 
 
-   check_results(buffer_image, image_bytes); 
+   check_results((char*)buffer_image, image_bytes); 
 
    // Finalize the array
    CHECK_RC(tiledb_array_finalize(tiledb_array));
@@ -113,15 +112,10 @@ int main(int argc, char *argv[]) {
    /* Finalize context. */
    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
-/*
    FILE *bin_ptr;
    bin_ptr = fopen("tissue_decode.bin","wb");
    fwrite(buffer_image, image_bytes, 1, bin_ptr);
    fclose(bin_ptr);
-*/
 
-#else
-  printf("*** %s test unable to run; \n*** Enable JPEG2K library to execute\n", argv[0]);
-#endif
    return 0;
 }

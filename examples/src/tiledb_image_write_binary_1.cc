@@ -38,9 +38,9 @@
 
 using namespace std;
 
-char *read_image(const char* filename, size_t num_bytes)
+int *read_image(const char* filename, size_t num_bytes)
 {
-   char *image_buffer = (char *)malloc(num_bytes);
+   int *image_buffer = (int *)malloc(num_bytes);
    FILE *infile;
    infile = fopen(filename, "rb"); // r for read, b for binary
    fread(image_buffer, num_bytes, 1, infile);
@@ -50,7 +50,6 @@ char *read_image(const char* filename, size_t num_bytes)
 }
 
 int main(int argc, char *argv[]) {
-#ifdef ENABLE_JPEG2K
   // Initialize context with home dir if specified in command line, else
   // initialize with the default configuration parameters
   TileDB_CTX* tiledb_ctx;
@@ -81,7 +80,7 @@ int main(int argc, char *argv[]) {
 
   std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue150x165.bin";
 
-  char * buffer_image = read_image(filename.c_str(), image_bytes);
+  int * buffer_image = read_image(filename.c_str(), image_bytes);
 
   const void* buffers[] = { buffer_image };
   size_t buffer_sizes[] = 
@@ -98,8 +97,5 @@ int main(int argc, char *argv[]) {
   // Finalize context
   CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
-#else
-  printf("*** %s test unable to run; \n*** Enable JPEG2K library to execute\n", argv[0]);
-#endif
   return 0;
 }

@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_image_create_component.cc
+ * @file   tiledb_image_create_whole.cc
  *
  * @section LICENSE
  *
@@ -28,8 +28,8 @@
  * 
  * @section DESCRIPTION
  *
- * Example to create dense array to hold 300x300 pixel image of 
- *   3x3 color palette divided into component "planes"
+ * Example to create dense array to hold whole 300x300 pixel image of 
+ *   3x3 color palette
  */
 
 #include "examples.h"
@@ -47,16 +47,18 @@ int main(int argc, char *argv[]) {
   }
 
   // Prepare parameters for array schema
-  const char* array_name = "my_workspace/image_arrays/comp_image";
-  const char* attributes[] = { "image" };  // One attributes
+  const char* array_name = "my_workspace/image_arrays/wholeimage_attr";
+  const char* attributes[] = { "image", "info" };  // two attributes
   const char* dimensions[] = { "d1" };        // Single dimensions
   int64_t domain[] = 
   { 
-      1, 3                        // d1
+      1, 1                        // d1
   };                
+  int info_size = 8 * sizeof(int);
   const int cell_val_num[] = 
   { 
-      90003                      // image (300x300 + 3)
+      270003,                // image (3*300*300 + 3) integers
+      8                      // 8 values for size of image
   };
   const int compression[] = 
   { 
@@ -65,6 +67,7 @@ int main(int argc, char *argv[]) {
 #else
         TILEDB_NO_COMPRESSION,    // image as raw pixels
 #endif
+        TILEDB_NO_COMPRESSION,    // info - 8 integers
 
         TILEDB_NO_COMPRESSION     // coordinates
   };
@@ -74,21 +77,22 @@ int main(int argc, char *argv[]) {
   };               
   const int types[] = 
   { 
-      TILEDB_INT32,                // image
+      TILEDB_INT32,               // image
+      TILEDB_INT32,               // info
       TILEDB_INT64                // coordinates
   };
-
+  
 #ifndef ENABLE_JPEG2K
   printf("INFO: Image saved as raw pixels\n");
 #endif
-  
+
   // Set array schema
   TileDB_ArraySchema array_schema;
   CHECK_RC(tiledb_array_set_schema(
       &array_schema,              // Array schema struct 
       array_name,                 // Array name 
       attributes,                 // Attributes 
-      1,                          // Number of attributes 
+      2,                          // Number of attributes 
       1,                          // Capacity 
       TILEDB_ROW_MAJOR,           // Cell order 
       cell_val_num,               // Number of cell values per attribute  
