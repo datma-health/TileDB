@@ -80,7 +80,7 @@ void check_results(int *buffer_image)
    int Berrs[9] = {0,0,0,0,0,0,0,0,0};
 
 
-   printf("Expected Image Palette RGB values: %lu components\n", num_comps);
+   printf("Expected Image Palette RGB values: %d components\n", num_comps);
    printf("----------------------------\n");
    for (i = 0; i < 9; i+=3) {
      printf("| R: %3u | R: %3u | R: %3u |\n",

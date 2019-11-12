@@ -82,13 +82,13 @@ void check_results(int *buffer_image, int* image_info)
 printf("Tiling attributes:\n  Original comp, w, h : %d  %d x %d\n", num_comps, width, height);
 printf("  Number of partitions: %d\n", num_parts);
    if (num_parts > 1) {
-      printf("        %3ld x %3ld     %3ld x %3ld\n        %3d x %3d     %3d x %3d\n\n", tileW1, tileH1, tileW2, tileH1, tileW1, tileH2, tileW2, tileH2);
+      printf("        %3d x %3d     %3d x %3d\n        %3d x %3d     %3d x %3d\n\n", tileW1, tileH1, tileW2, tileH1, tileW1, tileH2, tileW2, tileH2);
    }
    else {
-      printf("        %3ld x %3ld                \n                               \n\n", tileW2, tileH2);
+      printf("        %3d x %3d                \n                               \n\n", tileW2, tileH2);
    }
 
-   printf("Expected Image Palette RGB values: %lu components\n", num_comps);
+   printf("Expected Image Palette RGB values: %d components\n", num_comps);
    printf("----------------------------\n");
    for (i = 0; i < 9; i+=3) {
      printf("| R: %3u | R: %3u | R: %3u |\n",
