@@ -115,6 +115,14 @@ std::string parent_dir(const std::string& path);
 std::string parent_dir(const std::string& path);
 
 /**
+ * Return current working directory
+ *
+ * @param tiledb_ctx TileDB Context
+ * return current working directory if it can be determined or empty string.
+ */
+std::string current_working_dir(const TileDB_CTX* tiledb_ctx);
+
+/**
  * Set working directory to dir
  *
  * @param tiledb_ctx TileDB Context
