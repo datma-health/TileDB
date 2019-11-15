@@ -56,9 +56,6 @@ install:
     - source $TRAVIS_BUILD_DIR/.travis/scripts/install_supported_codec.sh;
     - source $TRAVIS_BUILD_DIR/.travis/scripts/install_hadoop.sh;
 
-    # Install and Build OpenJPEG
-    - source $TRAVIS_BUILD_DIR/.travis/scripts/install_openjpeg.sh;
-
     # Build TileDB
     - rm -rf $TILEDB_BUILD_DIR
     - mkdir -p $TILEDB_BUILD_DIR
