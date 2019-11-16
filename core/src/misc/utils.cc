@@ -356,7 +356,12 @@ std::string current_dir(StorageFS *fs) {
 }
 
 int set_working_dir(StorageFS *fs, const std::string& dir) {
-  return fs->set_working_dir(dir);
+  if (fs->is_dir(dir)) {
+    return fs->set_working_dir(dir);
+  } else {
+    UTILS_ERROR("Failed to set_working_dir as "+dir+" does not exist");
+    return TILEDB_UT_ERR;
+  }
 }
 
 std::vector<std::string> get_dirs(StorageFS *fs, const std::string& dir) {
