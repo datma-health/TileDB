@@ -80,9 +80,7 @@ int main(int argc, char *argv[]) {
   
   // Set array schema
   TileDB_ArraySchema array_schema;
-#ifndef ENABLE_JPEG2K
-  printf("INFO: Image saved as raw pixels\n");
-#endif
+
   CHECK_RC(tiledb_array_set_schema(
       &array_schema,              // Array schema struct 
       array_name,                 // Array name 

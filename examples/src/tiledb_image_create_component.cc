@@ -78,10 +78,6 @@ int main(int argc, char *argv[]) {
       TILEDB_INT64                // coordinates
   };
 
-#ifndef ENABLE_JPEG2K
-  printf("INFO: Image saved as raw pixels\n");
-#endif
-  
   // Set array schema
   TileDB_ArraySchema array_schema;
   CHECK_RC(tiledb_array_set_schema(
