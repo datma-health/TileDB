@@ -356,5 +356,13 @@ TEST_CASE("Test array schema JPEG2K tile extents divisibilty", "[array_schema]")
       types                // Types
   );
   CHECK(rc != TILEDB_OK);
+
+  // Remove the temporary workspace
+  std::string command = "rm -rf ";
+  command.append(WORKSPACE);
+  rc = system(command.c_str());
+  CHECK(rc == 0);
+
 }
+
 #endif
