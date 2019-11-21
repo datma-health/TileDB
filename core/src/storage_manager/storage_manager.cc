@@ -294,6 +294,30 @@ int StorageManager::array_consolidate(const char* array_dir) {
 }
 
 int StorageManager::array_create(const ArraySchemaC* array_schema_c) const {
+  // Check image dimensions and tiling for JPEG2K compression
+  if (*(array_schema_c->compression_) == TILEDB_JPEG2K) {
+    int64_t *l_domain = static_cast<int64_t*>(array_schema_c->domain_);
+    int64_t *l_tile_extents = static_cast<int64_t*>(array_schema_c->tile_extents_);
+    // Width of image MUST be divisible by first tile extent
+    int pixels = l_domain[1] - l_domain[0] + 1; // width upper - lower bound
+    if (pixels % l_tile_extents[0] != 0) {      // divisible by tile width?
+      std::string errmsg = 
+          std::string("Cannot create array_schema; image width (" + std::to_string(pixels) + ") not divisible by tile width (" + std::to_string(l_tile_extents[0]) + ")");
+      PRINT_ERROR(errmsg);
+      tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
+      return TILEDB_SM_ERR;
+    }
+    // Height of image MUST be divisible by second tile extent
+    pixels = l_domain[3] - l_domain[2] + 1; // height upper - lower bound
+    if (pixels % l_tile_extents[1] != 0) {  // divisible by tile height
+      std::string errmsg = 
+          std::string("Cannot create array_schema; image height (" + std::to_string(pixels) + ") not divisible by tile height (" + std::to_string(l_tile_extents[1]) + ")");
+      PRINT_ERROR(errmsg);
+      tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
+      return TILEDB_SM_ERR;
+    }
+  }
+
   // Initialize array schema
   ArraySchema* array_schema = new ArraySchema(fs_);
   if(array_schema->init(array_schema_c) != TILEDB_AS_OK) {
