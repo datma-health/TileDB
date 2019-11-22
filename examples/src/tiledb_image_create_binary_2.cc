@@ -48,21 +48,27 @@ int main(int argc, char *argv[]) {
 
   // Prepare parameters for array schema
   const char* array_name = "my_workspace/image_arrays/tissue165150";
-  const char* attributes[] = { "image" };  // One attributes
-  const char* dimensions[] = { "d1" };        // Single dimensions
+  const char* attributes[] = { "R", "G", "B" };      // Three channels
+  const char* dimensions[] = { "width", "height" };  // 2-D image dimensions
   int64_t domain[] = 
   { 
-      1, 1                        // d1
+      0, 164,                        // width
+      0, 149                         // height
   };                
+
   const int cell_val_num[] = 
   { 
-      74253                      // image 
+      1, 1, 1                        // pixels per cell
   };
   const int compression[] = 
   { 
 #ifdef ENABLE_JPEG2K
-        TILEDB_JPEG2K,            // image
+        TILEDB_JPEG2K,            // R channel
+        TILEDB_JPEG2K,            // G channel
+        TILEDB_JPEG2K,            // B channel
 #else
+        TILEDB_NO_COMPRESSION,    // image as raw pixels
+        TILEDB_NO_COMPRESSION,    // image as raw pixels
         TILEDB_NO_COMPRESSION,    // image as raw pixels
 #endif
 
@@ -70,12 +76,15 @@ int main(int argc, char *argv[]) {
   };
   int64_t tile_extents[] = 
   { 
-      1                           // d1
+      165,                        // width
+      150                         // height
   };               
   const int types[] = 
   { 
-      TILEDB_INT32,                // image
-      TILEDB_INT64                // coordinates
+      TILEDB_INT32,                // R channel
+      TILEDB_INT32,                // G channel
+      TILEDB_INT32,                // B channel
+      TILEDB_INT64                 // coordinates
   };
   
   // Set array schema
@@ -84,7 +93,7 @@ int main(int argc, char *argv[]) {
       &array_schema,              // Array schema struct 
       array_name,                 // Array name 
       attributes,                 // Attributes 
-      1,                          // Number of attributes 
+      3,                          // Number of attributes 
       1,                          // Capacity 
       TILEDB_ROW_MAJOR,           // Cell order 
       cell_val_num,               // Number of cell values per attribute  
@@ -92,11 +101,11 @@ int main(int argc, char *argv[]) {
       NULL,                       // Compression level, use defaults
       1,                          // Dense array
       dimensions,                 // Dimensions
-      1,                          // Number of dimensions
+      2,                          // Number of dimensions
       domain,                     // Domain
-      2*sizeof(int64_t),          // Domain length in bytes
+      4*sizeof(int64_t),          // Domain length in bytes
       tile_extents,               // Tile extents
-      1*sizeof(int64_t),          // Tile extents length in bytes 
+      2*sizeof(int64_t),          // Tile extents length in bytes 
       TILEDB_ROW_MAJOR,           // Tile order
       types                       // Types
 				   ));

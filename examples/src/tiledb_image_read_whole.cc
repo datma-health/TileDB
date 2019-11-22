@@ -60,19 +60,7 @@ void check_results(int *buffer_image)
 
    // Print midpoint RGB value of each palette block and check
    int *l_data = buffer_image;
-   int num_comps, width, height;
-
-   num_comps = buffer_image[0];
-   if (num_comps != 3)  // known number of components
-      printf("** Header error: num_comps = %d, should be 3\n", num_comps);
-   width =  buffer_image[1];
-   if (width != 300)  // known width of image
-      printf("** Header error: width = %d, should be 300\n", width);
-   height =  buffer_image[2];
-   if (height != 300)  // known height of image
-      printf("** Header error: height = %d, should be 300\n", height);
-
-   l_data += 3; // skip over header
+   int num_comps = 3, width = 300, height = 300;
 
    size_t c, i, j, k;
    int Rerrs[9] = {0,0,0,0,0,0,0,0,0};
@@ -80,7 +68,7 @@ void check_results(int *buffer_image)
    int Berrs[9] = {0,0,0,0,0,0,0,0,0};
 
 
-   printf("Expected Image Palette RGB values: %d components\n", num_comps);
+   printf("Expected Image Palette RGB values:\n");
    printf("----------------------------\n");
    for (i = 0; i < 9; i+=3) {
      printf("| R: %3u | R: %3u | R: %3u |\n",
@@ -148,13 +136,19 @@ int main(int argc, char *argv[]) {
    size_t num_comps = 3;
    size_t width  = 300;
    size_t height = 300;
-   size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
+   size_t full_image_bytes = (num_comps * width * height) * sizeof(int);
+   size_t buffer_image_bytes = (width * height) * sizeof(int);
  
-   int *buffer_image = (int*)malloc(image_bytes);
-   void* buffers[] = { buffer_image };
+   int *buffer_image = (int*)malloc(full_image_bytes);
+   void* buffers[] = { &buffer_image[0*width*height],  // R buffer
+                       &buffer_image[1*width*height],  // G buffer
+                       &buffer_image[2*width*height]   // B buffer
+                     };
    size_t buffer_sizes[] = 
    { 
-       image_bytes             // sizeof(buffer_image)  
+       buffer_image_bytes,            // sizeof(R buffer_image)  
+       buffer_image_bytes,            // sizeof(G buffer_image)  
+       buffer_image_bytes             // sizeof(B buffer_image)  
    };
 
    // Read from array

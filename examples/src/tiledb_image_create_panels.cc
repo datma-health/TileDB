@@ -48,22 +48,26 @@ int main(int argc, char *argv[]) {
 
   // Prepare parameters for array schema
   const char* array_name = "my_workspace/image_arrays/panelimage";
-  const char* attributes[] = { "image" };  // One attributes
-  const char* dimensions[] = { "d1", "d2" };        // Single dimensions
+  const char* attributes[] = { "R", "G", "B" };  // Three attributes
+  const char* dimensions[] = { "width", "height" };        // 2-D image dimensions
   int64_t domain[] = 
   { 
-      1, 3,                       // d1
-      1, 3                        // d2
+      0, 299,                       // width
+      0, 299                        // height
   };                
   const int cell_val_num[] = 
   { 
-     30003                       // image (100*100*3 + 3)
+     1, 1, 1                       // pixel as cell
   };
   const int compression[] = 
   { 
 #ifdef ENABLE_JPEG2K
-        TILEDB_JPEG2K,            // image
+        TILEDB_JPEG2K,            // R channel
+        TILEDB_JPEG2K,            // G channel
+        TILEDB_JPEG2K,            // B channel
 #else
+        TILEDB_NO_COMPRESSION,    // image as raw pixels
+        TILEDB_NO_COMPRESSION,    // image as raw pixels
         TILEDB_NO_COMPRESSION,    // image as raw pixels
 #endif
 
@@ -71,12 +75,14 @@ int main(int argc, char *argv[]) {
   };
   int64_t tile_extents[] = 
   { 
-      1,                          // d1
-      1                           // d2
+      100,                          // width
+      100                           // height
   };               
   const int types[] = 
   { 
-      TILEDB_INT32,               // image
+      TILEDB_INT32,               // R channel
+      TILEDB_INT32,               // G channel
+      TILEDB_INT32,               // B channel
       TILEDB_INT64                // coordinates
   };
   
@@ -86,7 +92,7 @@ int main(int argc, char *argv[]) {
       &array_schema,              // Array schema struct 
       array_name,                 // Array name 
       attributes,                 // Attributes 
-      1,                          // Number of attributes 
+      3,                          // Number of attributes 
       1,                          // Capacity 
       TILEDB_ROW_MAJOR,           // Cell order 
       cell_val_num,               // Number of cell values per attribute  

@@ -76,16 +76,25 @@ int main(int argc, char *argv[]) {
   size_t num_comps = 3;
   size_t width  = 150;
   size_t height = 165;
-  size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
+  size_t full_image_bytes = (num_comps * width * height) * sizeof(int);
+  size_t buffer_image_bytes = (width * height) * sizeof(int);
 
   std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue150x165.bin";
 
-  int * buffer_image = read_image(filename.c_str(), image_bytes);
+  int * buffer_image = read_image(filename.c_str(), full_image_bytes);
 
-  const void* buffers[] = { buffer_image };
+  const void* buffers[] = 
+  { 
+      &buffer_image[0*width*height],    // R buffer
+      &buffer_image[1*width*height],    // G buffer
+      &buffer_image[2*width*height]     // B buffer
+  };
+
   size_t buffer_sizes[] = 
   { 
-      image_bytes        // sizeof( buffer_image )  
+      buffer_image_bytes,       // sizeof( R buffer_image )  
+      buffer_image_bytes,       // sizeof( G buffer_image )  
+      buffer_image_bytes        // sizeof( B buffer_image )  
   };
 
   // Write to array

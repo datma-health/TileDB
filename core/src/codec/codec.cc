@@ -107,8 +107,10 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
     return new CodecLZ4(compression_level);
 #endif
 #ifdef ENABLE_JPEG2K
-  case TILEDB_JPEG2K:
-    return new CodecJPEG2K(compression_level);
+  case TILEDB_JPEG2K: {
+    int64_t* tile_dimensions = (int64_t*)array_schema->tile_extents();
+    return new CodecJPEG2K(compression_level, tile_dimensions);
+  }
 #endif
 #ifdef ENABLE_BLOSC
   case TILEDB_BLOSC:

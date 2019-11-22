@@ -93,19 +93,28 @@ int main(int argc, char *argv[]) {
    size_t num_comps = 3;
    size_t width  = 150;
    size_t height = 165;
-   size_t image_bytes = (num_comps * width * height + 3) * sizeof(int);
+   size_t full_image_bytes = (num_comps * width * height) * sizeof(int);
+   size_t buffer_image_bytes = width * height * sizeof(int);
  
-   int *buffer_image = (int*)malloc(image_bytes);
-   void* buffers[] = { buffer_image };
+   int *buffer_image = (int*)malloc(full_image_bytes);
+   void* buffers[] = 
+   { 
+       &buffer_image[0*width*height],   // R buffer
+       &buffer_image[1*width*height],   // G buffer
+       &buffer_image[2*width*height]    // B buffer
+   };
+
    size_t buffer_sizes[] = 
    { 
-       image_bytes             // sizeof(buffer_image)  
+       buffer_image_bytes,            // sizeof(R buffer_image)  
+       buffer_image_bytes,            // sizeof(G buffer_image)  
+       buffer_image_bytes             // sizeof(B buffer_image)  
    };
 
    // Read from array
    CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes)); 
 
-   check_results((char*)buffer_image, image_bytes); 
+   check_results((char*)buffer_image, full_image_bytes); 
 
    // Finalize the array
    CHECK_RC(tiledb_array_finalize(tiledb_array));
@@ -115,7 +124,7 @@ int main(int argc, char *argv[]) {
 
    FILE *bin_ptr;
    bin_ptr = fopen("tissue_decode.bin","wb");
-   fwrite(buffer_image, image_bytes, 1, bin_ptr);
+   fwrite(buffer_image, full_image_bytes, 1, bin_ptr);
    fclose(bin_ptr);
 
    return 0;

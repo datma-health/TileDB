@@ -76,10 +76,13 @@ JPEG2K_EXTERN_DECL void (*opj_destroy_codec)(opj_codec_t *);
 class CodecJPEG2K : public Codec {
  public:
   
-  CodecJPEG2K(int compression_level):Codec(compression_level) {
+  CodecJPEG2K(int compression_level, int64_t* tile_dims):Codec(compression_level) {
     static bool loaded = false;
     static std::mutex loading;
     
+    tile_image_width_ = tile_dims[0];
+    tile_image_height_ = tile_dims[1];
+
     if (!loaded) {
       loading.lock();
       
@@ -136,6 +139,9 @@ class CodecJPEG2K : public Codec {
 
   int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
   
+private:
+  int64_t tile_image_width_;
+  int64_t tile_image_height_;
 };
 
 #endif /*__CODEC_JPEG200_H__*/
