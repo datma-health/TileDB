@@ -120,6 +120,226 @@ bool DenseArrayTestFixture::check_buffer_after_updates(
   return true;
 }
 
+template <typename T> 
+void* create_buffer_for_domain(int32_t domain_size, T** buffer, size_t* bytes) {
+  T *typed_buffer= *buffer;
+  typed_buffer = new T[domain_size];
+  *bytes = domain_size*sizeof(T);
+  for(int32_t i = 0; i < domain_size; ++i)
+    typed_buffer[i] = (T)i;
+  return reinterpret_cast<void *>(typed_buffer);
+}
+
+template <typename T>
+void clear_buffer_for_domain(int32_t domain_size, T* buffer) {
+  for(int32_t i = 0; i < domain_size; ++i)
+    buffer[i] = (T)0;
+}
+
+template <typename T>
+void validate_and_cleanup_buffer_for_domain(int32_t domain_size, T* buffer) {
+  for(int32_t i = 0; i < domain_size; ++i)
+    CHECK(buffer[i] == (T)i);
+  delete buffer;
+}
+
+int DenseArrayTestFixture::create_dense_array_1D(
+    const int attribute_type,
+    const int32_t tile_extent,
+    const int32_t domain_lo,
+    const int32_t domain_hi,
+    const int cell_order,
+    const int tile_order) {
+  // Error code
+  int rc;
+
+  // Setup array
+  const int attribute_num = 1;
+  const char* attributes[] = { "MY_ATTRIBUTE" };
+  const char* dimensions[] = { "X"};
+  int32_t domain[] = { domain_lo, domain_hi };
+  int32_t tile_extents[] = { tile_extent };
+  const int types[] = { attribute_type, TILEDB_INT32 };
+  int compression[] = { TILEDB_NO_COMPRESSION };
+  int compression_level[] = { 0 };
+  const int dense = 1;
+
+  // Set the array schema
+  rc = tiledb_array_set_schema(
+      &array_schema_,
+           array_name_.c_str(),
+           attributes,
+           attribute_num,
+           0,
+           cell_order,
+           NULL,
+           compression,
+	   compression_level,
+           dense,
+           dimensions,
+           1,
+           domain,
+           2*sizeof(int32_t),
+           tile_extents,
+           sizeof(int32_t),
+           tile_order,
+           types);
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  // Create the array
+  rc = tiledb_array_create(tiledb_ctx_, &array_schema_);
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  // Free array schema
+  rc = tiledb_array_free_schema(&array_schema_);
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  int32_t domain_size = domain_hi-domain_lo+1;
+  size_t nbytes = domain_size;
+  void *buffer = nullptr;
+
+  if (attribute_type == TILEDB_CHAR) {
+    char *typed_buffer = reinterpret_cast<char *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_INT8) {
+    int8_t *typed_buffer = reinterpret_cast<int8_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_INT16) {
+    int16_t *typed_buffer = reinterpret_cast<int16_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_INT32) {
+    int32_t *typed_buffer = reinterpret_cast<int32_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_INT64) {
+    int64_t *typed_buffer = reinterpret_cast<int64_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_UINT8) {
+    uint8_t *typed_buffer = reinterpret_cast<uint8_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_UINT16) {
+    uint16_t *typed_buffer = reinterpret_cast<uint16_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_UINT32) {
+    uint32_t *typed_buffer = reinterpret_cast<uint32_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_UINT64) {
+    uint64_t *typed_buffer = reinterpret_cast<uint64_t *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_FLOAT32) {
+    float *typed_buffer = reinterpret_cast<float *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  } else if (attribute_type == TILEDB_FLOAT64) {
+    double *typed_buffer = reinterpret_cast<double *>(buffer);
+    buffer = create_buffer_for_domain(domain_size, &typed_buffer, &nbytes);
+  }
+
+  CHECK(buffer != nullptr);
+  
+  std::vector<void *> buffers;
+  std::vector<size_t> buffer_sizes;
+  buffers.push_back(buffer);
+  buffer_sizes.push_back(nbytes);
+  
+  // Intialize array
+  TileDB_Array* tiledb_array;
+  rc = tiledb_array_init(
+           tiledb_ctx_,
+           &tiledb_array,
+           array_name_.c_str(),
+           TILEDB_ARRAY_WRITE,
+           NULL,
+           NULL,
+           0);   
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  // Write array
+  rc = tiledb_array_write(tiledb_array, const_cast<const void **>(buffers.data()), buffer_sizes.data());
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  // Finalize the array
+  rc = tiledb_array_finalize(tiledb_array);
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  // Clear buffer
+  if (attribute_type == TILEDB_CHAR) { 
+    clear_buffer_for_domain(domain_size, reinterpret_cast<char *>(buffer));
+  } else if (attribute_type == TILEDB_INT8) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<int8_t *>(buffer));
+  } else if (attribute_type == TILEDB_INT16) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<int16_t *>(buffer));
+  } else if (attribute_type == TILEDB_INT32) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<int32_t *>(buffer));
+  } else if (attribute_type == TILEDB_INT64) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<int64_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT8) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<uint8_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT16) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<uint16_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT32) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<uint32_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT64) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<uint64_t *>(buffer));
+  } else if (attribute_type == TILEDB_FLOAT32) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<float *>(buffer));
+  } else if (attribute_type == TILEDB_FLOAT64) {
+    clear_buffer_for_domain(domain_size, reinterpret_cast<double *>(buffer));
+  }
+
+  // Read array
+  rc = tiledb_array_init(
+           tiledb_ctx_,
+           &tiledb_array,
+           array_name_.c_str(),
+           TILEDB_ARRAY_READ,
+           NULL,
+           NULL,
+           0);   
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  rc = tiledb_array_read(tiledb_array, buffers.data(), buffer_sizes.data());
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  // Finalize the array
+  rc = tiledb_array_finalize(tiledb_array);
+  if(rc != TILEDB_OK)
+    return TILEDB_ERR;
+
+  // Check buffer
+  if (attribute_type == TILEDB_CHAR) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<char *>(buffer));
+  } else if (attribute_type == TILEDB_INT8) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<int8_t *>(buffer));
+  } else if (attribute_type == TILEDB_INT16) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<int16_t *>(buffer));
+  } else if (attribute_type == TILEDB_INT32) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<int32_t *>(buffer));
+  } else if (attribute_type == TILEDB_INT64) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<int64_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT8) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<uint8_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT16) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<uint16_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT32) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<uint32_t *>(buffer));
+  } else if (attribute_type == TILEDB_UINT64) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<uint64_t *>(buffer)); 
+  } else if (attribute_type == TILEDB_FLOAT32) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<float *>(buffer));
+  } else if (attribute_type == TILEDB_FLOAT64) {
+    validate_and_cleanup_buffer_for_domain(domain_size, reinterpret_cast<double *>(buffer));
+  }
+  
+  return TILEDB_OK;
+}
+
 int DenseArrayTestFixture::create_dense_array_2D(
     const int64_t tile_extent_0,
     const int64_t tile_extent_1,
@@ -477,6 +697,53 @@ int DenseArrayTestFixture::write_dense_subarray_2D(
 /* ****************************** */
 /*             TESTS              */
 /* ****************************** */
+
+TEST_CASE_METHOD(DenseArrayTestFixture, "Test Dense 1D Array with attribute types", "[test_dense_1D_array]") {
+  int rc;
+  set_array_name("dense_test_char_100x100");
+  rc = create_dense_array_1D(TILEDB_CHAR, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+  
+  set_array_name("dense_test_int8_100x100");
+  rc = create_dense_array_1D(TILEDB_INT8, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_int16_100x100");
+  rc = create_dense_array_1D(TILEDB_INT16, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_int32_100x100");
+  rc = create_dense_array_1D(TILEDB_INT32, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_int64_100x100");
+  rc = create_dense_array_1D(TILEDB_INT64, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_uint8_100x100");
+  rc = create_dense_array_1D(TILEDB_UINT8, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_uint16_100x100");
+  rc = create_dense_array_1D(TILEDB_UINT16, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_uint32_100x100");
+  rc = create_dense_array_1D(TILEDB_UINT32, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_uint64_100x100");
+  rc = create_dense_array_1D(TILEDB_UINT64, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_float32_100x100");
+  rc = create_dense_array_1D(TILEDB_FLOAT32, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+
+  set_array_name("dense_test_float64_100x100");
+  rc = create_dense_array_1D(TILEDB_FLOAT64, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
+  CHECK_RC(rc, TILEDB_OK);
+}
 
 
 /**
