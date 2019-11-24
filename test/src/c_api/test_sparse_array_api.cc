@@ -154,10 +154,11 @@ int SparseArrayTestFixture::create_sparse_array_1D(
   size_t nbytes = domain_size/10;
 
   int32_t* buffer_coords = new int32_t[nbytes];
-  for (int32_t i = 0; i < nbytes; ++i) {
+  for (int32_t i = 0; i < domain_size/10; ++i) {
     buffer_coords[i] = i;
   }
   size_t buffer_coords_size = nbytes * sizeof(int32_t);
+  create_buffer(nbytes, &buffer_coords, &nbytes);
   
   void *buffer = nullptr;
   if (attribute_type == TILEDB_CHAR) {

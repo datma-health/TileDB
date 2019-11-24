@@ -160,8 +160,8 @@ int DenseArrayTestFixture::create_dense_array_1D(
   int32_t domain[] = { domain_lo, domain_hi };
   int32_t tile_extents[] = { tile_extent };
   const int types[] = { attribute_type, TILEDB_INT32 };
-  int compression[] = { TILEDB_NO_COMPRESSION };
-  int compression_level[] = { 0 };
+  int compression[] = { TILEDB_NO_COMPRESSION, TILEDB_NO_COMPRESSION };
+  int compression_level[] = { 0, 0 };
   const int dense = 1;
 
   // Set the array schema
