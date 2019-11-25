@@ -54,7 +54,8 @@ void check_results(char *buffer_image, size_t num_bytes)
       b = buffer_image[i];
       o = original_image[i];
       if (b != o) {
-         fprintf(errfile, "%8lu: %4u  %4u   %2dc\n", i, b, o, abs(b - o));
+         unsigned int d = (b > o) ? b-o : o-b; 
+         fprintf(errfile, "%8lu: %4u  %4u   %2dc\n", i, b, o, d);
          ++errors;
       }
    }
