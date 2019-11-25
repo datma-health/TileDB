@@ -35,6 +35,7 @@
 #include <iostream>
 #include <fstream>
 #include "examples.h"
+#include <stdlib.h>
 
 using namespace std;
 

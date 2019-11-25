@@ -33,50 +33,7 @@
  */
 
 #include "examples.h"
-/**
-int *build_image(size_t num_comps, size_t width, size_t height)
-{
-   size_t panel_bytes = (num_comps * width * height + 3) * sizeof(int);
-   size_t buffer_size = 9 * panel_bytes;
-   int *image_buffer = (int *)malloc(buffer_size);
-   int *l_data = image_buffer;
-
-   int R[10], G[10], B[10];
-//       Black,        Red,          Orange
-   R[0] =   0;   R[1] = 201;   R[2] = 234;
-   G[0] =   0;   G[1] =  23;   G[2] =  85;
-   B[0] =   0;   B[1] =  30;   B[2] =   6;
-
-//       Pink,         White,        Yellow
-   R[3] = 233;   R[4] = 255;   R[5] = 255;
-   G[3] =  82;   G[4] = 255;   G[5] = 234;
-   B[3] = 149;   B[4] = 255;   B[5] =   0;
-
-//       Purple,       Blue,         Green
-   R[6] = 101;   R[7] =  12;   R[8] =   0;
-   G[6] =  49;   G[7] =   2;   G[8] =  85;
-   B[6] = 142;   B[7] = 196;   B[8] =  46;
-
-//       Grey (unused)
-   R[9] = 130;
-   G[9] = 130;
-   B[9] = 130;
-
-   for (int panel = 0; panel < 9; ++panel) {
-      for (size_t i = 0; i < width*height; ++i) {
-         *l_data = R[panel]; ++l_data;
-      }
-      for (size_t j = 0; j < width*height; ++j) {
-         *l_data = G[panel]; ++l_data;
-      }
-      for (size_t k = 0; k < width*height; ++k) {
-         *l_data = B[panel]; ++l_data;
-      }
-   }
-
-   return image_buffer;
-}
-**/
+#include <stdlib.h>
 
 int *build_image(size_t num_comps, size_t width, size_t height)
 {

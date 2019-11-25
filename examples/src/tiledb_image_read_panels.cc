@@ -33,6 +33,7 @@
  */
 
 #include "examples.h"
+#include <stdlib.h>
 
 void check_results(int *buffer_image)
 {

@@ -33,6 +33,7 @@
  */
 
 #include "examples.h"
+#include <stdlib.h>
 
 int *build_image(size_t num_comps, size_t width, size_t height)
 {
