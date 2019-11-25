@@ -1626,7 +1626,7 @@ void ArraySortedReadState::handle_copy_requests_sparse() {
 void ArraySortedReadState::init_aio_requests() {
   for(int i=0; i<2; ++i) {
     aio_data_[i] = { i, 0, this };
-    aio_request_[i] = {};
+    memset(&aio_request_[i], 0, sizeof(AIO_Request));;
     aio_request_[i].buffer_sizes_ = buffer_sizes_tmp_[i];
     aio_request_[i].buffers_ = buffers_[i];
     aio_request_[i].mode_ = TILEDB_ARRAY_READ;

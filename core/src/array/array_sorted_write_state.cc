@@ -1040,7 +1040,7 @@ void ArraySortedWriteState::fill_with_empty<char>(int bid) {
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
   char empty = TILEDB_EMPTY_CHAR;
 
-  // Fill with empty values
+  // Fill with empty values_
   size_t offset = 0;
   for(int64_t i=0; offset < local_buffer_size; offset += sizeof(char), ++i)
     local_buffer[i] = empty;
@@ -1049,9 +1049,9 @@ void ArraySortedWriteState::fill_with_empty<char>(int bid) {
 template<>
 void ArraySortedWriteState::fill_with_empty<int8_t>(int bid) {
   // For easy reference
-  int* local_buffer = (int*) copy_state_.buffers_[copy_id_][bid];
+  int8_t* local_buffer = (int8_t*) copy_state_.buffers_[copy_id_][bid];
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
-  int empty = TILEDB_EMPTY_INT8;
+  int8_t empty = TILEDB_EMPTY_INT8;
 
   // Fill with empty values
   size_t offset = 0;
@@ -1062,9 +1062,9 @@ void ArraySortedWriteState::fill_with_empty<int8_t>(int bid) {
 template<>
 void ArraySortedWriteState::fill_with_empty<int16_t>(int bid) {
   // For easy reference
-  int64_t* local_buffer = (int64_t*) copy_state_.buffers_[copy_id_][bid];
+  int16_t* local_buffer = (int16_t*) copy_state_.buffers_[copy_id_][bid];
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
-  int64_t empty = TILEDB_EMPTY_INT16;
+  int16_t empty = TILEDB_EMPTY_INT16;
 
   // Fill with empty values
   size_t offset = 0;
@@ -1075,9 +1075,9 @@ void ArraySortedWriteState::fill_with_empty<int16_t>(int bid) {
 template<>
 void ArraySortedWriteState::fill_with_empty<int32_t>(int bid) {
   // For easy reference
-  int* local_buffer = (int*) copy_state_.buffers_[copy_id_][bid];
+  int32_t* local_buffer = (int32_t*) copy_state_.buffers_[copy_id_][bid];
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
-  int empty = TILEDB_EMPTY_INT32;
+  int32_t empty = TILEDB_EMPTY_INT32;
 
   // Fill with empty values
   size_t offset = 0;
@@ -1101,9 +1101,9 @@ void ArraySortedWriteState::fill_with_empty<int64_t>(int bid) {
 template<>
 void ArraySortedWriteState::fill_with_empty<uint8_t>(int bid) {
   // For easy reference
-  int* local_buffer = (int*) copy_state_.buffers_[copy_id_][bid];
+  uint8_t* local_buffer = (uint8_t*) copy_state_.buffers_[copy_id_][bid];
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
-  int empty = TILEDB_EMPTY_UINT8;
+  uint8_t empty = TILEDB_EMPTY_UINT8;
 
   // Fill with empty values
   size_t offset = 0;
@@ -1114,9 +1114,9 @@ void ArraySortedWriteState::fill_with_empty<uint8_t>(int bid) {
 template<>
 void ArraySortedWriteState::fill_with_empty<uint16_t>(int bid) {
   // For easy reference
-  int64_t* local_buffer = (int64_t*) copy_state_.buffers_[copy_id_][bid];
+  uint16_t* local_buffer = (uint16_t*) copy_state_.buffers_[copy_id_][bid];
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
-  int64_t empty = TILEDB_EMPTY_UINT16;
+  uint16_t empty = TILEDB_EMPTY_UINT16;
 
   // Fill with empty values
   size_t offset = 0;
@@ -1127,9 +1127,9 @@ void ArraySortedWriteState::fill_with_empty<uint16_t>(int bid) {
 template<>
 void ArraySortedWriteState::fill_with_empty<uint32_t>(int bid) {
   // For easy reference
-  int* local_buffer = (int*) copy_state_.buffers_[copy_id_][bid];
+  uint32_t* local_buffer = (uint32_t*) copy_state_.buffers_[copy_id_][bid];
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
-  int empty = TILEDB_EMPTY_UINT32;
+  uint32_t empty = TILEDB_EMPTY_UINT32;
 
   // Fill with empty values
   size_t offset = 0;
@@ -1140,9 +1140,9 @@ void ArraySortedWriteState::fill_with_empty<uint32_t>(int bid) {
 template<>
 void ArraySortedWriteState::fill_with_empty<uint64_t>(int bid) {
   // For easy reference
-  int64_t* local_buffer = (int64_t*) copy_state_.buffers_[copy_id_][bid];
+  uint64_t* local_buffer = (uint64_t*) copy_state_.buffers_[copy_id_][bid];
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
-  int64_t empty = TILEDB_EMPTY_UINT64;
+  uint64_t empty = TILEDB_EMPTY_UINT64;
 
   // Fill with empty values
   size_t offset = 0;
@@ -1444,7 +1444,7 @@ void ArraySortedWriteState::init_aio_requests() {
   // Initialize AIO requests
   for(int i=0; i<2; ++i) {
     aio_data_[i] = { i, 0, this };
-    aio_request_[i] = {};
+    memset(&aio_request_[i], 0, sizeof(AIO_Request));
     aio_request_[i].id_ = (separate_fragments) ? aio_cnt_++ : 0;
     aio_request_[i].buffer_sizes_ = copy_state_.buffer_offsets_[i];
     aio_request_[i].buffers_ = copy_state_.buffers_[i];
