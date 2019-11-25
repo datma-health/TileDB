@@ -1040,7 +1040,7 @@ void ArraySortedWriteState::fill_with_empty<char>(int bid) {
   size_t local_buffer_size = copy_state_.buffer_sizes_[copy_id_][bid];
   char empty = TILEDB_EMPTY_CHAR;
 
-  // Fill with empty values_
+  // Fill with empty values
   size_t offset = 0;
   for(int64_t i=0; offset < local_buffer_size; offset += sizeof(char), ++i)
     local_buffer[i] = empty;
