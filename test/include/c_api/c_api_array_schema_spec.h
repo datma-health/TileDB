@@ -75,7 +75,9 @@ class ArraySchemaTestFixture {
    *
    * @return TILEDB_OK on success and TILEDB_ERR on error.
    */
-  int create_dense_array();
+  int create_dense_array(std::string array_name, int attribute_datatype, int compression_type);
+
+  void check_dense_array(std::string array_name);
 
 
   /* ********************************* */

@@ -101,7 +101,7 @@ int CodecRLE::decompress_tile(unsigned char* tile_compressed,  size_t tile_compr
   int rc;
   if(!is_coords_) { 
     rc = RLE_decompress(
-             (unsigned char*) tile_compressed_, 
+             (unsigned char*) tile_compressed,
              tile_compressed_size,
              tile, 
              tile_size,
@@ -109,7 +109,7 @@ int CodecRLE::decompress_tile(unsigned char* tile_compressed,  size_t tile_compr
   } else {
     if(cell_order_ == TILEDB_ROW_MAJOR) {
       rc = RLE_decompress_coords_row(
-               (unsigned char*) tile_compressed_, 
+               (unsigned char*) tile_compressed,
                tile_compressed_size,
                tile, 
                tile_size,
@@ -117,7 +117,7 @@ int CodecRLE::decompress_tile(unsigned char* tile_compressed,  size_t tile_compr
                dim_num_);
     } else if(cell_order_ == TILEDB_COL_MAJOR) {
       rc = RLE_compress_coords_col(
-               (unsigned char*) tile_compressed_, 
+               (unsigned char*) tile_compressed, 
                tile_compressed_size,
                tile, 
                tile_size,
