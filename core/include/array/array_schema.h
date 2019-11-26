@@ -440,9 +440,10 @@ class ArraySchema {
    * Sets the types. There should be one type per attribute plus one (the last
    * one) for the coordinates. 
    * The supported types for the attributes are:
-   *     - TILEDB_CHAR
-   *     - TILEDB_INT32
-   *     - TILEDB_INT64
+   *     - TILEDB_CHAR, TILEDB_INT8, TILEDB_UINT8
+   *     - TILEDB_INT16, TILEDB_UINT16
+   *     - TILEDB_INT32, TILEDB_UINT32
+   *     - TILEDB_INT64, TILDB_UINT64
    *     - TILEDB_FLOAT32
    *     - TILEDB_FLOAT64
    *

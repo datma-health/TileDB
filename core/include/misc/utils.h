@@ -924,7 +924,25 @@ inline T get_tiledb_empty_value();
 
 //Template specialization for get_tiledb_empty_value()
 template<>
-inline int get_tiledb_empty_value()
+inline char get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_CHAR;
+}
+
+template<>
+inline int8_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_INT8;
+}
+
+template<>
+inline int16_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_INT16;
+}
+
+template<>
+inline int32_t get_tiledb_empty_value()
 {
   return TILEDB_EMPTY_INT32;
 }
@@ -933,6 +951,30 @@ template<>
 inline int64_t get_tiledb_empty_value()
 {
   return TILEDB_EMPTY_INT64;
+}
+
+template<>
+inline uint8_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT8;
+}
+
+template<>
+inline uint16_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT16;
+}
+
+template<>
+inline uint32_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT32;
+}
+
+template<>
+inline uint64_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT64;
 }
 
 template<>
@@ -945,12 +987,6 @@ template<>
 inline double get_tiledb_empty_value()
 {
   return TILEDB_EMPTY_FLOAT64;
-}
-
-template<>
-inline char get_tiledb_empty_value()
-{
-  return TILEDB_EMPTY_CHAR;
 }
 
 #endif

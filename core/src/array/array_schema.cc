@@ -449,10 +449,22 @@ void ArraySchema::print() const {
   for(int i=0; i<attribute_num_; ++i) {
     if(types_[i] == TILEDB_CHAR) {
       std::cout << "\t" << attributes_[i] << ": char[";
+    } else if(types_[i] == TILEDB_INT8) {
+      std::cout << "\t" << attributes_[i] << ": int8[";
+    } else if(types_[i] == TILEDB_INT16) {
+      std::cout << "\t" << attributes_[i] << ": int16[";
     } else if(types_[i] == TILEDB_INT32) {
       std::cout << "\t" << attributes_[i] << ": int32[";
     } else if(types_[i] == TILEDB_INT64) {
       std::cout << "\t" << attributes_[i] << ": int64[";
+    } else if(types_[i] == TILEDB_UINT8) {
+      std::cout << "\t" << attributes_[i] << ": uint8[";
+    } else if(types_[i] == TILEDB_UINT16) {
+      std::cout << "\t" << attributes_[i] << ": uint16[";
+    } else if(types_[i] == TILEDB_UINT32) {
+      std::cout << "\t" << attributes_[i] << ": uint32[";
+    } else if(types_[i] == TILEDB_UINT64) {
+      std::cout << "\t" << attributes_[i] << ": uint64[";
     } else if(types_[i] == TILEDB_FLOAT32) {
       std::cout << "\t" << attributes_[i] << ": float32[";
     } else if(types_[i] == TILEDB_FLOAT64) {
@@ -1686,8 +1698,15 @@ int ArraySchema::set_types(const int* types) {
   
   // Set attribute types
   for(int i=0; i<attribute_num_; ++i) { 
-    if(types[i] != TILEDB_INT32 &&
+    if(types[i] != TILEDB_CHAR &&
+       types[i] != TILEDB_INT8 &&
+       types[i] != TILEDB_INT16 &&
+       types[i] != TILEDB_INT32 &&
        types[i] != TILEDB_INT64 &&
+       types[i] != TILEDB_UINT8 &&
+       types[i] != TILEDB_UINT16 &&
+       types[i] != TILEDB_UINT32 &&
+       types[i] != TILEDB_UINT64 &&
        types[i] != TILEDB_FLOAT32 &&
        types[i] != TILEDB_FLOAT64 &&
        types[i] != TILEDB_CHAR) {
@@ -2372,10 +2391,22 @@ size_t ArraySchema::compute_cell_size(int i) const {
   if(i < attribute_num_) {
     if(types_[i] == TILEDB_CHAR)
       size = cell_val_num_[i] * sizeof(char);
+    else if(types_[i] == TILEDB_INT8)
+      size = cell_val_num_[i] * sizeof(int8_t);
+    else if(types_[i] == TILEDB_INT16)
+      size = cell_val_num_[i] * sizeof(int16_t);
     else if(types_[i] == TILEDB_INT32)
-      size = cell_val_num_[i] * sizeof(int);
+      size = cell_val_num_[i] * sizeof(int32_t);
     else if(types_[i] == TILEDB_INT64)
       size = cell_val_num_[i] * sizeof(int64_t);
+    else if(types_[i] == TILEDB_UINT8)
+      size = cell_val_num_[i] * sizeof(uint8_t);
+    else if(types_[i] == TILEDB_UINT16)
+      size = cell_val_num_[i] * sizeof(uint16_t);
+    else if(types_[i] == TILEDB_UINT32)
+      size = cell_val_num_[i] * sizeof(uint32_t);
+    else if(types_[i] == TILEDB_UINT64)
+      size = cell_val_num_[i] * sizeof(uint64_t);
     else if(types_[i] == TILEDB_FLOAT32)
       size = cell_val_num_[i] * sizeof(float);
     else if(types_[i] == TILEDB_FLOAT64)
@@ -2500,10 +2531,22 @@ size_t ArraySchema::compute_type_size(int i) const {
 
   if(types_[i] == TILEDB_CHAR) {
     return sizeof(char);
+  } else if(types_[i] == TILEDB_INT8) {
+     return sizeof(int8_t);
+  } else if(types_[i] == TILEDB_INT16) {
+    return sizeof(int16_t);
   } else if(types_[i] == TILEDB_INT32) {
-    return sizeof(int);
+    return sizeof(int32_t);
   } else if(types_[i] == TILEDB_INT64) {
     return sizeof(int64_t);
+  } else if(types_[i] == TILEDB_UINT8) {
+     return sizeof(uint8_t);
+  } else if(types_[i] == TILEDB_UINT16) {
+    return sizeof(uint16_t);
+  } else if(types_[i] == TILEDB_UINT32) {
+    return sizeof(uint32_t);
+  } else if(types_[i] == TILEDB_UINT64) {
+    return sizeof(uint64_t);
   } else if(types_[i] == TILEDB_FLOAT32) {
     return sizeof(float);
   } else if(types_[i] == TILEDB_FLOAT64) {

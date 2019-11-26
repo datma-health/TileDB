@@ -87,22 +87,22 @@ ArraySchemaTestFixture::~ArraySchemaTestFixture() {
 /*         PUBLIC METHODS         */
 /* ****************************** */
 
-int ArraySchemaTestFixture::create_dense_array() {
+int ArraySchemaTestFixture::create_dense_array(std::string array_name, int attribute_datatype, int compression_type) {
   // Initialization s
   int rc;
-  const char* attributes[] = { "ATTR_INT32" };
+  const char* attributes[] = { "MY_ATTRIBUTE" };
   const char* dimensions[] = { "X", "Y" };
   int64_t domain[] = { 0, 99, 0, 99 };
   int64_t tile_extents[] = { 10, 10 };
-  const int types[] = { TILEDB_INT32, TILEDB_INT64 };
-  const int compression[] = { TILEDB_NO_COMPRESSION, TILEDB_NO_COMPRESSION };
+  const int types[] = { attribute_datatype, TILEDB_INT64 };
+  const int compression[] = { compression_type, TILEDB_NO_COMPRESSION };
 
   // Set array schema
   rc = tiledb_array_set_schema(
       // The array schema structure
       &array_schema_,
       // Array name
-      array_name_.c_str(),
+      array_name.c_str(),
       // Attributes
       attributes,
       // Number of attributes
@@ -146,29 +146,14 @@ int ArraySchemaTestFixture::create_dense_array() {
   return tiledb_array_create(tiledb_ctx_, &array_schema_);
 }
 
-
-
-
-/* ****************************** */
-/*             TESTS              */
-/* ****************************** */
-
-/**
- * Tests the array schema creation and retrieval.
- */
-TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema", "[array_schema]") {
-  // Error code 
+void ArraySchemaTestFixture::check_dense_array(std::string array_name) {
   int rc;
-
-  // Create array
-  rc = create_dense_array();
-  REQUIRE(rc == TILEDB_OK);
 
   // Load array schema from the disk
   TileDB_ArraySchema array_schema_disk;
   rc = tiledb_array_load_schema(
            tiledb_ctx_, 
-           array_name_.c_str(), 
+           array_name.c_str(), 
            &array_schema_disk);
   REQUIRE(rc == TILEDB_OK);
 
@@ -179,9 +164,9 @@ TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema", "[array_schema]") 
       static_cast<int64_t*>(array_schema_.tile_extents_);
 
   // Get real array path
-  std::string array_name_real = fs_.real_dir(array_name_);
+  std::string array_name_real = fs_.real_dir(array_name);
   CHECK_FALSE(array_name_real == "");
-  CHECK_THAT(array_name_real, EndsWith(ARRAYNAME));
+  CHECK_THAT(array_name_real, EndsWith(array_name));
 
   // Tests
   //absolute path isn't relevant anymore
@@ -203,6 +188,126 @@ TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema", "[array_schema]") 
   // Free array schema
   rc = tiledb_array_free_schema(&array_schema_disk);
   REQUIRE(rc == TILEDB_OK);
+}
+
+
+
+
+/* ****************************** */
+/*             TESTS              */
+/* ****************************** */
+
+/**
+ * Tests the array schema creation and retrieval.
+ */
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema char", "[array_schema_char]") {
+  std::string array_name = array_name_ + "char";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_CHAR, TILEDB_NO_COMPRESSION);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema int8", "[array_schema_int8]") {
+  std::string array_name = array_name_ + "int8";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_INT8, TILEDB_NO_COMPRESSION);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema int16", "[array_schema_int16]") {
+  std::string array_name = array_name_ + "int16";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_INT16, TILEDB_ZSTD);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema int32", "[array_schema_int32]") {
+  std::string array_name = array_name_ + "int32";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_INT32, TILEDB_LZ4);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema int64", "[array_schema_int64]") {
+  std::string array_name = array_name_ + "int64";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_INT64, TILEDB_BLOSC);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema uint8", "[array_schema_uint8]") {
+  std::string array_name = array_name_ + "uint8";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_UINT8, TILEDB_GZIP);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema uint16", "[array_schema_uint16]") {
+  std::string array_name = array_name_ + "uint16";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_UINT16, TILEDB_ZSTD);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema uint32", "[array_schema_uint32]") {
+  std::string array_name = array_name_ + "uint32";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_UINT32, TILEDB_LZ4);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema uint64", "[array_schema_uint64]") {
+  std::string array_name = array_name_ + "uint64";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_UINT64, TILEDB_LZ4);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema float32", "[array_schema_float32]") {
+  std::string array_name = array_name_ + "float32";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_FLOAT32, TILEDB_RLE);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema float64", "[array_schema_float64]") {
+  std::string array_name = array_name_ + "float64";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_FLOAT64, TILEDB_BLOSC);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
 }
 
 

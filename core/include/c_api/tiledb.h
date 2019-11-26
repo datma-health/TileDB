@@ -290,11 +290,12 @@ typedef struct TileDB_ArraySchema {
   /** 
    * The attribute types, plus an extra one in the end for the coordinates.
    * The attribute type can be one of the following: 
-   *    - TILEDB_INT32
-   *    - TILEDB_INT64
+   *    - TILEDB_INT32, TILEDB_UINT32
+   *    - TILEDB_INT64, TILEDB_UINT64
    *    - TILEDB_FLOAT32
    *    - TILEDB_FLOAT64
-   *    - TILEDB_CHAR 
+   *    - TILEDB_CHAR, TILEDB_INT8, TILEDB_UINT8
+   *    - TILEDB_INT16, TILEDB_UINT16
    *
    * The coordinate type can be one of the following: 
    *    - TILEDB_INT32
