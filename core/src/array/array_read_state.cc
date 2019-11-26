@@ -578,37 +578,37 @@ int ArrayReadState::copy_cells_var(
   // Invoke the proper templated function
   int rc = TILEDB_ARS_OK;
   if(type == TILEDB_CHAR)
-    copy_cells_var<char>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<char>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                          buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_INT8)
-    copy_cells_var<int8_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<int8_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                            buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_INT16)
-    copy_cells_var<int16_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<int16_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                             buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_INT32)
-    copy_cells_var<int32_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<int32_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                             buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_INT64)
-    copy_cells_var<int64_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<int64_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                             buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_UINT8)
-    copy_cells_var<uint8_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<uint8_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                             buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_UINT16)
-    copy_cells_var<uint16_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<uint16_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                              buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_UINT32)
-    copy_cells_var<uint32_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<uint32_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                              buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_UINT64)
-    copy_cells_var<uint64_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<uint64_t>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                              buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_FLOAT32)
-    copy_cells_var<float>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<float>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                           buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else if(type == TILEDB_FLOAT64)
-    copy_cells_var<double>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
+    rc = copy_cells_var<double>(attribute_id, buffer, buffer_size, buffer_offset,remaining_skip_count,
                            buffer_var, buffer_var_size, buffer_var_offset, remaining_skip_count_var);
   else
     rc = TILEDB_ARS_ERR;

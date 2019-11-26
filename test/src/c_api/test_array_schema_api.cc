@@ -280,6 +280,16 @@ TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema uint32", "[array_sch
   check_dense_array(array_name);
 }
 
+TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema uint64", "[array_schema_uint64]") {
+  std::string array_name = array_name_ + "uint64";
+
+  // Create array
+  int rc = create_dense_array(array_name, TILEDB_UINT64, TILEDB_LZ4);
+  REQUIRE(rc == TILEDB_OK);
+
+  check_dense_array(array_name);
+}
+
 TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema float32", "[array_schema_float32]") {
   std::string array_name = array_name_ + "float32";
 
