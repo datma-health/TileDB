@@ -404,6 +404,33 @@ TEST_CASE("Test array schema JPEG2K tile extents divisibilty", "[array_schema]")
   );
   REQUIRE(rc == TILEDB_OK);
 
+  /** Test for number of dimensions of the image == 2 **/
+  const std::string ARRAYNAME_DIM_BAD = "image_test_100x100_3D";
+  array_name_ = WORKSPACE + ARRAYNAME_DIM_BAD;
+
+  // Set array schema
+  rc = tiledb_array_set_schema(
+      &array_schema_,      // The array schema structure
+      array_name_.c_str(), // Array name
+      attributes,          // Attributes
+      1,                   // Number of attributes
+      1000,                // Capacity
+      TILEDB_ROW_MAJOR,    // Cell order
+      NULL,                // Number of cell values per attribute
+      compression,         // Compression
+      NULL,                // Compression level, NULL will get defaults
+      1,                   // Dense array
+      dimensions,          // Dimensions
+      3,                   // Number of dimensions ** WRONG **
+      domain,              // Domain
+      4*sizeof(int64_t),   // Domain length in bytes
+      tile_extents,        // Tile extents 
+      2*sizeof(int64_t),   // Tile extents in bytes
+      TILEDB_ROW_MAJOR,    // Tile order
+      types                // Types
+  );
+  CHECK(rc != TILEDB_OK);
+
   /** Test for width not being dividible by tile width chosen **/
   const std::string ARRAYNAME_WIDTH_BAD = "image_test_100x100_17x10";
   array_name_ = WORKSPACE + ARRAYNAME_WIDTH_BAD;
