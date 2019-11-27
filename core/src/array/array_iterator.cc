@@ -327,15 +327,6 @@ int ArrayIterator::next() {
     }
   } while(expression_ && !expression_->evaluate_cell(buffers_, buffer_sizes_, pos_));
 
-  // Evaluate filter expression for cell from current positions in buffer
-  if (expression_ && !expression_->evaluate_cell(buffers_, buffer_sizes_, pos_)) {
-    if (next() && !end_) {
-      std::string errmsg = "Filtering error in Iterator";
-      PRINT_ERROR(errmsg);
-      return TILEDB_AIT_ERR;
-    }
-  }
-
   // Success
   return TILEDB_AIT_OK;
 }
