@@ -152,7 +152,7 @@ include(SetCXX2011Flag)
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
 # Set compiler flags
-set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O0 -g3 -gdwarf-3 -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O2 -g3 -gdwarf-3 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
 if(APPLE)

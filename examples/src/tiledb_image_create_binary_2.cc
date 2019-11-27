@@ -5,7 +5,6 @@
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
