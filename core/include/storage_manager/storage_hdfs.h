@@ -51,7 +51,8 @@ class HDFS : public StorageFS {
   ~HDFS();
 
   std::string current_dir();
-
+  int set_working_dir(const std::string& dir);
+  
   bool is_dir(const std::string& dir);
   bool is_file(const std::string& file);
   std::string real_dir(const std::string& dir);

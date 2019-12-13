@@ -84,6 +84,25 @@ class DenseArrayTestFixture {
               const int64_t domain_size_1,
               const int64_t update_num);
 
+ /**
+   * Creates a 1D dense array.
+   *
+   * @param attribute_type
+   * @param tile_extent
+   * @param domain_lo
+   * @param domain_hi
+   * @param cell_order The cell order.
+   * @param tile_order The tile order.
+   * @return TILEDB_OK on success and TILEDB_ERR on error.
+   */
+  int create_dense_array_1D(
+      const int attribute_type,
+      const int32_t tile_extent,
+      const int32_t domain_lo,
+      const int32_t domain_hi,
+      const int cell_order,
+      const int tile_order);
+
   /**
    * Creates a 2D dense array.
    *

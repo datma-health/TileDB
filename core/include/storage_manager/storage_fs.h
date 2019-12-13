@@ -60,6 +60,7 @@ class StorageFS {
   virtual ~StorageFS();
 
   virtual std::string current_dir() = 0;
+  virtual int set_working_dir(const std::string& dir) = 0;
   
   virtual bool is_dir(const std::string& dir) = 0;
   virtual bool is_file(const std::string& file) = 0;

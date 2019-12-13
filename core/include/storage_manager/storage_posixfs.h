@@ -42,6 +42,7 @@ class PosixFS : public StorageFS {
   ~PosixFS();
 
   std::string current_dir();
+  int set_working_dir(const std::string& dir);
 
   bool is_dir(const std::string& dir);
   bool is_file(const std::string& file);

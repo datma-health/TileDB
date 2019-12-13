@@ -289,11 +289,12 @@ typedef struct TileDB_ArraySchema {
   /** 
    * The attribute types, plus an extra one in the end for the coordinates.
    * The attribute type can be one of the following: 
-   *    - TILEDB_INT32
-   *    - TILEDB_INT64
+   *    - TILEDB_INT32, TILEDB_UINT32
+   *    - TILEDB_INT64, TILEDB_UINT64
    *    - TILEDB_FLOAT32
    *    - TILEDB_FLOAT64
-   *    - TILEDB_CHAR 
+   *    - TILEDB_CHAR, TILEDB_INT8, TILEDB_UINT8
+   *    - TILEDB_INT16, TILEDB_UINT16
    *
    * The coordinate type can be one of the following: 
    *    - TILEDB_INT32
@@ -406,7 +407,7 @@ TILEDB_EXPORT int tiledb_array_init(
  * @param tiledb_array The TileDB array.
  * @param filter_expression An expression string that evaluates to a boolean
  *     to allow for cells to be filtered out from the buffers while reading.
- *     If NULL, there is no filter applied.
+ *     If NULL or empty, no filter is applied.
  * @return TILEDB_OK on success, and TILEDB_ERR on error.
  */
 TILEDB_EXPORT int tiledb_array_apply_filter(
@@ -655,13 +656,13 @@ TILEDB_EXPORT int tiledb_array_sync_attribute(
 typedef struct TileDB_ArrayIterator TileDB_ArrayIterator;
 
 /**
- * Initializes an array iterator for reading cells, potentially constraining it 
+ * Initializes an array iterator for reading cells, potentially constraining it
  * on a subset of attributes, as well as a subarray. The cells will be read
- * in the order they are stored on the disk, maximing performance. 
+ * in the order they are stored on the disk, maximizing performance.
  *
  * @param tiledb_ctx The TileDB context.
  * @param tiledb_array_it The TileDB array iterator to be created. The function
- *     will allocate the appropriate memory space for the iterator. 
+ *     will allocate the appropriate memory space for the iterator.
  * @param array The directory of the array the iterator is initialized for.
  * @param mode The read mode, which can be one of the following:
  *    - TILEDB_ARRAY_READ\n
@@ -671,10 +672,10 @@ typedef struct TileDB_ArrayIterator TileDB_ArrayIterator;
  *    - TILEDB_ARRAY_READ_SORTED_ROW\n
  *      Reads the cells in column-major order within the specified subarray.
  * @param subarray The subarray in which the array iterator will be
- *     constrained on. It should be a sequence of [low, high] pairs (one 
+ *     constrained on. It should be a sequence of [low, high] pairs (one
  *     pair per dimension), whose type should be the same as that of the
  *      coordinates. If it is NULL, then the subarray is set to the entire
- *     array domain. 
+ *     array domain.
  * @param attributes A subset of the array attributes the iterator will be
  *     constrained on. Note that the coordinates have special attribute name
  *     TILEDB_COORDS. A NULL value indicates **all** attributes (including
@@ -686,9 +687,9 @@ typedef struct TileDB_ArrayIterator TileDB_ArrayIterator;
  *     will use for internal buffering of the read cells. The iterator will
  *     read from the disk the relevant cells in batches, by fitting as many
  *     cell values as possible in the user buffers. This gives the user the
- *     flexibility to control the prefetching for optimizing performance 
- *     depending on the application. 
- * @param buffer_sizes The corresponding size (in bytes) of the allocated 
+ *     flexibility to control the prefetching for optimizing performance
+ *     depending on the application.
+ * @param buffer_sizes The corresponding size (in bytes) of the allocated
  *     memory space for *buffers*. The function will prefetch from the
  *     disk as many cells as can fit in the buffers, whenever it finishes
  *     iterating over the previously prefetched data.
@@ -706,19 +707,59 @@ TILEDB_EXPORT int tiledb_array_iterator_init(
     size_t* buffer_sizes);
 
 /**
- * Apply filter to the initialized array iterator. This is useful
- * when the array is used for reading, and the user wishes to constrain the
- * read results with an expression.
+ * Initializes an array iterator for reading cells, potentially constraining it
+ * on a subset of attributes, as well as a subarray. The cells will be read
+ * in the order they are stored on the disk, maximizing performance.
  *
- * @param tiledb_array The TileDB array.
+ * @param tiledb_ctx The TileDB context.
+ * @param tiledb_array_it The TileDB array iterator to be created. The function
+ *     will allocate the appropriate memory space for the iterator.
+ * @param array The directory of the array the iterator is initialized for.
+ * @param mode The read mode, which can be one of the following:
+ *    - TILEDB_ARRAY_READ\n
+ *      Reads the cells in the native order they are stored on the disk.
+ *    - TILEDB_ARRAY_READ_SORTED_COL\n
+ *      Reads the cells in column-major order within the specified subarray.
+ *    - TILEDB_ARRAY_READ_SORTED_ROW\n
+ *      Reads the cells in column-major order within the specified subarray.
+ * @param subarray The subarray in which the array iterator will be
+ *     constrained on. It should be a sequence of [low, high] pairs (one
+ *     pair per dimension), whose type should be the same as that of the
+ *      coordinates. If it is NULL, then the subarray is set to the entire
+ *     array domain.
+ * @param attributes A subset of the array attributes the iterator will be
+ *     constrained on. Note that the coordinates have special attribute name
+ *     TILEDB_COORDS. A NULL value indicates **all** attributes (including
+ *     the coordinates as the last attribute in the case of sparse arrays).
+ * @param attribute_num The number of the input attributes. If *attributes* is
+ *     NULL, then this should be set to 0.
+ * @param buffers This is an array of buffers similar to tiledb_array_read().
+ *     It is the user that allocates and provides buffers that the iterator
+ *     will use for internal buffering of the read cells. The iterator will
+ *     read from the disk the relevant cells in batches, by fitting as many
+ *     cell values as possible in the user buffers. This gives the user the
+ *     flexibility to control the prefetching for optimizing performance
+ *     depending on the application.
+ * @param buffer_sizes The corresponding size (in bytes) of the allocated
+ *     memory space for *buffers*. The function will prefetch from the
+ *     disk as many cells as can fit in the buffers, whenever it finishes
+ *     iterating over the previously prefetched data.
  * @param filter_expression An expression string that evaluates to a boolean
  *     to allow for cells to be filtered out from the buffers while reading.
- *     If NULL, there is no filter applied.
+ *     If NULL or empty, no filter is applied.
  * @return TILEDB_OK on success, and TILEDB_ERR on error.
  */
-TILEDB_EXPORT int tiledb_array_iterator_apply_filter(
-    const TileDB_ArrayIterator* tiledb_array_it,
-    const char *filter_expression);
+TILEDB_EXPORT int tiledb_array_iterator_init_with_filter(
+    const TileDB_CTX* tiledb_ctx,
+    TileDB_ArrayIterator** tiledb_array_it,
+    const char* array,
+    int mode,
+    const void* subarray,
+    const char** attributes,
+    int attribute_num,
+    void** buffers,
+    size_t* buffer_sizes,
+    const char* filter_expression);
 
 /**
  * Resets the subarray used upon initialization of the iterator. This is useful
@@ -1068,7 +1109,7 @@ typedef struct TileDB_MetadataIterator TileDB_MetadataIterator;
 /**
  * Initializes a metadata iterator, potentially constraining it 
  * on a subset of attributes. The values will be read in the order they are
- * stored on the disk (which is random), maximing performance. 
+ * stored on the disk (which is random), maximizing performance.
  *
  * @param tiledb_ctx The TileDB context.
  * @param tiledb_metadata_it The TileDB metadata iterator to be created. The

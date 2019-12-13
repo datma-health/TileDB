@@ -194,6 +194,13 @@ int cmp_row_order(
     int dim_num);
 
 /**
+ * Checks if a given pathURL is a supported URL
+ * @param pathURL URL to path to be checked.
+ * @return true if pathURL starts with a supported URL, e.g. hdfs:// or s3://
+ */
+bool is_supported_cloud_path(const std::string& pathURL);
+
+/**
  * Checks if a given pathURL is Azure Blob Storage.
  * @param pathURL URL to path to be checked.
  * @return true if pathURL starts with wasb:// or wasbs://
@@ -261,6 +268,15 @@ int create_fragment_file(StorageFS *fs, const std::string& dir);
  *     retrieve the current working directory, the empty string is returned.
  */
 std::string current_dir(StorageFS *fs);
+
+/**
+ * Set working directory to path
+ *
+ * @param fs The storage filesystem type in use. e.g. posix, hdfs, etc.
+ * @param dir The directory to be set as working dir
+ * @return TILEDB_UT_OK for success, and TILEDB_UT_ERR for error.
+ */
+int set_working_dir(StorageFS *fs, const std::string& dir);
 
 /**
  * Deletes a directory. Note that the directory must not contain other
@@ -908,7 +924,25 @@ inline T get_tiledb_empty_value();
 
 //Template specialization for get_tiledb_empty_value()
 template<>
-inline int get_tiledb_empty_value()
+inline char get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_CHAR;
+}
+
+template<>
+inline int8_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_INT8;
+}
+
+template<>
+inline int16_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_INT16;
+}
+
+template<>
+inline int32_t get_tiledb_empty_value()
 {
   return TILEDB_EMPTY_INT32;
 }
@@ -917,6 +951,30 @@ template<>
 inline int64_t get_tiledb_empty_value()
 {
   return TILEDB_EMPTY_INT64;
+}
+
+template<>
+inline uint8_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT8;
+}
+
+template<>
+inline uint16_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT16;
+}
+
+template<>
+inline uint32_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT32;
+}
+
+template<>
+inline uint64_t get_tiledb_empty_value()
+{
+  return TILEDB_EMPTY_UINT64;
 }
 
 template<>
@@ -929,12 +987,6 @@ template<>
 inline double get_tiledb_empty_value()
 {
   return TILEDB_EMPTY_FLOAT64;
-}
-
-template<>
-inline char get_tiledb_empty_value()
-{
-  return TILEDB_EMPTY_CHAR;
 }
 
 #endif

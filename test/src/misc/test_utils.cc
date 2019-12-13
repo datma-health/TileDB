@@ -570,3 +570,48 @@ TEST_CASE("Test utils file system operations", "[test_utils_fs]") {
   system(cleanup.c_str());
   free(temp_dir);
 }
+
+TEST_CASE("Test empty value concept", "[empty_cell_val]") {
+  char char_max = get_tiledb_empty_value<char>();
+  CHECK(char_max == CHAR_MAX);
+
+  int8_t int8_max =  get_tiledb_empty_value<int8_t>();
+  CHECK(int8_max == INT8_MAX);
+  int16_t int16_max =  get_tiledb_empty_value<int16_t>();
+  CHECK(int16_max == INT16_MAX);
+  int32_t int32_max =  get_tiledb_empty_value<int32_t>();
+  CHECK(int32_max == INT32_MAX);
+  int64_t int64_max =  get_tiledb_empty_value<int64_t>();
+  CHECK(int64_max == INT64_MAX);
+
+  uint64_t uint8_max =  get_tiledb_empty_value<uint8_t>();
+  CHECK(uint8_max == UINT8_MAX);
+  uint16_t uint16_max =  get_tiledb_empty_value<uint16_t>();
+  CHECK(uint16_max == UINT16_MAX);
+  uint32_t uint32_max =  get_tiledb_empty_value<uint32_t>();
+  CHECK(uint32_max == UINT32_MAX);
+  uint64_t uint64_max =  get_tiledb_empty_value<uint64_t>();
+  CHECK(uint64_max == UINT64_MAX);
+
+  float float_max =  get_tiledb_empty_value<float>();
+  CHECK(float_max == FLT_MAX);
+  double double_max =  get_tiledb_empty_value<double>();
+  CHECK(double_max == DBL_MAX);
+
+}
+
+TEST_CASE("Test storage URLs", "[storage_urls]") {
+  CHECK(!is_supported_cloud_path("gibberish://ddd/d"));
+
+  CHECK(is_supported_cloud_path("hdfs://ddd/d"));
+
+  CHECK(is_supported_cloud_path("s3://ddd/d"));
+
+  CHECK(is_supported_cloud_path("gs://ddd/d"));
+
+  CHECK(is_supported_cloud_path("wasb://ddd/d"));
+  CHECK(is_supported_cloud_path("wasbs://ddd/d"));
+  CHECK(is_supported_cloud_path("abfs://ddd/d"));
+  CHECK(is_supported_cloud_path("abfss://ddd/d"));
+  CHECK(is_supported_cloud_path("adl://ddd/d"));
+}

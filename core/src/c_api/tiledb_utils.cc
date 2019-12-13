@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
+ * @copyright Copyright (c) 2019 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,9 +36,11 @@
 #include "tiledb_utils.h"
 #include "tiledb_storage.h"
 
-#include <stdlib.h>
 #include <cstring>
+#include <error.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <trace.h>
 
 namespace TileDBUtils {
@@ -89,8 +92,14 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
   if (is_workspace(*ptiledb_ctx, workspace)) {
     if (replace) {
       rc = tiledb_delete(*ptiledb_ctx, workspace.c_str());
-      if (rc != TILEDB_OK) {	
-	return NOT_CREATED;
+      if (rc != TILEDB_OK) {
+        snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Workspace=%s may have non-tiledb artifacts. Deleting them all!!", workspace.c_str());
+#ifdef TILEDB_VERBOSE
+        std::cerr << "[TileDB::Utils] Warning:" << tiledb_errmsg << std::endl;
+#endif
+        if (!delete_dir(*ptiledb_ctx, workspace.c_str())) {
+          return NOT_CREATED;
+        }
       }
     } else {
       return UNCHANGED;
@@ -107,11 +116,14 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
   return rc;
 }
 
-int create_workspace(const std::string &workspace, bool replace)
+int create_workspace(const std::string& workspace, bool replace)
 {
   TileDB_CTX *tiledb_ctx;
   int rc = initialize_workspace(&tiledb_ctx, workspace, replace);
   if (rc >= 0 && tiledb_ctx != NULL) {
+    if (rc==1 && !replace) {
+      rc = TILEDB_ERR;
+    }
     finalize(tiledb_ctx);
   }
   return rc;
@@ -149,17 +161,95 @@ std::vector<std::string> get_array_names(const std::string& workspace)
     for (std::vector<std::string>::iterator dir = dirs.begin() ; dir != dirs.end(); dir++) {
       std::string path(*dir);
       if (is_array(tiledb_ctx, path)) {
-	size_t pos = path.find_last_of("\\/");
-	if (pos == std::string::npos) {
-	  array_names.push_back(path);
-	} else {
-	  array_names.push_back(path.substr(pos+1));
-	}
+        size_t pos = path.find_last_of("\\/");
+        if (pos == std::string::npos) {
+          array_names.push_back(path);
+        } else {
+          array_names.push_back(path.substr(pos+1));
+        }
       }
     }
   }
   finalize(tiledb_ctx);
   return array_names;
+}
+
+std::vector<std::string> get_fragment_names(const std::string& workspace)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, workspace)) {
+    return std::vector<std::string>{};
+  }
+  std::vector<std::string> fragment_names;
+  std::vector<std::string> dirs = get_dirs(tiledb_ctx, workspace);
+  if (!dirs.empty()) {
+    for (std::vector<std::string>::iterator dir = dirs.begin() ; dir != dirs.end(); dir++) {
+      std::string path(*dir);
+      if (is_array(tiledb_ctx, path)) {
+        std::vector<std::string> fragment_dirs = get_dirs(tiledb_ctx, path);
+        if (!fragment_dirs.empty()) {
+          for (std::vector<std::string>::iterator fragment_dir = fragment_dirs.begin(); 
+               fragment_dir != fragment_dirs.end(); fragment_dir++) {
+            std::string fragment_path(*fragment_dir);
+            if (is_fragment(tiledb_ctx, fragment_path)) {
+              size_t pos = fragment_path.find_last_of("\\/");
+              if (pos == std::string::npos) {
+                fragment_names.push_back(fragment_path);
+              } else {
+                fragment_names.push_back(fragment_path.substr(pos+1));
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  finalize(tiledb_ctx);
+  return fragment_names;
+}
+
+bool is_dir(const std::string& dirpath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    return false;
+  }
+  bool check = is_dir(tiledb_ctx, dirpath);
+  finalize(tiledb_ctx);
+  return check;
+}
+
+int create_dir(const std::string& dirpath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    return false;
+  }
+  int rc = create_dir(tiledb_ctx, dirpath);
+  finalize(tiledb_ctx);
+  return rc;
+}
+
+int delete_dir(const std::string& dirpath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    return false;
+  }
+  int rc = delete_dir(tiledb_ctx, dirpath);
+  finalize(tiledb_ctx);
+  return rc;
+}
+
+bool is_file(const std::string& filepath)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(filepath))) {
+    return false;
+  }
+  bool check = is_file(tiledb_ctx, filepath);
+  finalize(tiledb_ctx);
+  return check;
 }
 
 static int check_file(TileDB_CTX *tiledb_ctx, std::string filename) {
@@ -213,7 +303,6 @@ int read_file(const std::string& filename, off_t offset, void *buffer, size_t le
   }
   int rc = read_file(tiledb_ctx, filename, offset, buffer, length);
   rc |= close_file(tiledb_ctx, filename);
-
   finalize(tiledb_ctx);
   return rc;
 }
@@ -274,24 +363,34 @@ int move_across_filesystems(const std::string& src, const std::string& dest)
 
 int create_temp_filename(char *path, size_t path_length) {
   memset(path, 0, path_length);
-  const char *tmp_dir;
-  if (getenv("TMPDIR")) {
-    tmp_dir = getenv("TMPDIR");
-  } else {
+  const char *tmp_dir = getenv("TMPDIR");
+  if (tmp_dir == NULL) {
     tmp_dir = P_tmpdir; // defined in stdio
   }
-  char tmp_filename_pattern[64];
-  sprintf(tmp_filename_pattern, "%s/TileDBXXXXXX", tmp_dir);
-  int tmp_fd = mkstemp(tmp_filename_pattern);
+  if (tmp_dir == NULL) {
+    snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Could not get tmp_dir");
+    return TILEDB_ERR;
+  }
+  if (tmp_dir[strlen(tmp_dir)-1]=='/') {
+    snprintf(path, path_length, "%sTileDBXXXXXX", tmp_dir);
+  } else {
+    snprintf(path, path_length, "%s/TileDBXXXXXX", tmp_dir);
+  }
+  int tmp_fd = mkstemp(path);
+  int rc = TILEDB_OK;
+#ifdef __APPLE__
+  if (fcntl(tmp_fd, F_GETPATH, path) == -1) {
+#else
   char tmp_proc_lnk[64];
   sprintf(tmp_proc_lnk, "/proc/self/fd/%d", tmp_fd);
+  memset(path, 0, path_length);
   if (readlink(tmp_proc_lnk, path, path_length-1) < 0) {
-    // Nalini-TODO
-    // throw VariantStorageManagerException(std::string("Error while creating temp filename; ") + strerror(errno));
-    return -1;
+#endif
+    snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Could not successfully readlink errno=%d %s", errno, strerror(errno));
+    rc = TILEDB_ERR;
   }
   close(tmp_fd);
-  return 0;
+  return rc;
 }
 
 }

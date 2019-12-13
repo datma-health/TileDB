@@ -226,8 +226,14 @@ int cmp_row_order(
   return 0;
 }
 
+bool is_supported_cloud_path(const std::string& pathURL) {
+  return is_hdfs_path(pathURL) || is_gcs_path(pathURL) || is_azure_blob_storage_path(pathURL);
+}
+
 bool is_azure_blob_storage_path(const std::string& pathURL) {
-  if (!pathURL.empty() && (starts_with(pathURL, "wasbs:") || (starts_with(pathURL, "wasb:")))) {
+  if (!pathURL.empty() && (starts_with(pathURL, "wasbs:") || starts_with(pathURL, "wasb:")
+                           || starts_with(pathURL, "abfss:") || starts_with(pathURL, "abfs")
+                           || starts_with(pathURL, "adl:"))) {
     return true;
   } else {
     return false;
@@ -349,6 +355,15 @@ std::string current_dir(StorageFS *fs) {
   return fs->current_dir();
 }
 
+int set_working_dir(StorageFS *fs, const std::string& dir) {
+  if (fs->is_dir(dir)) {
+    return fs->set_working_dir(dir);
+  } else {
+    UTILS_ERROR("Failed to set_working_dir as "+dir+" does not exist");
+    return TILEDB_UT_ERR;
+  }
+}
+
 std::vector<std::string> get_dirs(StorageFS *fs, const std::string& dir) {
   return fs->get_dirs(dir);
 }
@@ -426,6 +441,34 @@ std::string get_mac_addr() {
 }
 #endif
 
+void gzip_handle_error(int rc, const std::string& message) {
+  // Just listing all Z errors here for completion sake.
+  // Note that deflate() and inflate() should not throw errors technically
+  // but deflateInit() and inflateInit() can.
+  switch (rc) {
+    case Z_ERRNO:
+      UTILS_SYSTEM_ERROR(message+": Z_ERRNO");
+      break;
+    case Z_STREAM_ERROR:
+      UTILS_ERROR(message+": Z_STREAM_ERROR");
+      break;
+    case Z_DATA_ERROR:
+      UTILS_ERROR(message+": Z_DATA_ERROR");
+      break;
+    case Z_MEM_ERROR:
+      UTILS_ERROR(message+": Z_MEM_ERROR");
+      break;
+    case Z_BUF_ERROR:
+      UTILS_ERROR(message+": Z_BUF_ERROR");
+      break;
+    case Z_VERSION_ERROR:
+      UTILS_ERROR(message+": Z_VERSION_ERROR");
+      break;
+    default:
+      UTILS_ERROR(message+": " + std::to_string(rc));
+  }
+}
+
 ssize_t gzip(
     unsigned char* in, 
     size_t in_size,
@@ -443,7 +486,7 @@ ssize_t gzip(
   ret = deflateInit(&strm, level);
 
   if(ret != Z_OK) {
-    UTILS_ERROR("Cannot compress with GZIP");
+    gzip_handle_error(ret, "Cannot compress with GZIP: deflateInit error");
     (void)deflateEnd(&strm);
     return TILEDB_UT_ERR;
   }
@@ -459,8 +502,11 @@ ssize_t gzip(
   (void)deflateEnd(&strm);
 
   // Return 
-  if(ret == Z_STREAM_ERROR || strm.avail_in != 0) {
-    UTILS_ERROR("Cannot compress with GZIP");
+  if(ret == Z_STREAM_ERROR) {
+    UTILS_ERROR("Encountered Z_STREAM_ERROR; Could not compress buffer; deflate error");
+    return TILEDB_UT_ERR;
+  } else if (strm.avail_in != 0){
+    UTILS_ERROR("All input could not be compressed: deflate error");
     return TILEDB_UT_ERR;
   } else {
     // Return size of compressed data
@@ -486,7 +532,7 @@ int gunzip(
   ret = inflateInit(&strm);
 
   if(ret != Z_OK) {
-    UTILS_ERROR("Cannot decompress with GZIP");
+    gzip_handle_error(ret, "Cannot decompress with GZIP: inflateInit error");
     return TILEDB_UT_ERR;
   }
 
@@ -498,7 +544,7 @@ int gunzip(
   ret = inflate(&strm, Z_FINISH);
 
   if(ret != Z_STREAM_END) {
-    UTILS_ERROR("Cannot decompress with GZIP");
+    gzip_handle_error(ret, "Cannot decompress with GZIP: inflate error");
     return TILEDB_UT_ERR;
   }
 
@@ -910,10 +956,11 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
   strm.opaque = Z_NULL;
   strm.avail_in = 0;
   strm.next_in = Z_NULL;
-    
-  if (inflateInit2(&strm, (windowBits + 32)) != Z_OK) {
+
+  int rc;
+  if ((rc = inflateInit2(&strm, (windowBits + 32))) != Z_OK) {
     free(in);
-    UTILS_PATH_ERROR("Could not inflate file", filename);
+    gzip_handle_error(rc, std::string("Could not initialize decompression for file ")+filename);
     return TILEDB_UT_ERR;
   }
 
@@ -924,7 +971,6 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
   buffer_size = 0;
     
   /* run inflate() on input until output buffer not full */
-  int rc;
   unsigned have;
   do {
     strm.avail_out = TILEDB_GZIP_CHUNK_SIZE;
@@ -935,10 +981,12 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
       case Z_NEED_DICT:
         rc = Z_DATA_ERROR;     /* and fall through */
       case Z_DATA_ERROR:
+      case Z_STREAM_ERROR:
       case Z_MEM_ERROR:
         free(in);
         inflateEnd(&strm);
-        UTILS_PATH_ERROR("Error encountered during inflate", filename);
+        close_file(fs, filename);
+        gzip_handle_error(rc, std::string("Error encountered during inflate with ")+filename);
         return TILEDB_UT_ERR;
     }
 
@@ -952,10 +1000,9 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
   /* clean up and return */
   free(in);
   inflateEnd(&strm);
-
-  assert(rc == Z_STREAM_END); // All bytes have been decompressed
-
   close_file(fs, filename);
+  
+  assert(rc == Z_STREAM_END); // All bytes have been decompressed
   
   return TILEDB_UT_OK;
 }
@@ -1587,8 +1634,8 @@ int write_to_file_after_compression(StorageFS *fs, const std::string& filename, 
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
 
-  if (deflateInit2 (&strm, TILEDB_COMPRESSION_LEVEL_GZIP, Z_DEFLATED, windowBits | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
-    UTILS_PATH_ERROR("Could not initialize for gzip compression", filename);
+  if ((rc = deflateInit2 (&strm, TILEDB_COMPRESSION_LEVEL_GZIP, Z_DEFLATED, windowBits | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY)) != Z_OK) {
+    gzip_handle_error(rc, std::string("Could not initialize compression for ")+filename);
     return TILEDB_UT_ERR;
   }
 
@@ -1617,10 +1664,14 @@ int write_to_file_after_compression(StorageFS *fs, const std::string& filename, 
     }
   } while (strm.avail_out == 0);
   
-  assert(strm.avail_in == 0);     /* all input is used */
   assert(rc == Z_STREAM_END);     /* stream is complete */
-
   deflateEnd(&strm);
+
+  if (strm.avail_in != 0) { // All input has not been compressed
+    UTILS_PATH_ERROR("All input could not be compressed: deflate error", filename);
+    delete gzip_buffer;
+    return TILEDB_UT_ERR;
+  }
 
   if (write_to_file(fs, filename, gzip_buffer->get_buffer(), gzip_buffer->get_buffer_size()) == TILEDB_UT_ERR) {
     UTILS_PATH_ERROR("Could not write compressed bytes to internal buffer", filename);

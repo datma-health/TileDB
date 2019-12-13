@@ -71,7 +71,7 @@ class ArrayFixture {
     REQUIRE(buffer_size == expected_size);
 
     int *buffer = reinterpret_cast<int *>(computed[0]);
-    for (auto i=0; i<buffer_size; i++) {
+    for (auto i=0u; i<buffer_size; i++) {
       CHECK(*buffer++ == *expected++);
     }
   }
@@ -91,19 +91,24 @@ TEST_CASE_METHOD(ArrayFixture, "Test Expressions All", "[expressions_all]") {
   check_buffer(buffers, buffer_sizes, expected_buffer, 16);
 }
 
-
 TEST_CASE_METHOD(ArrayFixture, "Test Expressions Non-existent Attribute", "[expressions_non_existent_attr]") {
   Expression expression("a2 > a1", attribute_names, array_schema_);
   CHECK_RC(expression.evaluate(buffers, buffer_sizes), TILEDB_ERR);
 }
 
-TEST_CASE_METHOD(ArrayFixture, "Test Expressions With Dropped Cells", "[expressions_dropped_cells]") {
+TEST_CASE_METHOD(ArrayFixture, "Test Expressions With Dropped Cells from left", "[expressions_dropped_cells_left]") {
   Expression expression("a1 > 4", attribute_names, array_schema_);
   REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
   const int expected_buffer[11] =  { 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
   check_buffer(buffers, buffer_sizes, expected_buffer, 11);
 }
 
+TEST_CASE_METHOD(ArrayFixture, "Test Expressions With Dropped Cells from right", "[expressions_dropped_cells_right]") {
+  Expression expression("a1 < 4", attribute_names, array_schema_);
+  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
+  const int expected_buffer[11] =  { 0, 1, 2, 3 };
+  check_buffer(buffers, buffer_sizes, expected_buffer, 4);
+}
 
 TEST_CASE_METHOD(ArrayFixture, "Test Expressions All Dropped Cells", "[expressions_all_dropped_cells]") {
   Expression expression("a1 > 16", attribute_names, array_schema_);

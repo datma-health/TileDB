@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_array_read_sparse_1.cc
+ * @file   tiledb_array_read_sparse_filter_1.cc
  *
  * @section LICENSE
  *

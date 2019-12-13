@@ -141,8 +141,10 @@ WriteState::WriteState(
 
 WriteState::~WriteState() {
   // Delete codec instances
-  for(int i=0; i<attribute_num_+1; ++i) {
-    delete codec_[i];
+  for(auto i=0u; i<codec_.size(); ++i) {
+    if (codec_[i]) {
+      delete codec_[i];
+    }
   }
     
   // Free current tiles
@@ -317,7 +319,7 @@ int WriteState::sync_attribute(const std::string& attribute) {
 #endif
   int attribute_id = array_schema->attribute_id(attribute); 
   std::string filename;
-  int rc;
+  int rc = TILEDB_OK;
 
   // Sync attribute
   filename = fragment_->fragment_name() + "/" + attribute + TILEDB_FILE_SUFFIX;

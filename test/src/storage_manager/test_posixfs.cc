@@ -44,22 +44,25 @@
 #include <string>
 #include <thread>
 
+#ifdef HAVE_OPENMP
+  #include <omp.h>
+#endif
 
 class PosixFSTestFixture {
  protected:
   PosixFS fs;
-  std::string test_dir = "test_posixfs_dir";
+  TempDir *td;
+  std::string test_dir;
 
   PosixFSTestFixture() {
+    td = new TempDir();
+    CHECK(fs.is_dir(td->get_temp_dir()));
+    test_dir = td->get_temp_dir()+"/test_posixfs_dir";
     CHECK(fs.locking_support());
   }
 
   ~PosixFSTestFixture() {
-    // Remove the temporary dir
-    std::string command = "rm -rf ";
-    command.append(test_dir);
-    CHECK_RC(system(command.c_str()), 0);
-    CHECK_RC(fs.sync_path("."), TILEDB_FS_OK);
+    delete td;
   }
  };
 
@@ -98,13 +101,14 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS dir", "[dir]") {
   CHECK(fs.get_dirs(test_dir).size() == 0);
   CHECK(fs.get_dirs("non-existent-dir").size() == 0);
 
-  CHECK_RC(fs.move_path(test_dir, "new-dir"), TILEDB_FS_OK);
-  CHECK(fs.is_dir("new-dir"));
+  std::string new_dir = test_dir+"-new";
+  CHECK_RC(fs.move_path(test_dir, new_dir), TILEDB_FS_OK);
+  CHECK(fs.is_dir(new_dir));
   CHECK(!fs.is_dir(test_dir));
-  CHECK_RC(fs.move_path("new-dir", test_dir), TILEDB_FS_OK);
-  CHECK(!fs.is_dir("new-dir"));
+  CHECK_RC(fs.move_path(new_dir, test_dir), TILEDB_FS_OK);
+  CHECK(!fs.is_dir(new_dir));
   CHECK(fs.is_dir(test_dir));
-  CHECK_RC(fs.move_path("non-existent-dir", "new-dir"), TILEDB_FS_ERR);
+  CHECK_RC(fs.move_path("non-existent-dir", new_dir), TILEDB_FS_ERR);
   CHECK_RC(fs.move_path(test_dir, test_dir), TILEDB_FS_OK);
   CHECK(fs.is_dir(test_dir));
 
@@ -196,7 +200,9 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
   REQUIRE(fs.create_dir(test_dir) == TILEDB_FS_OK);
 
   bool complete = true;
-  uint iterations = std::thread::hardware_concurrency();
+  uint iterations = 4;
+
+  #pragma omp parallel for
   for (uint i=0; i<iterations; i++) {
     std::string filename = test_dir+"/foo"+std::to_string(i);
 
@@ -218,6 +224,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
   CHECK(fs.is_dir(test_dir+"new"));
 
   if (complete) {
+    #pragma omp parallel for
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"new/foo"+std::to_string(i);
       CHECK(fs.is_file(filename));

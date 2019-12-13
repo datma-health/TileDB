@@ -44,7 +44,10 @@ set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
+
+# Set the following to true downstream when TileDB is added as a subdirectory 
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
+set(TILEDB_DISABLE_UNINSTALL False CACHE BOOL "Disable TileDB Uninstall")
 
 # Only for Mac OS X
 if(APPLE)
@@ -82,19 +85,19 @@ include_directories(${LIBUUID_INCLUDE_DIR})
 
 set(TILEDB_LIB_DEPENDENCIES ${ZLIB_LIBRARIES} ${LIBUUID_LIBRARY})
 if(ENABLE_LZ4)
-    #find_package(LZ4 REQUIRED)
+    find_package(LZ4 REQUIRED)
     #include_directories(${LZ4_INCLUDE_DIR})
     #set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
     add_definitions(-DENABLE_LZ4)
 endif()
 if(ENABLE_BLOSC)
-    # find_package(BLOSC REQUIRED)
+    find_package(BLOSC REQUIRED)
     # include_directories(${BLOSC_INCLUDE_DIR})
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${BLOSC_LIBRARIES})
     add_definitions(-DENABLE_BLOSC)
 endif()
 if(ENABLE_ZSTD)
-    # find_package(ZSTD REQUIRED)
+    find_package(ZSTD REQUIRED)
     # include_directories(${ZSTD_INCLUDE_DIR})
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZSTD_LIBRARIES})
     add_definitions(-DENABLE_ZSTD)
@@ -112,7 +115,6 @@ add_subdirectory(${MUPARSERX_SOURCE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} muparserx)
 
 # Find optional library dependencies
-find_package(GTest)
 find_package(Doxygen)
 if(USE_MPI)
   find_package(MPI REQUIRED)
@@ -233,11 +235,13 @@ if(DOXYGEN_FOUND)
 endif(DOXYGEN_FOUND)
 
 # Uninstall
-set(CMD "xargs printf '-- Uninstalling: %s\\\\n' <install_manifest.txt") 
-add_custom_target(
-   uninstall 
-   COMMAND echo "Uninstalling TileDB..."
-   COMMAND eval "${CMD}"
-   COMMAND xargs rm -f < install_manifest.txt
-   COMMAND echo "TileDB uninstalled"
-)
+if(NOT TILEDB_DISABLE_UNINSTALL)
+  set(CMD "xargs printf '-- Uninstalling: %s\\\\n' <install_manifest.txt")
+  add_custom_target(
+    uninstall
+    COMMAND echo "Uninstalling TileDB..."
+    COMMAND eval "${CMD}"
+    COMMAND xargs rm -f < install_manifest.txt
+    COMMAND echo "TileDB uninstalled"
+    )
+endif()

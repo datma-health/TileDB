@@ -623,7 +623,8 @@ int StorageManager::array_iterator_init(
     const char** attributes,
     int attribute_num,
     void** buffers,
-    size_t* buffer_sizes) {
+    size_t* buffer_sizes,
+    const char* filter_expression) {
   // Create Array object. This also creates/updates an open array entry
   Array* array;
   if(array_init(
@@ -639,7 +640,7 @@ int StorageManager::array_iterator_init(
 
   // Create ArrayIterator object
   array_it = new ArrayIterator();
-  if(array_it->init(array, buffers, buffer_sizes) != TILEDB_AIT_OK) {
+  if(array_it->init(array, buffers, buffer_sizes, filter_expression) != TILEDB_AIT_OK) {
     array_finalize(array);
     delete array_it;
     array_it = NULL;
@@ -1031,7 +1032,7 @@ int StorageManager::metadata_iterator_finalize(
 
   // Errors
   if(rc_finalize != TILEDB_MIT_OK) {
-    tiledb_mit_errmsg = tiledb_mit_errmsg;
+    tiledb_sm_errmsg = tiledb_mit_errmsg;
     return TILEDB_SM_ERR;
   }
   if(rc_close != TILEDB_SM_OK)
@@ -1588,7 +1589,7 @@ int StorageManager::consolidation_filelock_lock(
 
   // Create consolidation lock file if necessary
   if (!fs_->is_file(filename)) {
-    if (!consolidation_filelock_create(array_name_real)) {
+    if (consolidation_filelock_create(array_name_real)) {
       return TILEDB_SM_ERR;
     }
   }

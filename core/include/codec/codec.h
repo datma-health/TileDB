@@ -113,6 +113,10 @@ class Codec {
     dl_error_ = dlerror();
   }
 
+  std::string& get_dlerror() {
+    return dl_error_;
+  }
+
  void *get_dlopen_handle(const std::string& name) {
     return get_dlopen_handle(name, "");
   }
@@ -130,14 +134,22 @@ class Codec {
     
     for (std::string dl_path : dl_paths_) {
       clear_dlerror();
-      handle = dlopen((dl_path+prefix+name+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+      if (version.empty()) {
+        handle = dlopen((dl_path+prefix+name+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+      } else {
+#ifdef __APPLE__
+        handle = dlopen((dl_path+prefix+name+"."+version+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+#else
+        handle = dlopen((dl_path+prefix+name+suffix+"."+version).c_str(), RTLD_GLOBAL|RTLD_NOW);
+#endif
+      }
       if (handle) {
         return handle;
       }
     }
 
     if (!handle) {
-      dl_error_ = std::string(dlerror());
+      set_dlerror();
     }
     return handle;
   }
