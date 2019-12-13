@@ -38,6 +38,9 @@
 #ifdef ENABLE_LZ4
 #  include "codec_lz4.h"
 #endif
+#ifdef ENABLE_JPEG2K
+#  include "codec_jpeg2K.h"
+#endif
 #ifdef ENABLE_BLOSC
 #  include "codec_blosc.h"
 #endif
@@ -102,6 +105,12 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
 #ifdef ENABLE_LZ4
   case TILEDB_LZ4:
     return new CodecLZ4(compression_level);
+#endif
+#ifdef ENABLE_JPEG2K
+  case TILEDB_JPEG2K: {
+    int64_t* tile_dimensions = (int64_t*)array_schema->tile_extents();
+    return new CodecJPEG2K(compression_level, tile_dimensions);
+  }
 #endif
 #ifdef ENABLE_BLOSC
   case TILEDB_BLOSC:

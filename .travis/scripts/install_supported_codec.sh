@@ -27,6 +27,18 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 	# Install LZ4 - Not enabled - Travis/Trusty distr has a very old version of lz4
 	sudo apt-get -y install liblz4-dev &&
 		export ENABLE_LZ4=0
+
+	# Install OpenJPEG2000 library with memory stream support
+	pushd ~
+	git clone https://github.com/OmicsDataAutomation/openjpeg.git &&
+		cd openjpeg &&
+		mkdir build &&
+                cd build &&
+		cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. &&
+                sudo make install &&
+		export ENABLE_JPEG2K=1
+	popd
+
 else
 	export ENABLE_ZSTD=0
 	export ENABLE_BLOSC=0

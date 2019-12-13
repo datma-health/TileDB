@@ -27,7 +27,7 @@
  * 
  * @section DESCRIPTION
  *
- * It creates a workspace and two groups.
+ * It creates a workspace and three groups: dense, sparse, image
  */
 
 #include "examples.h"
@@ -57,6 +57,9 @@ int main(int argc, char *argv[]) {
 
   // Create two groups in the worskpace
   CHECK_RC(tiledb_group_create(tiledb_ctx, "my_workspace/sparse_arrays"));
+ 
+  // Create third groups in the worskpace
+  CHECK_RC(tiledb_group_create(tiledb_ctx, "my_workspace/image_arrays"));
 
   // Finalize context
   CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));

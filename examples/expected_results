@@ -346,3 +346,63 @@ Reading cells...
 106
 107
 Example 41: Done running ./tiledb_array_read_sparse_2
+Example 42: Running ./tiledb_image_create_whole...
+Example 42: Done running ./tiledb_image_create_whole
+Example 43: Running ./tiledb_image_write_whole...
+Example 43: Done running ./tiledb_image_write_whole
+Example 44: Running ./tiledb_image_read_whole...
+Expected Image Palette RGB values:
+----------------------------
+| R:   0 | R: 201 | R: 234 |
+| G:   0 | G:  23 | G:  85 |
+| B:   0 | B:  30 | B:   6 |
+----------------------------
+| R: 233 | R: 255 | R: 255 |
+| G:  82 | G: 255 | G: 234 |
+| B: 149 | B: 255 | B:   0 |
+----------------------------
+| R: 101 | R:  12 | R:   0 |
+| G:  49 | G:   2 | G:  85 |
+| B: 142 | B: 196 | B:  46 |
+----------------------------
+
+Check SUCCESSFUL
+Example 44: Done running ./tiledb_image_read_whole
+Example 45: Running ./tiledb_image_create_binary_1...
+Example 45: Done running ./tiledb_image_create_binary_1
+Example 46: Running ./tiledb_image_write_binary_1...
+Example 46: Done running ./tiledb_image_write_binary_1
+Example 47: Running ./tiledb_image_read_binary_1...
+
+Check SUCCESSFUL
+Example 47: Done running ./tiledb_image_read_binary_1
+Example 48: Running ./tiledb_image_create_panels...
+Example 48: Done running ./tiledb_image_create_panels
+Example 49: Running ./tiledb_image_write_panels...
+Example 49: Done running ./tiledb_image_write_panels
+Example 50: Running ./tiledb_image_read_panels...
+Expected Image Palette RGB values:
+----------------------------
+| R:   0 | R: 201 | R: 234 |
+| G:   0 | G:  23 | G:  85 |
+| B:   0 | B:  30 | B:   6 |
+----------------------------
+| R: 233 | R: 255 | R: 255 |
+| G:  82 | G: 255 | G: 234 |
+| B: 149 | B: 255 | B:   0 |
+----------------------------
+| R: 101 | R:  12 | R:   0 |
+| G:  49 | G:   2 | G:  85 |
+| B: 142 | B: 196 | B:  46 |
+----------------------------
+
+Check SUCCESSFUL
+Example 50: Done running ./tiledb_image_read_panels
+Example 51: Running ./tiledb_image_create_binary_2...
+Example 51: Done running ./tiledb_image_create_binary_2
+Example 52: Running ./tiledb_image_write_binary_2...
+Example 52: Done running ./tiledb_image_write_binary_2
+Example 53: Running ./tiledb_image_read_binary_2...
+
+Check SUCCESSFUL
+Example 53: Done running ./tiledb_image_read_binary_2

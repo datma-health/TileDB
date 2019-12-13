@@ -156,6 +156,7 @@
 #define TILEDB_BLOSC_ZLIB                            8
 #define TILEDB_BLOSC_ZSTD                            9
 #define TILEDB_RLE                                  10
+#define TILEDB_JPEG2K                               11
 /**@}*/
 
 /**@{*/

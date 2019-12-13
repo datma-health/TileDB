@@ -23,9 +23,10 @@ matrix:
       os: linux
       env: INSTALL_TYPE=hdfs
 
-    - name: "GCS support"
-      os: linux
-      env: INSTALL_TYPE=gcs
+#   Take out Google Cloud test until GCS account reestablished - 13 DEC 19
+#   - name: "GCS support"
+#     os: linux
+#     env: INSTALL_TYPE=gcs
 
     - name: "Azure support"
       os: linux
@@ -62,9 +63,9 @@ install:
     - cd $TILEDB_BUILD_DIR
 
     - echo "Invoking cmake"
-    - echo "cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 .."
+    - echo "cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 -DENABLE_JPEG2K=$ENABLE_JPEG2K .."
 
-    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 ..
+    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 -DENABLE_JPEG2K=$ENABLE_JPEG2K ..
     - make -j 4
 
 before_script:

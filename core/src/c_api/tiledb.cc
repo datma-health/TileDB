@@ -329,6 +329,40 @@ int tiledb_array_set_schema(
     return TILEDB_ERR;
   }
 
+  // Check image dimensions and tiling for JPEG2K compression
+  if (*compression == TILEDB_JPEG2K) {
+    // Only support 2D images at this time
+    if (dim_num != 2) { 
+      std::string errmsg =
+          std::string("Cannot create array_schema; number of image dimensions not equal 2");
+      PRINT_ERROR(errmsg);
+      strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
+      return TILEDB_ERR;
+    }
+    // Check that image width and height are divisible by tiling 
+    int64_t *l_domain = (int64_t*)domain;
+    int64_t *l_tile_extents = (int64_t*)tile_extents;
+    // Width of image MUST be divisible by first tile extent
+    int pixels = l_domain[1] - l_domain[0] + 1; // width upper - lower bound
+    if (pixels % l_tile_extents[0] != 0) {      // divisible by tile width?
+      std::string errmsg =
+          std::string("Cannot create array_schema; image width (" + std::to_string(pixels) + ") not divisible by tile width (" + std::to_string(l_tile_extents[0]) + ")");
+      PRINT_ERROR(errmsg);
+      strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
+      return TILEDB_ERR;
+    }
+    // Height of image MUST be divisible by second tile extent
+    pixels = l_domain[3] - l_domain[2] + 1; // height upper - lower bound
+    if (pixels % l_tile_extents[1] != 0) {  // divisible by tile height?
+      std::string errmsg =
+          std::string("Cannot create array_schema; image height (" + std::to_string(pixels) + ") not divisible by tile height (" + std::to_string(l_tile_extents[1]) + ")");
+      PRINT_ERROR(errmsg);
+      strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
+      return TILEDB_ERR;
+    }
+  }
+
+
   //Nullify workspace
   tiledb_array_schema->array_workspace_ = NULL;
 

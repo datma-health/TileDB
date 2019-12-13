@@ -332,3 +332,169 @@ TEST_CASE("Test array schema backward compatibility", "[compatibility]") {
   CHECK(array_schema.compression_[0] == 1);
 }
 
+#ifdef ENABLE_JPEG2K
+TEST_CASE("Test array schema JPEG2K tile extents divisibilty", "[array_schema]") {
+  std::string array_name_;
+  TileDB_ArraySchema array_schema_;
+  /** Workspace folder name */
+  const std::string WORKSPACE = ".__workspace/";
+
+  TileDB_CTX* tiledb_ctx_;
+  int rc;
+  const char* attributes[] = { "image" };
+  const char* dimensions[] = { "width", "height" };
+  int64_t domain[] = { 0, 99, 0, 99 };
+  int64_t tile_extents[] = { 10, 10 };
+  const int types[] = { TILEDB_INT32, TILEDB_INT64 };
+  const int compression[] = { TILEDB_JPEG2K, TILEDB_NO_COMPRESSION };
+ 
+  /** Array name string  **/
+  const std::string ARRAYNAME = "image_test_100x100_10x10";
+
+  // Initialize context
+  rc = tiledb_ctx_init(&tiledb_ctx_, NULL);
+  REQUIRE(rc == TILEDB_OK);
+
+  // Create workspace
+  rc = tiledb_workspace_create(tiledb_ctx_, WORKSPACE.c_str());
+  REQUIRE(rc == TILEDB_OK);
+
+  // Set array name
+  array_name_ = WORKSPACE + ARRAYNAME;
+
+  /** Test for both width and height being dividible by tile extents chosen **/
+  // Set array schema
+  rc = tiledb_array_set_schema(
+      // The array schema structure
+      &array_schema_,
+      // Array name
+      array_name_.c_str(),
+      // Attributes
+      attributes,
+      // Number of attributes
+      1,
+      // Capacity
+      1000,
+      // Cell order
+      TILEDB_ROW_MAJOR,
+      // Number of cell values per attribute (NULL means 1 everywhere)
+      NULL,
+      // Compression
+      compression,
+      // Compression level, NULL will get defaults
+      NULL,
+      // Dense array
+      1,
+      // Dimensions
+      dimensions,
+      // Number of dimensions
+      2,
+      // Domain
+      domain,
+      // Domain length in bytes
+      4*sizeof(int64_t),
+      // Tile extents (no regular tiles defined)
+      tile_extents,
+      // Tile extents in bytes
+      2*sizeof(int64_t),
+      // Tile order (0 means ignore in sparse arrays and default in dense)
+      TILEDB_ROW_MAJOR,
+      // Types
+      types
+  );
+  REQUIRE(rc == TILEDB_OK);
+
+  /** Test for number of dimensions of the image == 2 **/
+  const std::string ARRAYNAME_DIM_BAD = "image_test_100x100_3D";
+  array_name_ = WORKSPACE + ARRAYNAME_DIM_BAD;
+
+  // Set array schema
+  rc = tiledb_array_set_schema(
+      &array_schema_,      // The array schema structure
+      array_name_.c_str(), // Array name
+      attributes,          // Attributes
+      1,                   // Number of attributes
+      1000,                // Capacity
+      TILEDB_ROW_MAJOR,    // Cell order
+      NULL,                // Number of cell values per attribute
+      compression,         // Compression
+      NULL,                // Compression level, NULL will get defaults
+      1,                   // Dense array
+      dimensions,          // Dimensions
+      3,                   // Number of dimensions ** WRONG **
+      domain,              // Domain
+      4*sizeof(int64_t),   // Domain length in bytes
+      tile_extents,        // Tile extents 
+      2*sizeof(int64_t),   // Tile extents in bytes
+      TILEDB_ROW_MAJOR,    // Tile order
+      types                // Types
+  );
+  CHECK(rc != TILEDB_OK);
+
+  /** Test for width not being dividible by tile width chosen **/
+  const std::string ARRAYNAME_WIDTH_BAD = "image_test_100x100_17x10";
+  array_name_ = WORKSPACE + ARRAYNAME_WIDTH_BAD;
+  tile_extents[0] = 17;  // width not divisible; error 
+  tile_extents[1] = 10;
+
+  // Set array schema
+  rc = tiledb_array_set_schema(
+      &array_schema_,      // The array schema structure
+      array_name_.c_str(), // Array name
+      attributes,          // Attributes
+      1,                   // Number of attributes
+      1000,                // Capacity
+      TILEDB_ROW_MAJOR,    // Cell order
+      NULL,                // Number of cell values per attribute
+      compression,         // Compression
+      NULL,                // Compression level, NULL will get defaults
+      1,                   // Dense array
+      dimensions,          // Dimensions
+      2,                   // Number of dimensions
+      domain,              // Domain
+      4*sizeof(int64_t),   // Domain length in bytes
+      tile_extents,        // Tile extents (no regular tiles defined)
+      2*sizeof(int64_t),   // Tile extents in bytes
+      TILEDB_ROW_MAJOR,    // Tile order
+      types                // Types
+  );
+  CHECK(rc != TILEDB_OK);
+
+  /** Test for height not being dividible by tile height chosen **/
+  const std::string ARRAYNAME_HEIGHT_BAD = "image_test_100x100_10x17";
+  array_name_ = WORKSPACE + ARRAYNAME_HEIGHT_BAD;
+  tile_extents[0] = 10;
+  tile_extents[1] = 17;  // height not divisible; error 
+
+  // Set array schema
+  rc = tiledb_array_set_schema(
+      &array_schema_,      // The array schema structure
+      array_name_.c_str(), // Array name
+      attributes,          // Attributes
+      1,                   // Number of attributes
+      1000,                // Capacity
+      TILEDB_ROW_MAJOR,    // Cell order
+      NULL,                // Number of cell values per attribute
+      compression,         // Compression
+      NULL,                // Compression level, NULL will get defaults
+      1,                   // Dense array
+      dimensions,          // Dimensions
+      2,                   // Number of dimensions
+      domain,              // Domain
+      4*sizeof(int64_t),   // Domain length in bytes
+      tile_extents,        // Tile extents (no regular tiles defined)
+      2*sizeof(int64_t),   // Tile extents in bytes
+      TILEDB_ROW_MAJOR,    // Tile order
+      types                // Types
+  );
+  CHECK(rc != TILEDB_OK);
+
+  // Remove the temporary workspace
+  std::string command = "rm -rf ";
+  command.append(WORKSPACE);
+  rc = system(command.c_str());
+  CHECK(rc == 0);
+
+}
+
+#endif

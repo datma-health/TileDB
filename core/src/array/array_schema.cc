@@ -575,6 +575,8 @@ void ArraySchema::print() const {
       std::cout << "\t" << attributes_[i] << ": BLOSC_ZSTD\n";
     else if(compression_[i] == TILEDB_RLE)
       std::cout << "\t" << attributes_[i] << ": RLE\n";
+    else if(compression_[i] == TILEDB_JPEG2K)
+      std::cout << "\t" << attributes_[i] << ": JPEG2K\n";
     else if(compression_[i] == TILEDB_NO_COMPRESSION)
       std::cout << "\t" << attributes_[i] << ": NONE\n";
   if(compression_[attribute_num_] == TILEDB_GZIP)
@@ -597,6 +599,8 @@ void ArraySchema::print() const {
     std::cout << "\tCoordinates: BLOSC_ZSTD\n";
   else if(compression_[attribute_num_] == TILEDB_RLE)
     std::cout << "\tCoordinates: RLE\n";
+  else if(compression_[attribute_num_] == TILEDB_JPEG2K)
+    std::cout << "\tCoordinates: JPEG2K\n";
   else if(compression_[attribute_num_] == TILEDB_NO_COMPRESSION)
     std::cout << "\tCoordinates: NONE\n";
 
@@ -1481,7 +1485,8 @@ int ArraySchema::set_compression(int* compression) {
          compression[i] != TILEDB_BLOSC_SNAPPY && 
          compression[i] != TILEDB_BLOSC_ZLIB   && 
          compression[i] != TILEDB_BLOSC_ZSTD   &&
-         compression[i] != TILEDB_RLE) {
+         compression[i] != TILEDB_RLE          &&
+         compression[i] != TILEDB_JPEG2K) {
         std::string errmsg = "Cannot set compression; Invalid compression type";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
@@ -1586,7 +1591,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_int[2*i] > domain_int[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (INT) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
@@ -1598,7 +1603,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_int64[2*i] > domain_int64[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (INT64) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
@@ -1610,7 +1615,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_float[2*i] > domain_float[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (FLOAT) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
@@ -1622,7 +1627,7 @@ int ArraySchema::set_domain(const void* domain) {
     for(int i=0; i<dim_num_; ++i) {
       if(domain_double[2*i] > domain_double[2*i+1]) {
         std::string errmsg = 
-            "Cannot set domain; Lower domain bound larger than its "
+            "Cannot set (FLOAT64) domain; Lower domain bound larger than its "
             "corresponding upper";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;

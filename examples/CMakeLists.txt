@@ -26,6 +26,9 @@
 # THE SOFTWARE.
 #
 
+# Add TILEDB_TEST_DIR macro
+add_definitions(-DTILEDB_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
 # Function that builds an executable per example
 function(build_TileDB_example TARGET)
   add_executable(${TARGET} EXCLUDE_FROM_ALL src/${TARGET}.cc)
