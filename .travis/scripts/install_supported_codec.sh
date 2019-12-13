@@ -9,8 +9,7 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 		tar xf v1.0.0.tar.gz &&
 		cd zstd-1.0.0 &&
 		sudo make install PREFIX=$INSTALL_DIR &&
-		##export ENABLE_ZSTD=0
-		export ENABLE_ZSTD=1
+		export ENABLE_ZSTD=0
 	popd
 
 	# Install Blosc
@@ -27,8 +26,7 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 
 	# Install LZ4 - Not enabled - Travis/Trusty distr has a very old version of lz4
 	sudo apt-get -y install liblz4-dev &&
-		##export ENABLE_LZ4=0
-		export ENABLE_LZ4=1
+		export ENABLE_LZ4=0
 
 	# Install OpenJPEG2000 library with memory stream support
 	pushd ~
