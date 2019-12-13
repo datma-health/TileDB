@@ -75,6 +75,16 @@ int main(int argc, char *argv[]) {
         
         TILEDB_NO_COMPRESSION     // coordinates
   };
+#if ENABLE_BLOSC
+  const int compression_level[] = 
+  { 
+      1,                          // a1
+      1,                          // a2 
+      1,                          // a3
+      1                           // coordinates
+  };
+#endif
+
   int64_t tile_extents[] = 
   { 
       2,                          // d1
@@ -99,7 +109,11 @@ int main(int argc, char *argv[]) {
       TILEDB_ROW_MAJOR,           // Cell order 
       cell_val_num,               // Number of cell values per attribute  
       compression,                // Compression
+#if ENABLE_BLOSC
+      compression_level,          // Compression level, for BLOSC
+#else
       NULL,                       // Compression level, use defaults
+#endif
       1,                          // Dense array
       dimensions,                 // Dimensions
       2,                          // Number of dimensions
