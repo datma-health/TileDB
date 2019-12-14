@@ -23,17 +23,17 @@ matrix:
       os: linux
       env: INSTALL_TYPE=hdfs
 
-    - name: "GCS support"
-      os: linux
-      env: INSTALL_TYPE=gcs
+#    - name: "GCS support"
+#      os: linux
+#      env: INSTALL_TYPE=gcs
 
     - name: "Azure support"
       os: linux
       env: INSTALL_TYPE=azure
 
-#    - name: "Basic build - OSX"
-#      os: osx
-#      env: INSTALL_TYPE=basic
+    - name: "Basic build - OSX"
+      os: osx
+      env: INSTALL_TYPE=basic
 
 before_install:
     - pushd $TRAVIS_BUILD_DIR/.travis && openssl aes-256-cbc -K $encrypted_8ed00c38c616_key -iv $encrypted_8ed00c38c616_iv -in r.tar.enc -out r.tar -d && tar xf r.tar && popd;
