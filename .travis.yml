@@ -44,7 +44,8 @@ install:
     - if [[ $TRAVIS_OS_NAME == linux ]]; then
         sudo apt-get -y install cmake3 lcov mpich;
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
-        export CMAKE=cmake3;
+        which cmake;
+        export CMAKE=cmake;
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
         brew install cmake mpich;
         brew install lcov;
