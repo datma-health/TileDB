@@ -128,3 +128,22 @@ void url::parse(const std::string& url_s)
   }
 }
 
+azure_url::azure_url(const std::string& url_s) : url(url_s) {
+  std::size_t begin = this->host().find('@');
+  std::size_t end = this->host().find('.');
+  if (begin != std::string::npos && end != std::string::npos) {
+    account_ = this->host().substr(begin+1, end-begin-1);
+  }
+  if (begin != std::string::npos) {
+    container_ = this->host().substr(0, begin);
+  }
+}
+
+std::string azure_url::account() {
+  return account_;
+}
+
+std::string azure_url::container() {
+  return container_;
+}
+

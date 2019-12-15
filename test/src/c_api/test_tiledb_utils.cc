@@ -45,7 +45,7 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
   std::string workspace_path = get_temp_dir()+"/"+workspace;
 
   TileDB_CTX *tiledb_ctx;
-  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, false) == 0); // OK
+  REQUIRE(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, false) == 0); // OK
   CHECK(!set_working_dir(tiledb_ctx, workspace_path));
   std::string cwd = current_working_dir(tiledb_ctx);
   CHECK(cwd.size() > 0);
@@ -70,9 +70,9 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
 TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   std::string workspace_path = get_temp_dir()+"/"+workspace;
 
-  CHECK(!TileDBUtils::workspace_exists(workspace_path));
+  REQUIRE(!TileDBUtils::workspace_exists(workspace_path));
   
-  CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
+  REQUIRE(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
   CHECK(TileDBUtils::workspace_exists(workspace_path));
   
   CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_ERR);
@@ -105,9 +105,9 @@ TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
   std::string non_existent_array = std::string("non_existent_array");
 
   // No workspace or array
-  CHECK(!TileDBUtils::array_exists(workspace_path, non_existent_array));
+  REQUIRE(!TileDBUtils::array_exists(workspace_path, non_existent_array));
   
-  CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
+  REQUIRE(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
   CHECK(TileDBUtils::workspace_exists(workspace_path));
 
   // workspace exists but no array
@@ -123,9 +123,9 @@ TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
   std::string workspace_path = get_temp_dir()+"/"+workspace;
 
   // No workspace or array or fragments
-  CHECK(TileDBUtils::get_fragment_names(workspace_path).size() == 0);
+  REQUIRE(TileDBUtils::get_fragment_names(workspace_path).size() == 0);
 
-  CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
+  REQUIRE(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
   CHECK(TileDBUtils::workspace_exists(workspace_path));
   
   // No array or fragments

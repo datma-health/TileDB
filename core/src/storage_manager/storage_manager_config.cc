@@ -31,6 +31,7 @@
  * This file implements the StorageManagerConfig class.
  */
 
+#include "storage_azure_blob.h"
 #include "storage_manager_config.h"
 #include "tiledb_constants.h"
 #include "utils.h"
@@ -92,7 +93,15 @@ int StorageManagerConfig::init(
      if (fs_ != NULL)
        delete fs_;
      home_ = std::string(home, strlen(home));
-     if (is_supported_cloud_path(home_)) {
+     if (is_azure_blob_storage_path(home_)) {
+       try {
+         fs_ = new AzureBlob(home_);
+       } catch(std::system_error& ex) {
+         PRINT_ERROR(ex.what());
+	 tiledb_smc_errmsg = "Azure Storage Blob intialization failed for home=" + home_;
+	 return TILEDB_SMC_ERR;
+       }
+     } else if (is_supported_cloud_path(home_)) {
        try {
 #ifdef USE_HDFS
 	 fs_ = new HDFS(home_);
@@ -118,11 +127,7 @@ int StorageManagerConfig::init(
    if (fs_ == NULL)
      fs_ = new PosixFS();
 
-   if(home == NULL) {
-     home_ = "";
-   } else {
-     home_ = std::string(home, strlen(home));
-   } 
+   home_ = fs_->real_dir(home);
 
 #ifdef HAVE_MPI
   // Initialize MPI communicator

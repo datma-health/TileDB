@@ -48,7 +48,7 @@ endif()
 set_target_properties(tiledb_static PROPERTIES OUTPUT_NAME "tiledb")
 set_target_properties(tiledb_shared PROPERTIES OUTPUT_NAME "tiledb")
 
-target_link_libraries(tiledb_static muparserx)
+target_link_libraries(tiledb_static azure-storage-lite muparserx)
 target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 
 # Install libraries
