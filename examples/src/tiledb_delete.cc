@@ -33,6 +33,7 @@
 #include "tiledb.h"
 #include "tiledb_utils.h"
 #include <iostream>
+#include <string.h>
 
 int main(int argc, char *argv[]) {
   if (argc > 2 && strcmp(argv[2], "-f") == 0) {
