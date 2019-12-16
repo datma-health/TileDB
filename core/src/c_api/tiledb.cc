@@ -330,7 +330,7 @@ int tiledb_array_set_schema(
   }
 
   // Check image dimensions and tiling for JPEG2K compression
-  if (*compression == TILEDB_JPEG2K) {
+  if (*compression == TILEDB_JPEG2K || *compression == TILEDB_JPEG2K_RGB) {
     // Only support 2D images at this time
     if (dim_num != 2) { 
       std::string errmsg =
@@ -339,7 +339,10 @@ int tiledb_array_set_schema(
       strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
       return TILEDB_ERR;
     }
+  }
+  if (*compression == TILEDB_JPEG2K) {
     // Check that image width and height are divisible by tiling 
+    // RGB tiling should already be checked and rejected before this if bad
     int64_t *l_domain = (int64_t*)domain;
     int64_t *l_tile_extents = (int64_t*)tile_extents;
     // Width of image MUST be divisible by first tile extent

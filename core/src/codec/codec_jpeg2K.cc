@@ -245,20 +245,12 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    opj_image_t * l_image;
    opj_image_cmptparm_t l_image_params;   // only need one component
    opj_stream_t * l_stream;
-   //OPJ_UINT32 l_nb_tiles_width, l_nb_tiles_height, l_nb_tiles;
-   //OPJ_UINT32 l_data_size;
-   //size_t len;
 
-   //opj_image_cmptparm_t * l_current_param_ptr;
    OPJ_UINT32 i;
    OPJ_BYTE *l_data;
 
    OPJ_UINT32 num_comps = 1;
    OPJ_UINT32 compno;
-   //int image_width;
-   //int image_height;
-   //int tile_width;
-   //int tile_height;
 
 // Fixed parameter values. May need to amend if different image types are used
    int comp_prec = 8;
@@ -276,7 +268,6 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
 
 //  Set data pointer to the first pixel byte beyond the header values
    l_data = (OPJ_BYTE*) tile_in;
-   //OPJ_UINT32 tilesize = tile_size_in - header_offset;
 
    /** number of quality layers in the stream */
    if (!quality_loss) { // Set for lossless compression
