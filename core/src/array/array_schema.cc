@@ -577,6 +577,8 @@ void ArraySchema::print() const {
       std::cout << "\t" << attributes_[i] << ": RLE\n";
     else if(compression_[i] == TILEDB_JPEG2K)
       std::cout << "\t" << attributes_[i] << ": JPEG2K\n";
+    else if(compression_[i] == TILEDB_JPEG2K_RGB)
+      std::cout << "\t" << attributes_[i] << ": JPEG2K_RGB\n";
     else if(compression_[i] == TILEDB_NO_COMPRESSION)
       std::cout << "\t" << attributes_[i] << ": NONE\n";
   if(compression_[attribute_num_] == TILEDB_GZIP)
@@ -601,6 +603,8 @@ void ArraySchema::print() const {
     std::cout << "\tCoordinates: RLE\n";
   else if(compression_[attribute_num_] == TILEDB_JPEG2K)
     std::cout << "\tCoordinates: JPEG2K\n";
+  else if(compression_[attribute_num_] == TILEDB_JPEG2K_RGB)
+    std::cout << "\tCoordinates: JPEG2K_RGB\n";
   else if(compression_[attribute_num_] == TILEDB_NO_COMPRESSION)
     std::cout << "\tCoordinates: NONE\n";
 
@@ -1486,7 +1490,8 @@ int ArraySchema::set_compression(int* compression) {
          compression[i] != TILEDB_BLOSC_ZLIB   && 
          compression[i] != TILEDB_BLOSC_ZSTD   &&
          compression[i] != TILEDB_RLE          &&
-         compression[i] != TILEDB_JPEG2K) {
+         compression[i] != TILEDB_JPEG2K       &&
+         compression[i] != TILEDB_JPEG2K_RGB) {
         std::string errmsg = "Cannot set compression; Invalid compression type";
         PRINT_ERROR(errmsg);
         tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
