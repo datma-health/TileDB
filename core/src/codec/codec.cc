@@ -38,9 +38,11 @@
 #ifdef ENABLE_LZ4
 #  include "codec_lz4.h"
 #endif
+// Should the JPEG2K codecs be mutually exclusive?
 #ifdef ENABLE_JPEG2K
 #  include "codec_jpeg2K.h"
-#elif ENABLE_JPEG2K_RGB
+#endif
+#ifdef ENABLE_JPEG2K_RGB
 #  include "codec_jpeg2K_RGB.h"
 #endif
 #ifdef ENABLE_BLOSC
