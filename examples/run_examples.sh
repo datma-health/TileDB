@@ -122,7 +122,10 @@ run_example ./tiledb_image_read_binary_1 $1 47
 run_example ./tiledb_image_create_panels $1 48
 run_example ./tiledb_image_write_panels $1 49
 run_example ./tiledb_image_read_panels $1 50
-run_example ./tiledb_image_create_binary_2 $1 51
-run_example ./tiledb_image_write_binary_2 $1 52
-run_example ./tiledb_image_read_binary_2 $1 53
+run_example ./tiledb_image_create_panels_RGB $1 51
+run_example ./tiledb_image_write_panels_RGB $1 52
+run_example ./tiledb_image_read_panels_RGB $1 53
+run_example ./tiledb_image_create_binary_2 $1 54
+run_example ./tiledb_image_write_binary_2 $1 55
+run_example ./tiledb_image_read_binary_2 $1 56
 

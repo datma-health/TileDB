@@ -330,8 +330,9 @@ int tiledb_array_set_schema(
   }
 
   // Check image dimensions and tiling for JPEG2K compression
-  if (*compression == TILEDB_JPEG2K || *compression == TILEDB_JPEG2K_RGB) {
-    // Only support 2D images at this time
+  if (*compression == TILEDB_JPEG2K)  {
+    // Only support 2D images at this time 
+    //   JPEG2K_RGB may have 1 dimension if whole image is compressed, no check
     if (dim_num != 2) { 
       std::string errmsg =
           std::string("Cannot create array_schema; number of image dimensions not equal 2");
