@@ -134,6 +134,17 @@ class CodecJPEG2K_base : public Codec {
   }
 };
 
+/**
+ *
+ * @section DESCRIPTION
+ *
+ * This class implements codec for OpenJPEG 2000 compression and decompression.
+ *   This codec will compress a single gray-scale component image. For
+ *   multiple component images, each individual component section should be
+ *   assigned to a separate attribute and tiled as individual at the level of
+ *   individual pixels.
+ **/
+
 class CodecJPEG2K : public CodecJPEG2K_base {
 
 public: 
@@ -152,6 +163,15 @@ private:
 
 };
 
+/**
+ * @section DESCRIPTION
+ *
+ * This class implements codec for OpenJPEG 2000 compression and decompression.
+ *   Each individual tile compressed will be treated as a separate image with
+ *   three componenets (RGB) and the raw pixel data will be prefaced with a
+ *   "header" of 3 integers: number of components (3), image width,
+ *   image height.
+ **/
 
 class CodecJPEG2K_RGB : public CodecJPEG2K_base {
 
