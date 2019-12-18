@@ -114,7 +114,7 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
 #endif
 #ifdef ENABLE_JPEG2K_RGB
   case TILEDB_JPEG2K_RGB:
-    int64_t* dummy;     // unsed in RGB constructor
+    int64_t* dummy;     // unused in RGB constructor
     return new CodecJPEG2K_RGB(compression_level, dummy);
 #endif
 #ifdef ENABLE_BLOSC

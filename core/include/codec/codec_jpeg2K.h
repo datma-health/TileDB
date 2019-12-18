@@ -134,7 +134,7 @@ class CodecJPEG2K_base : public Codec {
   }
 };
 
-class CodecJPEG2K : virtual public CodecJPEG2K_base {
+class CodecJPEG2K : public CodecJPEG2K_base {
 
 public: 
   CodecJPEG2K(int compression_level, int64_t* tile_dims):CodecJPEG2K_base(compression_level, tile_dims) { 
@@ -153,7 +153,7 @@ private:
 };
 
 
-class CodecJPEG2K_RGB : virtual public CodecJPEG2K_base {
+class CodecJPEG2K_RGB : public CodecJPEG2K_base {
 
 public:
    CodecJPEG2K_RGB(int compression_level, int64_t* tile_dims):CodecJPEG2K_base(compression_level, tile_dims) { }

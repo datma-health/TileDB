@@ -224,17 +224,9 @@ void get_header_values(unsigned char *tile_in,
                        int *iw, int *ih)
 {
    int *buffer = (int *) tile_in;
-
    *nc = buffer[0];       // number of color components
    *iw = buffer[1];       // image width
    *ih = buffer[2];       // image height
-
-/** Do we need these? **
-   *bpp = buffer[3];  // Bits per pixel ASSUME default = 8
-   *c_space = buffer[5];  // color space ASSUME set from num_comps
-   *t_num = buffer[6];    // tile number ASSUME the number makes no difference
-**/
-
    return;
 }
 
@@ -246,10 +238,13 @@ void get_header_values(unsigned char *tile_in,
  * @section DESCRIPTION
  *
  * This class implements codec for OpenJPEG 2000 compression and decompression.
- *   This codec will compress a single grap-scale component image. For 
+ *   This codec will compress a single gray-scale component image. For 
  *   multiple component images, each individual component section should be
  *   assigned to a separate attribute and tiled as individual at the level of 
- *   individual pixels.
+ *   individual pixels. 
+ *
+ *   Thus, multiple component images (e.g., immunohistochemistry) can be 
+ *   compressed and kept together.
  *
  *   FUTURE enhancement: May need to find method to pass bits per pixel.
  */
@@ -293,7 +288,7 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       l_param.tcp_rates[0] = 0.0;
       l_param.tcp_distoratio[0] = 0.0;
    }
-   else { // could be set from compression_level in array_schema
+   else { // could be set from compression_level in array_schema?
       l_param.tcp_numlayers = 1;
       l_param.cp_fixed_quality = 1;
       l_param.tcp_distoratio[0] = 20;
@@ -362,15 +357,14 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    l_image->y1 = offsety + (OPJ_UINT32)tile_image_height_;
 
 // Copy pixels to l_image component data from l_data (tile_in) 
-// Can this be done by pointer copy??
-
    size_t num_bytes = tile_image_width_ * tile_image_height_ * sizeof(OPJ_INT32);
    memcpy(l_image->comps[0].data, l_data, num_bytes);
 
-// CPB - to debug by comparing image information and parameters from good run
-//print_image_info(l_image);
-//print_parameters(l_param);
-// CPB end
+/**
+ * to debug by comparing image information and parameters from external run
+ **/
+   // print_image_info(l_image);
+   // print_parameters(l_param);
 
    if (! opj_setup_encoder(l_codec, &l_param, l_image)) {
       cleanup(NULL, NULL, l_codec, l_image);
@@ -571,9 +565,6 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
    opj_image_t * l_image;
    opj_image_cmptparm_t l_image_params[NUM_COMPS_MAX];
    opj_stream_t * l_stream;
-   //OPJ_UINT32 l_nb_tiles_width, l_nb_tiles_height, l_nb_tiles;
-   //OPJ_UINT32 l_data_size;
-   //size_t len;
 
    opj_image_cmptparm_t * l_current_param_ptr;
    OPJ_UINT32 i;
@@ -582,8 +573,6 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
    OPJ_UINT32 num_comps, compno;
    int image_width;
    int image_height;
-   //int tile_width;
-   //int tile_height;
 
 // Fixed parameter values. May need to amend if different image types are used
    int comp_prec = 8;
@@ -700,12 +689,7 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
    l_image->x1 = offsetx + (OPJ_UINT32)image_width;
    l_image->y1 = offsety + (OPJ_UINT32)image_height;
 /** should be set in opj_image_create() **
-   if (num_comps == 3)
-      l_image->color_space = OPJ_CLRSPC_SRGB;
-   else if (num_comps == 1)
-      l_image->color_space = OPJ_CLRSPC_GRAY;
-   else
-      l_image->color_space = OPJ_CLRSPC_UNKNOWN;
+   l_image->color_space = OPJ_CLRSPC_SRGB;
 **/
 
 // Copy pixels to l_image component data from l_data (tile_in)
@@ -717,10 +701,11 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
       l_data += num_bytes;
    }
 
-// CPB - to debug by comparing image information and parameters from good run
-//print_image_info(l_image);
-//print_parameters(l_param);
-// CPB end
+/**
+ * to debug by comparing image information and parameters from external run
+ **/
+   // print_image_info(l_image);
+   // print_parameters(l_param);
 
    if (! opj_setup_encoder(l_codec, &l_param, l_image)) {
       cleanup(NULL, NULL, l_codec, l_image);
@@ -869,7 +854,6 @@ int CodecJPEG2K_RGB::decompress_tile(unsigned char* tile_compressed, size_t tile
       return print_errmsg(msg);
    }
 
-
    // Add header portion -- write ints into char array
    OPJ_UINT32 *buffer = (OPJ_UINT32 *)tile_out;
    buffer[0] = numcomps;      // number of color components
@@ -885,8 +869,6 @@ int CodecJPEG2K_RGB::decompress_tile(unsigned char* tile_compressed, size_t tile
       buffer[i] = (OPJ_UINT32) (0x000000FF & (*ob));
       ++ob;
    }
-
-   //memcpy(ob, l_data, copy_bytes);
 
    /* Free memory */
    cleanup(l_data, l_stream, l_codec, l_image);
