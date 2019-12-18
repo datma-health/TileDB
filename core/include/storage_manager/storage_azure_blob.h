@@ -87,26 +87,46 @@ class AzureBlob : public StorageFS {
 
  private:
   struct membuf: std::streambuf {
-    membuf(const void *buffer, size_t buffer_size, bool input=true) {
+    membuf(const void *buffer, size_t buffer_size, std::ios_base::openmode mode = std::ios_base::in) {
       char *p_buffer(reinterpret_cast<char *>(const_cast<void *>(buffer)));
-      if (input) {
+      if (mode == std::ios_base::in) {
         this->setg(p_buffer, p_buffer, p_buffer+buffer_size);
-      } else {
+      } else if (mode == std::ios_base::out) {
         this->setp(p_buffer, p_buffer+buffer_size);
+      } else {
+        throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "No membuf support for openmodes other than in and out");
       }
+    }
+
+    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode mode) override {
+      if (mode == std::ios_base::in) {
+        if (dir == std::ios_base::cur) {
+          this->gbump(off);
+        } else if (dir == std::ios_base::end) {
+          this->setg(this->eback(), this->egptr() + off, this->egptr()); 
+        } else if (dir == std::ios_base::beg) {
+          this->setg(this->eback(), this->eback() + off, this->egptr());
+        }
+        return this->gptr() - this->eback();
+      }
+      // Support only input modes for now
+      return std::streampos(std::streamoff(-1));
+    }
+
+    pos_type seekpos(pos_type pos, std::ios_base::openmode mode) override {
+      return seekoff(pos - pos_type(off_type(0)), std::ios_base::beg, mode);
     }
   };
 
   struct imemstream: virtual membuf, std::istream {
     imemstream(const void *buffer, size_t buffer_size)
-        : membuf(buffer, buffer_size), std::istream(static_cast<std::streambuf *>(this)) {
+        : membuf(buffer, buffer_size, std::ios_base::in), std::istream(static_cast<std::streambuf *>(this)) {
     }
   };
 
-
   struct omemstream: virtual membuf, std::ostream {
     omemstream(const void *buffer, size_t buffer_size)
-        : membuf(buffer, buffer_size, false), std::ostream(static_cast<std::streambuf *>(this)) {
+        : membuf(buffer, buffer_size, std::ios_base::out), std::ostream(static_cast<std::streambuf *>(this)) {
     }
   };
 
