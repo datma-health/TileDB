@@ -26,6 +26,6 @@ if [[ $INSTALL_TYPE != basic ]]; then
         echo "Something wrong! run_examples.sh returned status code = $!"
         exit 1
     else
-		diff travis_test.log $TRAVIS_BUILD_DIR/examples/expected_results
+		diff travis_test_azure.log $TRAVIS_BUILD_DIR/examples/expected_results
 	fi
 fi
