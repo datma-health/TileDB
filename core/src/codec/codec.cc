@@ -38,12 +38,8 @@
 #ifdef ENABLE_LZ4
 #  include "codec_lz4.h"
 #endif
-// Should the JPEG2K codecs be mutually exclusive?
-#ifdef ENABLE_JPEG2K
+#if defined(ENABLE_JPEG2K) || defined(ENABLE_JPEG2K_RGB)
 #  include "codec_jpeg2K.h"
-#endif
-#ifdef ENABLE_JPEG2K_RGB
-#  include "codec_jpeg2K_RGB.h"
 #endif
 #ifdef ENABLE_BLOSC
 #  include "codec_blosc.h"
@@ -118,7 +114,8 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
 #endif
 #ifdef ENABLE_JPEG2K_RGB
   case TILEDB_JPEG2K_RGB:
-    return new CodecJPEG2K_RGB(compression_level);
+    int64_t* dummy;     // unsed in RGB constructor
+    return new CodecJPEG2K_RGB(compression_level, dummy);
 #endif
 #ifdef ENABLE_BLOSC
   case TILEDB_BLOSC:
