@@ -744,6 +744,7 @@ class ArraySchema {
    *    - TILEDB_BLOSC_ZSTD 
    *    - TILEDB_RLE 
    *    - TILEDB_JPEG2K 
+   *    - TILEDB_JPEG2K_RGB 
    */
   std::vector<int> compression_;
   /**

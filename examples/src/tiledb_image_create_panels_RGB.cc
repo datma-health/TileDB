@@ -1,10 +1,11 @@
 /**
- * @file   tiledb_image_create_binary_2.cc
+ * @file   tiledb_image_create_panels_RGB.cc
  *
  * @section LICENSE
  *
  * The MIT License
  * 
+ * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,9 +28,9 @@
  * 
  * @section DESCRIPTION
  *
- * Example to create dense array to hold whole 165x150 binary image using 
- *   TILEDB_JPEG2K_RGB compression
- *
+ * Example to create dense array to hold 300x300 pixel image of 
+ *   3x3 color palette divided into 100x100 panels using TILEDB_JPEG2K_RGB
+ *   compression
  */
 
 #include "examples.h"
@@ -47,22 +48,23 @@ int main(int argc, char *argv[]) {
   }
 
   // Prepare parameters for array schema
-  const char* array_name = "my_workspace/image_arrays/tissue165150";
-  const char* attributes[] = { "imageRGB" };      // one whole image
-  const char* dimensions[] = { "one" };  // one whole image
+  const char* array_name = "my_workspace/image_arrays/panelimage_RGB";
+  const char* attributes[] = { "imageRGB" };          // one image
+  const char* dimensions[] = { "width", "height" };   // 2-D image dimensions
   int64_t domain[] = 
   { 
-      1, 1                        // one complete image
+      0, 2,                       // width
+      0, 2                        // height
   };                
-
   const int cell_val_num[] = 
   { 
-      74253                        // integer pixels in 3 components + header
+     30003                       // integer pixels in panel plus header
+                                 // 3 x (100 x 100) + 3
   };
   const int compression[] = 
   { 
 #ifdef ENABLE_JPEG2K_RGB
-        TILEDB_JPEG2K_RGB,            // imageRGB
+        TILEDB_JPEG2K_RGB,        // image 
 #else
         TILEDB_NO_COMPRESSION,    // image as raw pixels
 #endif
@@ -71,12 +73,13 @@ int main(int argc, char *argv[]) {
   };
   int64_t tile_extents[] = 
   { 
-      1                           // single image
+      1,                          // width
+      1                           // height
   };               
   const int types[] = 
   { 
-      TILEDB_INT32,                // imageRGB
-      TILEDB_INT64                 // coordinates
+      TILEDB_INT32,               // image
+      TILEDB_INT64                // coordinates
   };
   
   // Set array schema
@@ -93,11 +96,11 @@ int main(int argc, char *argv[]) {
       NULL,                       // Compression level, use defaults
       1,                          // Dense array
       dimensions,                 // Dimensions
-      1,                          // Number of dimensions
+      2,                          // Number of dimensions
       domain,                     // Domain
-      2*sizeof(int64_t),          // Domain length in bytes
+      4*sizeof(int64_t),          // Domain length in bytes
       tile_extents,               // Tile extents
-      1*sizeof(int64_t),          // Tile extents length in bytes 
+      2*sizeof(int64_t),          // Tile extents length in bytes 
       TILEDB_ROW_MAJOR,           // Tile order
       types                       // Types
 				   ));

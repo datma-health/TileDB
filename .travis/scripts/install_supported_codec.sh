@@ -37,10 +37,13 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 		cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR .. &&
                 sudo make install &&
 		export ENABLE_JPEG2K=1
+		export ENABLE_JPEG2K_RGB=1
 	popd
 
 else
 	export ENABLE_ZSTD=0
 	export ENABLE_BLOSC=0
 	export ENABLE_LZ4=0
+        export ENABLE_JPEG2K=0
+        export ENABLE_JPEG2K_RGB=0
 fi

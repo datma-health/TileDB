@@ -398,11 +398,33 @@ Expected Image Palette RGB values:
 
 Check SUCCESSFUL
 Example 50: Done running ./tiledb_image_read_panels
-Example 51: Running ./tiledb_image_create_binary_2...
-Example 51: Done running ./tiledb_image_create_binary_2
-Example 52: Running ./tiledb_image_write_binary_2...
-Example 52: Done running ./tiledb_image_write_binary_2
-Example 53: Running ./tiledb_image_read_binary_2...
+Example 51: Running ./tiledb_image_create_panels_RGB...
+Example 51: Done running ./tiledb_image_create_panels_RGB
+Example 52: Running ./tiledb_image_write_panels_RGB...
+Example 52: Done running ./tiledb_image_write_panels_RGB
+Example 53: Running ./tiledb_image_read_panels_RGB...
+Expected Image Palette RGB values:
+----------------------------
+| R:   0 | R: 201 | R: 234 |
+| G:   0 | G:  23 | G:  85 |
+| B:   0 | B:  30 | B:   6 |
+----------------------------
+| R: 233 | R: 255 | R: 255 |
+| G:  82 | G: 255 | G: 234 |
+| B: 149 | B: 255 | B:   0 |
+----------------------------
+| R: 101 | R:  12 | R:   0 |
+| G:  49 | G:   2 | G:  85 |
+| B: 142 | B: 196 | B:  46 |
+----------------------------
 
 Check SUCCESSFUL
-Example 53: Done running ./tiledb_image_read_binary_2
+Example 53: Done running ./tiledb_image_read_panels_RGB
+Example 54: Running ./tiledb_image_create_binary_2...
+Example 54: Done running ./tiledb_image_create_binary_2
+Example 55: Running ./tiledb_image_write_binary_2...
+Example 55: Done running ./tiledb_image_write_binary_2
+Example 56: Running ./tiledb_image_read_binary_2...
+
+Check SUCCESSFUL
+Example 56: Done running ./tiledb_image_read_binary_2

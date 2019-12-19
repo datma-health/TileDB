@@ -28,7 +28,8 @@
  * 
  * @section DESCRIPTION
  *
- * Example to write dense array to hold whole 150x165 pixel image
+ * Example to write dense array to hold whole 165x150 pixel image using
+ *   TILEDB_JPEG2K_RGB compression
  *
  */
 
@@ -37,14 +38,26 @@
 #include "examples.h"
 #include <stdlib.h>
 
+#define HEADER_SIZE 3
+
 using namespace std;
 
 int *read_image(const char* filename, size_t num_bytes)
 {
+/**
+ *  Tissue image file doesn't have header bytes, so those will be added
+ * here to ensure the image buffer is configured for TILEDB_JPEG2K_RGB 
+ * compression.
+**/
    int *image_buffer = (int *)malloc(num_bytes);
+   size_t bytes_to_read = num_bytes - (HEADER_SIZE * sizeof(int));
+   int *l_buffer = image_buffer;
+   *l_buffer = 3;   ++l_buffer;  // Add number of components
+   *l_buffer = 165; ++l_buffer;  // Add number of width
+   *l_buffer = 150; ++l_buffer;  // Add number of height
    FILE *infile;
    infile = fopen(filename, "rb"); // r for read, b for binary
-   fread(image_buffer, num_bytes, 1, infile);
+   fread(l_buffer, bytes_to_read, 1, infile);
    fclose(infile);
 
    return image_buffer;
@@ -77,8 +90,7 @@ int main(int argc, char *argv[]) {
   size_t num_comps = 3;
   size_t width  = 165;
   size_t height = 150;
-  size_t full_image_bytes = (num_comps * width * height) * sizeof(int);
-  size_t buffer_image_bytes = (width * height) * sizeof(int);
+  size_t full_image_bytes = (num_comps * width * height + HEADER_SIZE) * sizeof(int);
 
   std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue165x150.bin";
 
@@ -86,16 +98,12 @@ int main(int argc, char *argv[]) {
 
   const void* buffers[] =
   {
-      &buffer_image[0*width*height],    // R buffer
-      &buffer_image[1*width*height],    // G buffer
-      &buffer_image[2*width*height]     // B buffer
+      buffer_image             // whole image (plus header)
   };
 
   size_t buffer_sizes[] =
   {
-      buffer_image_bytes,       // sizeof( R buffer_image )
-      buffer_image_bytes,       // sizeof( G buffer_image )
-      buffer_image_bytes        // sizeof( B buffer_image )
+      full_image_bytes        // buffer size 
   };
 
   // Write to array

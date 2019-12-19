@@ -73,15 +73,13 @@ JPEG2K_EXTERN_DECL void (*opj_destroy_codec)(opj_codec_t *);
 // Maximum number of components within an image allowed
 #define NUM_COMPS_MAX 4
 
-class CodecJPEG2K : public Codec {
+class CodecJPEG2K_base : public Codec {
  public:
   
-  CodecJPEG2K(int compression_level, int64_t* tile_dims):Codec(compression_level) {
+  CodecJPEG2K_base(int compression_level, int64_t* tile_dims):Codec(compression_level) {
     static bool loaded = false;
     static std::mutex loading;
     
-    tile_image_width_ = tile_dims[0];
-    tile_image_height_ = tile_dims[1];
 
     if (!loaded) {
       loading.lock();
@@ -134,14 +132,56 @@ class CodecJPEG2K : public Codec {
       }
     }
   }
-  
-  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);
+};
 
-  int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
+/**
+ *
+ * @section DESCRIPTION
+ *
+ * This class implements codec for OpenJPEG 2000 compression and decompression.
+ *   This codec will compress a single gray-scale component image. For
+ *   multiple component images, each individual component section should be
+ *   assigned to a separate attribute and tiled as individual at the level of
+ *   individual pixels.
+ **/
+
+class CodecJPEG2K : public CodecJPEG2K_base {
+
+public: 
+  CodecJPEG2K(int compression_level, int64_t* tile_dims):CodecJPEG2K_base(compression_level, tile_dims) { 
+     tile_image_width_ = tile_dims[0];
+     tile_image_height_ = tile_dims[1];
+  }
+  
+   int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);
+
+   int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
   
 private:
-  int64_t tile_image_width_;
-  int64_t tile_image_height_;
+   int64_t tile_image_width_;
+   int64_t tile_image_height_;
+
+};
+
+/**
+ * @section DESCRIPTION
+ *
+ * This class implements codec for OpenJPEG 2000 compression and decompression.
+ *   Each individual tile compressed will be treated as a separate image with
+ *   three componenets (RGB) and the raw pixel data will be prefaced with a
+ *   "header" of 3 integers: number of components (3), image width,
+ *   image height.
+ **/
+
+class CodecJPEG2K_RGB : public CodecJPEG2K_base {
+
+public:
+   CodecJPEG2K_RGB(int compression_level, int64_t* tile_dims):CodecJPEG2K_base(compression_level, tile_dims) { }
+  
+   int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);
+
+   int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
+
 };
 
 #endif /*__CODEC_JPEG200_H__*/

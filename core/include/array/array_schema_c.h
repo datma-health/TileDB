@@ -84,6 +84,7 @@ typedef struct ArraySchemaC {
    *    - TILEDB_BLOSC_ZSTD 
    *    - TILEDB_RLE 
    *    - TILEDB_JPEG2K 
+   *    - TILEDB_JPEG2K_RGB 
    */
   int* compression_;
   /** The level of compression for each attribute */

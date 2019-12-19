@@ -28,29 +28,38 @@
  * 
  * @section DESCRIPTION
  *
- * Example to read dense array holding whole 165x150 pixel image
+ * Example to read dense array holding whole 165x150 pixel image using
+ *   TILEDB_JPEG2K_RGB compression
  *
  */
 
 #include "examples.h"
 #include <stdlib.h>
+#define HEADER_SIZE 3
 
 void check_results(char *buffer_image, size_t num_bytes)
 {
+/** 
+ * Tissue image file doesn't have header values; thus, take out the header
+ * bytes of the buffer_image and read only the pixel bytes from file.
+**/
    size_t i, errors = 0;
    std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue165x150.bin";
-   char *original_image = (char *)malloc(num_bytes);
+   size_t bytes_to_read = num_bytes - (HEADER_SIZE * sizeof(int));
+   char *original_image = (char *)malloc(bytes_to_read);
    FILE *infile;
    infile = fopen(filename.c_str(), "rb"); // r for read, b for binary
-   fread(original_image, num_bytes, 1, infile);
+   fread(original_image, bytes_to_read, 1, infile);
    fclose(infile);
 
    FILE *errfile;
    errfile = fopen("t165x150_err", "w");
+   char *l_buffer = buffer_image;
+   l_buffer += HEADER_SIZE * sizeof(int);   // skip over header bytes from buffer_image
 
    unsigned int b, o;
-   for (i = 0; i < num_bytes; ++i) {
-      b = buffer_image[i];
+   for (i = 0; i < bytes_to_read; ++i) {
+      b = l_buffer[i];
       o = original_image[i];
       if (b != o) {
          unsigned int d = (b > o) ? b-o : o-b;
@@ -94,22 +103,17 @@ int main(int argc, char *argv[]) {
    size_t num_comps = 3;
    size_t width  = 165;
    size_t height = 150;
-   size_t full_image_bytes = (num_comps * width * height) * sizeof(int);
-   size_t buffer_image_bytes = width * height * sizeof(int);
+   size_t full_image_bytes = (num_comps * width * height + HEADER_SIZE) * sizeof(int);
 
    int *buffer_image = (int*)malloc(full_image_bytes);
    void* buffers[] =
    {
-       &buffer_image[0*width*height],   // R buffer
-       &buffer_image[1*width*height],   // G buffer
-       &buffer_image[2*width*height]    // B buffer
+       buffer_image                // whole image
    };
 
    size_t buffer_sizes[] =
    {
-       buffer_image_bytes,            // sizeof(R buffer_image)
-       buffer_image_bytes,            // sizeof(G buffer_image)
-       buffer_image_bytes             // sizeof(B buffer_image)
+       full_image_bytes            // sizeof(whole image plus header)
    };
 
    // Read from array
@@ -123,10 +127,12 @@ int main(int argc, char *argv[]) {
    /* Finalize context. */
    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
 
+/**
    FILE *bin_ptr;
    bin_ptr = fopen("tissue_decode.bin","wb");
    fwrite(buffer_image, full_image_bytes, 1, bin_ptr);
    fclose(bin_ptr);
+**/
 
    return 0;
 }
