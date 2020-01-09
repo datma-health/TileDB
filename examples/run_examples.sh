@@ -128,4 +128,8 @@ run_example ./tiledb_image_read_panels_RGB $1 53
 run_example ./tiledb_image_create_binary_2 $1 54
 run_example ./tiledb_image_write_binary_2 $1 55
 run_example ./tiledb_image_read_binary_2 $1 56
-
+run_example ./tiledb_metadata_create $1 57
+run_example ./tiledb_metadata_write $1 58
+run_example ./tiledb_metadata_read k1 $1 59
+run_example ./tiledb_metadata_read k2 $1 60
+run_example ./tiledb_metadata_read k3 $1 61
