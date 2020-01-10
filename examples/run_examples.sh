@@ -49,16 +49,20 @@ check_rc() {
 }
 
 run_example() {
-  if [[ $# -eq 3 ]]
+  if [[ $# -eq 4 ]]
+  then
+    logfile=`basename $3`.log
+    echo "Example $4: Running $1..." | tee -a ${logfile}
+    $1 $2 $3 | tee -a ${logfile} 2>&1
+    check_rc ${PIPESTATUS[0]}
+    echo "Example $4: Done running $1" | tee -a ${logfile}
+  elif [[ $# -eq 3 ]]
   then
     logfile=`basename $2`.log
-    echo "Example $3: Running $1..." > ${logfile}
-    echo "Example $3: Running $1..." | tee -a log
-    $1 $2 > ${logfile} 2>&1
-    $1 $2 2>&1 | tee -a log
+    echo "Example $3: Running $1..." | tee -a ${logfile}
+    $1 $2 | tee -a ${logfile} 2>&1
     check_rc ${PIPESTATUS[0]}
-    echo "Example $3: Done running $1" > ${logfile}
-    echo "Example $3: Done running $1" | tee -a log
+    echo "Example $3: Done running $1" | tee -a ${logfile}
   else
     echo "Example $2: Running $1..." | tee -a log
     $1 | tee -a log
