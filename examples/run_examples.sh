@@ -53,19 +53,19 @@ run_example() {
   then
     logfile=`basename $3`.log
     echo "Example $4: Running $1..." | tee -a ${logfile}
-    $1 $2 $3 |& tee -a ${logfile}
+    $1 $2 $3 | tee -a ${logfile}
     check_rc ${PIPESTATUS[0]}
     echo "Example $4: Done running $1" | tee -a ${logfile}
   elif [[ $# -eq 3 ]]
   then
     logfile=`basename $2`.log
     echo "Example $3: Running $1..." | tee -a ${logfile}
-    $1 $2 |& tee -a ${logfile}
+    $1 $2 | tee -a ${logfile}
     check_rc ${PIPESTATUS[0]}
     echo "Example $3: Done running $1" | tee -a ${logfile}
   else
     echo "Example $2: Running $1..." | tee -a log
-    $1 |& tee -a log
+    $1 | tee -a log
     check_rc ${PIPESTATUS[0]}
     echo "Example $2: Done running $1" | tee -a log
   fi
