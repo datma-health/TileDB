@@ -1328,16 +1328,24 @@ int ArraySchema::init(const MetadataSchemaC* metadata_schema_c) {
   int* compression = (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
   int* compression_level = (int*) malloc((metadata_schema_c->attribute_num_+2)*sizeof(int));
   if(metadata_schema_c->compression_ == NULL) {
-    for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i)
+    for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i) {
       compression[i] = TILEDB_NO_COMPRESSION;
+      compression_level[i] = 0; // default, dummy value
+    }
   } else {
     for(int i=0; i<metadata_schema_c->attribute_num_+1; ++i) {
       compression[i] = metadata_schema_c->compression_[i];
-      compression_level[i] = metadata_schema_c->compression_level_[i];
+      if(metadata_schema_c->compression_level_ != NULL) { 
+        compression_level[i] = metadata_schema_c->compression_level_[i];
+      } else {
+        compression_level[i] = 0; // default, dummy value
+      }
     }
   }
   compression[metadata_schema_c->attribute_num_+1] = TILEDB_NO_COMPRESSION;
+  compression_level[metadata_schema_c->attribute_num_+1] = 0;
   array_schema_c.compression_ = compression;
+  array_schema_c.compression_level_ = compression_level;
 
   // Initialize schema through the array schema C struct
   init(&array_schema_c);
