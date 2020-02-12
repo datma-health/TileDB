@@ -40,10 +40,10 @@
 class TestCodecBasic : public Codec {
  public:
   using Codec::Codec;
-  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size, bool delta_encode = false) {
     return TILEDB_CD_OK;
   }
-  int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+  int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode = false) {
     return TILEDB_CD_OK;
   }
 };

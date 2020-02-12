@@ -35,7 +35,7 @@
 #define LZ4_EXTERN_DECL extern
 #include "codec_lz4.h"
 
-int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size, bool delta_encode) {
     // Allocate space to store the compressed tile
   size_t compress_bound = LZ4_compressBound(tile_size);
   if(tile_compressed_ == NULL) {
@@ -66,7 +66,7 @@ int CodecLZ4::compress_tile(unsigned char* tile, size_t tile_size, void** tile_c
   return TILEDB_CD_OK;
 }
 
-int CodecLZ4::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecLZ4::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_sizee, bool delta_decode) {
     // Decompress tile 
   if(LZ4_decompress_safe(
          (const char*) tile_compressed, 

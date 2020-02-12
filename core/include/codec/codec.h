@@ -167,12 +167,12 @@ class Codec {
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
-  virtual int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) = 0;
+  virtual int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size, bool delta_encode = false) = 0;
 
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
-  virtual int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) = 0;
+  virtual int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode = false) = 0;
 
   /* ********************************* */
   /*         PROTECTED ATTRIBUTES      */
@@ -193,7 +193,28 @@ class Codec {
 #else
 #  error Platform not supported
 #endif
-  
+
+  void delta_encode(unsigned char* buffer, int length) {
+    int64_t *buf_int64 = reinterpret_cast<int64_t *>(buffer);
+    length = length/sizeof(int64_t);
+    int64_t last = 0;
+    for (int i = 0; i < length; i++) {
+      int64_t current = buf_int64[i];
+      buf_int64[i] = current - last;
+      last = current;
+    }
+  }
+
+  void delta_decode(unsigned char* buffer, int length) {
+    int64_t *buf_int64 = reinterpret_cast<int64_t *>(buffer);
+    length = length/sizeof(int64_t);
+    int64_t last = 0;
+    for (int i = 0; i < length; i++) {
+      int64_t delta = buf_int64[i];
+      buf_int64[i] = delta + last;
+      last = buf_int64[i];
+    }
+  }
 };
 
 #endif /*__CODEC_H__*/

@@ -231,7 +231,8 @@ class WriteState {
       unsigned char* tile,
       size_t tile_size,
       void** tile_compressed,
-      size_t& tile_compressed_size);
+      size_t& tile_compressed_size,
+      bool delta_encode = false);
 
   /**
    * Compresses the current tile for the input attribute, and writes (appends)

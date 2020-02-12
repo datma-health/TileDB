@@ -35,7 +35,7 @@
 #define ZSTD_EXTERN_DECL extern
 #include "codec_zstd.h"
 
-int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_sizee, bool delta_encode) {
    // Allocate space to store the compressed tile
   size_t compress_bound = ZSTD_compressBound(tile_size);
   if(tile_compressed_ == NULL) {
@@ -68,7 +68,7 @@ int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** 
   return TILEDB_CD_OK;
 }
 
-int CodecZStandard::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecZStandard::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_sizee, bool delta_encode) {
     // Decompress tile 
   size_t zstd_size = 
       ZSTD_decompress(
