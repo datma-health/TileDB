@@ -85,7 +85,7 @@ int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile
   return TILEDB_CD_OK;
 }
 
-int CodecBlosc::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode = false) {
+int CodecBlosc::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode) {
   // Initialization
   blosc_init();
 
