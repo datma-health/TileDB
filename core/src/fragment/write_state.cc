@@ -576,7 +576,10 @@ int WriteState::compress_tile(
     void** tile_compressed,
     size_t& tile_compressed_size,
     bool delta_encode) {
-  if(codec_[attribute_id]->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size, delta_encode) != TILEDB_CD_OK) {
+  bool is_coords = !array_schema_->attribute(attribute_id).compare(TILEDB_COORDS);
+  if(codec_[attribute_id]->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size,
+                                         delta_encode || is_coords,
+                                         is_coords?array_schema_->dim_num():1) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot compress tile";
     PRINT_ERROR(errmsg);
     tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;

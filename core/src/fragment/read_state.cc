@@ -1604,7 +1604,10 @@ int ReadState::decompress_tile(
     unsigned char* tile,
     size_t tile_size,
     bool delta_decode) {
-  if(codec_[attribute_id]->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size, delta_decode) != TILEDB_CD_OK) {
+  bool is_coords = !array_schema_->attribute(attribute_id).compare(TILEDB_COORDS);
+  if(codec_[attribute_id]->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size,
+                                           delta_decode || is_coords,
+                                           is_coords?array_schema_->dim_num():1) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot decompress tile";
     PRINT_ERROR(errmsg);
     tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
