@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -76,7 +76,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
   CHECK(TileDBUtils::workspace_exists(workspace_path));
   
-  CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_ERR);
+  CHECK(TileDBUtils::create_workspace(workspace_path, false) == 1); // EXISTS not REPLACED
   CHECK(TileDBUtils::workspace_exists(workspace_path));
   
   CHECK(TileDBUtils::create_workspace(workspace_path, true) == TILEDB_OK);
@@ -95,7 +95,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(!TileDBUtils::is_dir(test_file));
 
   // Use defaults
-  CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_ERR);
+  CHECK(TileDBUtils::create_workspace(workspace_path) == 1); // EXISTS not REPLACED
   CHECK(TileDBUtils::delete_dir(workspace_path) == TILEDB_OK);
 
   CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
