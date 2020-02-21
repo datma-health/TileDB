@@ -5,7 +5,8 @@ tiledb_utils_tests() {
   $TILEDB_BUILD_DIR/test/test_tiledb_utils [create_workspace] --test-dir $1 &&
   $TILEDB_BUILD_DIR/test/test_tiledb_utils [array_exists] --test-dir $1 &&
   $TILEDB_BUILD_DIR/test/test_tiledb_utils [get_fragment_names] --test-dir $1 &&
-  $TILEDB_BUILD_DIR/test/test_tiledb_utils [file_ops] --test-dir $1
+  $TILEDB_BUILD_DIR/test/test_tiledb_utils [file_utils_multi_threads] --test-dir $1 && 
+  $TILEDB_BUILD_DIR/test/test_tiledb_utils [file_ops] --test-dir $1 &&
 	$TILEDB_BUILD_DIR/test/test_tiledb_utils [move_across_filesystems] --test-dir $1
 }
 
