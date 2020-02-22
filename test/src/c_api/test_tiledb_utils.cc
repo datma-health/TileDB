@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,8 +36,9 @@
 #include "tiledb_storage.h"
 #include "tiledb_utils.h"
 
-#include <string.h>
 #include <fcntl.h>
+#include <string.h>
+#include <thread>
 
 const std::string& workspace("WORKSPACE");
 
@@ -75,7 +76,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
   CHECK(TileDBUtils::workspace_exists(workspace_path));
   
-  CHECK(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_ERR);
+  CHECK(TileDBUtils::create_workspace(workspace_path, false) == 1); // EXISTS not REPLACED
   CHECK(TileDBUtils::workspace_exists(workspace_path));
   
   CHECK(TileDBUtils::create_workspace(workspace_path, true) == TILEDB_OK);
@@ -94,7 +95,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(!TileDBUtils::is_dir(test_file));
 
   // Use defaults
-  CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_ERR);
+  CHECK(TileDBUtils::create_workspace(workspace_path) == 1); // EXISTS not REPLACED
   CHECK(TileDBUtils::delete_dir(workspace_path) == TILEDB_OK);
 
   CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
@@ -140,6 +141,44 @@ TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
   CHECK(TileDBUtils::get_fragment_names(input_ws).size() == 0);
 
   // TODO: Add input with one fragment
+}
+
+TEST_CASE_METHOD(TempDir, "Test multithreaded file utils", "[file_utils_multi_threads]") {
+  CHECK(TileDBUtils::is_dir(get_temp_dir()));
+  std::string test_dir = get_temp_dir()+"/test_dir";
+  CHECK(TileDBUtils::create_dir(test_dir) == TILEDB_OK);
+  CHECK(TileDBUtils::is_dir(test_dir));
+  CHECK(!TileDBUtils::is_file(test_dir));
+
+  std::string test_file = test_dir+"/test_file";
+  char buffer[1024];
+  memset(buffer, 'T', 1024);
+  CHECK(TileDBUtils::write_file(test_file, buffer, 1024) == TILEDB_OK);
+  CHECK(TileDBUtils::is_file(test_file));
+  CHECK(!TileDBUtils::is_dir(test_file));
+
+  // Define a lambda expression
+  auto test_file_ops_fn = [](const std::string& dirname, const std::string& filename) {
+    CHECK(TileDBUtils::is_dir(dirname));
+    CHECK(!TileDBUtils::is_file(dirname));
+    CHECK(TileDBUtils::is_file(filename));
+    CHECK(!TileDBUtils::is_dir(filename));
+  };
+
+  int num_threads = 16;
+  std::vector<std::thread> threads;
+  for (auto i=0; i<num_threads; i++) {
+    std::thread thread_object(test_file_ops_fn, test_dir, test_file);
+    threads.push_back(std::move(thread_object));
+  }
+
+  CHECK(num_threads == threads.size());
+
+  for (auto i=0; i<num_threads; i++) {
+    threads[i].join();
+  }
+
+  CHECK(TileDBUtils::delete_dir(test_dir) == TILEDB_OK);
 }
 
 TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
