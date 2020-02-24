@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
         TILEDB_GZIP,              // a2
 #endif
         TILEDB_NO_COMPRESSION,    // a3
-        TILEDB_NO_COMPRESSION     // coordinates
+        TILEDB_GZIP               // coordinates
   };
   int64_t tile_extents[] = 
   { 

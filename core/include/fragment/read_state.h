@@ -637,7 +637,8 @@ class ReadState {
       unsigned char* tile_compressed,
       size_t tile_compressed_size,
       unsigned char* tile,
-      size_t tile_size);
+      size_t tile_size,
+      bool delta_decode = false);
 
   /** 
    * Returns the cell position in the search tile that is after the

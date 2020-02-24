@@ -574,8 +574,12 @@ int WriteState::compress_tile(
     unsigned char* tile, 
     size_t tile_size,
     void** tile_compressed,
-    size_t& tile_compressed_size) {
-  if(codec_[attribute_id]->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size) != TILEDB_CD_OK) {
+    size_t& tile_compressed_size,
+    bool delta_encode) {
+  bool is_coords = !array_schema_->attribute(attribute_id).compare(TILEDB_COORDS);
+  if(codec_[attribute_id]->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size,
+                                         delta_encode || is_coords,
+                                         is_coords?array_schema_->dim_num():1) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot compress tile";
     PRINT_ERROR(errmsg);
     tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
@@ -601,7 +605,8 @@ int WriteState::compress_and_write_tile(int attribute_id) {
          tile, 
          tile_size,
 	 &tile_compressed,
-         tile_compressed_size) != TILEDB_WS_OK) 
+         tile_compressed_size,
+         array_schema_->cell_val_num(attribute_id) == TILEDB_VAR_NUM) != TILEDB_WS_OK) 
     return TILEDB_WS_ERR;
 
   // Write segment to file

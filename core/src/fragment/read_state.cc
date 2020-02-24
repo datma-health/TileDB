@@ -1602,8 +1602,12 @@ int ReadState::decompress_tile(
     unsigned char* tile_compressed,
     size_t tile_compressed_size,
     unsigned char* tile,
-    size_t tile_size) {
-  if(codec_[attribute_id]->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size) != TILEDB_CD_OK) {
+    size_t tile_size,
+    bool delta_decode) {
+  bool is_coords = !array_schema_->attribute(attribute_id).compare(TILEDB_COORDS);
+  if(codec_[attribute_id]->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size,
+                                           delta_decode || is_coords,
+                                           is_coords?array_schema_->dim_num():1) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot decompress tile";
     PRINT_ERROR(errmsg);
     tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
@@ -2459,7 +2463,8 @@ int ReadState::prepare_tile_for_reading_var_cmp(
          static_cast<unsigned char*>(tile_compressed_), 
          tile_compressed_size, 
          static_cast<unsigned char*>(tiles_[attribute_id]),
-         tile_size) != TILEDB_RS_OK)
+         tile_size,
+         array_schema_->cell_val_num(attribute_id) == TILEDB_VAR_NUM) != TILEDB_RS_OK)
     return TILEDB_RS_ERR;
 
   // Set the tile size

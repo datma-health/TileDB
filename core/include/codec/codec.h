@@ -167,12 +167,12 @@ class Codec {
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
-  virtual int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) = 0;
+  virtual int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size, bool delta_encode = false, int tuple_length=1) = 0;
 
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
-  virtual int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) = 0;
+  virtual int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode = false, int tuple_length=1) = 0;
 
   /* ********************************* */
   /*         PROTECTED ATTRIBUTES      */
@@ -193,7 +193,34 @@ class Codec {
 #else
 #  error Platform not supported
 #endif
-  
+
+  void delta_encode(unsigned char* buffer, int64_t length, int tuple_length=1) {
+    int64_t *buf_int64 = reinterpret_cast<int64_t *>(buffer);
+    length = length/sizeof(int64_t)/tuple_length;
+    std::vector<int64_t> last(tuple_length, 0);
+    for (int64_t i=0; i<length; i++) {
+      for (int j=0; j<tuple_length; j++) {
+        int64_t index = i*tuple_length+j;
+        int64_t current = buf_int64[index];
+        buf_int64[index] = current - last[j];
+        last[j] = current;
+      }
+    }
+  }
+
+  void delta_decode(unsigned char* buffer, int length, int tuple_length=1) {
+    int64_t *buf_int64 = reinterpret_cast<int64_t *>(buffer);
+    length = length/sizeof(int64_t)/tuple_length;
+    std::vector<int64_t> last(tuple_length, 0);
+    for (int i = 0; i < length; i++) {
+      for (int j=0; j<tuple_length; j++) {
+        int64_t index = i*tuple_length+j;
+        int64_t delta = buf_int64[index];
+        buf_int64[index] = delta + last[j];
+        last[j] = buf_int64[index];
+      }
+    }
+  }
 };
 
 #endif /*__CODEC_H__*/

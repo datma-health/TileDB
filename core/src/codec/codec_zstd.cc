@@ -35,7 +35,12 @@
 #define ZSTD_EXTERN_DECL extern
 #include "codec_zstd.h"
 
-int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_sizee, bool delta_encode, int tuple_length) {
+    // Encode tile first
+  if (delta_encode) {
+    Codec::delta_encode(tile, tile_size, tuple_length);
+  }
+  
    // Allocate space to store the compressed tile
   size_t compress_bound = ZSTD_compressBound(tile_size);
   if(tile_compressed_ == NULL) {
@@ -68,7 +73,7 @@ int CodecZStandard::compress_tile(unsigned char* tile, size_t tile_size, void** 
   return TILEDB_CD_OK;
 }
 
-int CodecZStandard::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecZStandard::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_sizee, bool delta_encode, int tuple_length) {
     // Decompress tile 
   size_t zstd_size = 
       ZSTD_decompress(
@@ -78,6 +83,11 @@ int CodecZStandard::decompress_tile(unsigned char* tile_compressed,  size_t tile
           tile_compressed_size);
   if(ZSTD_isError(zstd_size)) {
     return print_errmsg("Zstandard decompression failed");
+  }
+
+   // Decode if necessary
+  if (delta_decode) {
+    Codec::delta_decode(tile, tile_size, tuple_length);
   }
 
   // Success

@@ -86,9 +86,9 @@ class CodecBlosc : public Codec {
     }
   }
   
-  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);
+  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size, bool delta_encode=false, int tuple_length=1);
 
-  int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
+  int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode=false, int tuple_length=1);
 
  private:
   std::string compressor_;

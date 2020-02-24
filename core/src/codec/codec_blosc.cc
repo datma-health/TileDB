@@ -35,7 +35,7 @@
 #define BLOSC_EXTERN_DECL extern
 #include "codec_blosc.h"
 
-int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size, bool delta_encode, int tuple_length) {
   // Allocate space to store the compressed tile
 #define BLOSC_MAX_OVERHEAD 16
   size_t compress_bound = tile_size + BLOSC_MAX_OVERHEAD;
@@ -85,7 +85,7 @@ int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile
   return TILEDB_CD_OK;
 }
 
-int CodecBlosc::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecBlosc::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode, int tuple_length) {
   // Initialization
   blosc_init();
 

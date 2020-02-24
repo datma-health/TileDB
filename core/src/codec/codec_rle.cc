@@ -33,7 +33,7 @@
 #include "codec_rle.h"
 #include "utils.h"
 
-int CodecRLE::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecRLE::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size, bool delta_encode, int tuple_length) {
   // Allocate space to store the compressed tile
   size_t compress_bound;
   if(!is_coords_)
@@ -96,7 +96,7 @@ int CodecRLE::compress_tile(unsigned char* tile, size_t tile_size, void** tile_c
   return TILEDB_CD_OK;
 }
 
-int CodecRLE::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecRLE::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size, bool delta_decode, int tuple_length) {
    // Decompress tile
   int rc;
   if(!is_coords_) { 
