@@ -34,8 +34,13 @@
 
 #include "storage_fs.h"
 
+#include <mutex>
+#include <unordered_map>
+
 class PosixFS : public StorageFS {
  public:
+  ~PosixFS();
+
   std::string current_dir();
   int set_working_dir(const std::string& dir);
 
@@ -62,6 +67,14 @@ class PosixFS : public StorageFS {
   int sync_path(const std::string& path);
 
   bool locking_support();
+
+  int close_file(const std::string& filename);
+
+  protected:
+  std::mutex write_map_mtx_;
+  std::unordered_map<std::string, int> write_map_;
+
+  int write_to_file_no_locking_support(const std::string& filename, const void *buffer, size_t buffer_size);
 };
 
 #endif /* __STORAGE_POSIXFS_H__ */
