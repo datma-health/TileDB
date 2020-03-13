@@ -73,6 +73,8 @@ int write_file(const std::string& filename, const void *buffer, size_t length, c
 
 int delete_file(const std::string& filename);
 
+int set_working_dir(const std::string& dir);
+
 int move_across_filesystems(const std::string& src, const std::string& dest);
 
 int create_temp_filename(char *path, size_t path_length);

@@ -279,8 +279,7 @@ static int check_file_for_read(TileDB_CTX *tiledb_ctx, std::string filename) {
 }
 
 /** Allocates buffer, responsibility of caller to release buffer */
-int read_entire_file(const std::string& filename, void **buffer, size_t *length)
-{
+int read_entire_file(const std::string& filename, void **buffer, size_t *length) {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file_for_read(tiledb_ctx, filename)) {
     FINALIZE;
@@ -301,8 +300,7 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
   return rc;
 }
 
-int read_file(const std::string& filename, off_t offset, void *buffer, size_t length)
-{
+int read_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file_for_read(tiledb_ctx, filename)) {
     FINALIZE;
@@ -314,8 +312,7 @@ int read_file(const std::string& filename, off_t offset, void *buffer, size_t le
   return rc;
 }
 
-int write_file(const std::string& filename, const void *buffer, size_t length, const bool overwrite)
-{
+int write_file(const std::string& filename, const void *buffer, size_t length, const bool overwrite) {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file(tiledb_ctx, filename)) {
     FINALIZE;
@@ -334,14 +331,24 @@ int write_file(const std::string& filename, const void *buffer, size_t length, c
   return rc;
 }
 
-int delete_file(const std::string& filename)
-{
+int delete_file(const std::string& filename) {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file(tiledb_ctx, filename)) {
     FINALIZE;
     return TILEDB_ERR;
   }
   int rc = delete_file(tiledb_ctx, filename);
+  finalize(tiledb_ctx);
+  return rc;
+}
+
+int set_working_dir(const std::string& dir) {
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dir))) {
+    FINALIZE;
+    return TILEDB_ERR;
+  }
+  int rc = set_working_dir(tiledb_ctx, dir);
   finalize(tiledb_ctx);
   return rc;
 }

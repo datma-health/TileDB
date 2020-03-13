@@ -37,10 +37,30 @@
 #include "tiledb_utils.h"
 
 #include <fcntl.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <thread>
 
 const std::string& workspace("WORKSPACE");
+
+TEST_CASE_METHOD(TempDir, "Test cwd", "[cwd]") {
+  std::string dir = get_temp_dir();
+  CHECK(TileDBUtils::set_working_dir(dir) == 0); // OK
+  CHECK(TileDBUtils::set_working_dir("non-existent-dir") == 1);
+  if (!TileDBUtils::is_cloud_path(dir)) {
+    char* path = getcwd(NULL, 0);
+    if(path != NULL) {
+      char* real_path = realpath(path, NULL);
+      char* real_dir = realpath(dir.data(), NULL);
+      CHECK(strnlen(real_path, PATH_MAX) == strnlen(real_dir, PATH_MAX));
+      CHECK(strncmp(real_dir, real_path, strnlen(real_path, PATH_MAX)) == 0);
+      free(real_dir);
+      free(real_path);
+      free(path);
+    }
+  }
+}
 
 TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]") {
   std::string workspace_path = get_temp_dir()+"/"+workspace;
