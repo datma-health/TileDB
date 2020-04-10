@@ -5,7 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
-# Copyright (c) 2018-2019 Omics Data Automation, Inc.
+# Copyright (c) 2018-2020 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -98,22 +98,23 @@ if(ENABLE_BLOSC)
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${BLOSC_LIBRARIES})
     add_definitions(-DENABLE_BLOSC)
 endif()
-if(ENABLE_JPEG2K)
+if(ENABLE_JPEG2K OR ENABLE_JPEG2K_RGB)
     set(JPEG2K_INCLUDE_DIR /usr/local/include)
     find_package(JPEG2K REQUIRED)
     include_directories(${JPEG2K_INCLUDE_DIR})
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${JPEG2K_LIBRARIES})
     add_definitions(-DENABLE_JPEG2K)
+    add_definitions(-DENABLE_JPEG2K_RGB)
 endif()
-if(ENABLE_JPEG2K_RGB) 
-   if (NOT ENABLE_JPEG2K)
-      set(JPEG2K_INCLUDE_DIR /usr/local/include)
-      find_package(JPEG2K REQUIRED)
-      include_directories(${JPEG2K_INCLUDE_DIR})
-      # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${JPEG2K_LIBRARIES})
-   endif()
-   add_definitions(-DENABLE_JPEG2K_RGB)
-endif()
+#if(ENABLE_JPEG2K_RGB) 
+#   if (NOT ENABLE_JPEG2K)
+#      set(JPEG2K_INCLUDE_DIR /usr/local/include)
+#      find_package(JPEG2K REQUIRED)
+#      include_directories(${JPEG2K_INCLUDE_DIR})
+#      # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${JPEG2K_LIBRARIES})
+#   endif()
+#   add_definitions(-DENABLE_JPEG2K_RGB)
+#endif()
 if(ENABLE_ZSTD)
     find_package(ZSTD REQUIRED)
     # include_directories(${ZSTD_INCLUDE_DIR})

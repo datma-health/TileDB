@@ -37,10 +37,10 @@
 #include "codec.h"
 
 /* OpenJPEG 2000 include for types and struct definitions */
-#include "openjpeg-2.3/opj_types.h"
+#include "opj_types.h"
 #include "string.h"
-//#include "openjpeg-2.3/openjpeg.h"
-#include "openjpeg-2.3/format_defs.h"
+//#include "openjpeg.h"
+#include "format_defs.h"
 
 // Function Pointers for JPEG2000
 #if !defined(JPEG2K_EXTERN_DECL)
