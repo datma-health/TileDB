@@ -69,8 +69,11 @@
 /** Default error message. */
 #define TILEDB_AS_ERRMSG std::string("[TileDB::ArraySchema] Error: ")
 
-
-
+/**
+ * The first 4 bytes of the array schema is the version. Bump this version whenever
+ * the schema is changed
+ **/
+#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0x1u
 
 /* ********************************* */
 /*          GLOBAL VARIABLES         */
@@ -78,8 +81,6 @@
 
 /** Stores potential error messages. */
 extern std::string tiledb_as_errmsg;
-
-
 
 
 /** Specifies the array schema. */
@@ -679,6 +680,11 @@ class ArraySchema {
    */
   bool version_tag_exists() const;
 
+  /**
+   * Get version for the schema
+   */
+  uint32_t get_version() const;
+
   /* ********************************* */
   /*        AUXILIARY ATTRIBUTES       */
   /* ********************************* */
@@ -824,7 +830,7 @@ class ArraySchema {
   /** Stores the size of every attribute type (plus coordinates in the end). */
   std::vector<size_t> type_sizes_;
   /** Array schema version **/
-  unsigned version_tag_;
+  uint32_t version_tag_;
   /** The Storage Filesystem */
   StorageFS *fs_;
 

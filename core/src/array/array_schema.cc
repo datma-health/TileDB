@@ -51,10 +51,6 @@
 #  define PRINT_ERROR(x) do { } while(0) 
 #endif
 
-/**
- * The first 4 bytes of the array schema is the version
- **/
-#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0x1u
 #define TILEDB_ARRAY_SCHEMA_VERSION_MAX 0xFu
 
 /**
@@ -71,8 +67,6 @@
 /* ****************************** */
 
 std::string tiledb_as_errmsg = "";
-
-
 
 
 /* ****************************** */
@@ -405,8 +399,12 @@ bool ArraySchema::is_contained_in_tile_slab_row(const void* range) const {
 }
 
 void ArraySchema::print() const {
-  // Array workspace
-  std::cout << "Array workspace:\n\t" << array_workspace_ << "\n";
+  // Array version
+  std::cout << "Array Schema Version:\n\t" << std::to_string(get_version()) << "\n";
+  // Array workspace - this is not supported anymore - present for backward compatibility
+  if (array_workspace_.size() > 0) {
+    std::cout << "Array workspace:\n\t" << array_workspace_ << "\n";
+  }
   // Array name
   std::cout << "Array name:\n\t" << array_name_ << "\n";
   // Dimension names
@@ -1131,7 +1129,7 @@ int ArraySchema::deserialize(
     offset += sizeof(char);
     compression_.push_back(static_cast<int>(compression));
   }
-  // Load compression_level_. Supported added in array schema version 1L
+  // Load compression_level_. Support added in array schema version 1L
   char compression_level;
   for(int i=0; i<=attribute_num_; ++i) {
     if (offset == buffer_size) {
@@ -1399,6 +1397,8 @@ int ArraySchema::set_attributes(
     return TILEDB_AS_ERR;
   }
 
+  attributes_.clear();
+
   // Set attributes and attribute number
   for(int i=0; i<attribute_num; ++i) 
     attributes_.push_back(attributes[i]);
@@ -1497,14 +1497,14 @@ int ArraySchema::set_compression(int* compression) {
 
 
 int ArraySchema::set_compression_level(int* compression_level) {
+   // Set defaults based on codec
+  assert(compression_.size() == attribute_num_+1 && "set_compression() should be called before set_compression_level");
   for(int i=0; i<attribute_num_+1; ++i) {
-      // Set defaults based on codec
-      assert(compression_.size() >= (unsigned)i && "set_compression should be called before set_compression_level");
-      if (compression_level == NULL) {
-	compression_level_.push_back(Codec::get_default_level(compression_[i]));
-      } else {
-	compression_level_.push_back(Codec::normalize_level(compression_[i], compression_level[i]));
-      }
+    if (compression_level == NULL) {
+      compression_level_.push_back(Codec::get_default_level(compression_[i]));
+    } else {
+      compression_level_.push_back(Codec::normalize_level(compression_[i], compression_level[i]));
+    }
   }
 
   // Success
@@ -1535,6 +1535,8 @@ int ArraySchema::set_dimensions(
     tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
     return TILEDB_AS_ERR;
   }
+
+  dimensions_.clear();
 
   // Set dimensions and dimension number
   for(int i=0; i<dim_num; ++i) 
@@ -2872,9 +2874,16 @@ int64_t ArraySchema::tile_slab_row_cell_num(const T* subarray) const {
   return cell_num;
 }
 
-bool ArraySchema::version_tag_exists() const
-{
+bool ArraySchema::version_tag_exists() const {
   return (GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_) <= TILEDB_ARRAY_SCHEMA_VERSION_MAX);
+}
+
+uint32_t ArraySchema::get_version() const {
+  if (version_tag_exists()) {
+    return GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_);
+  } else {
+    return TILEDB_ARRAY_SCHEMA_VERSION_MAX;
+  }
 }
 
 // Explicit template instantiations
