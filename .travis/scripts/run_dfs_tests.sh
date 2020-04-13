@@ -17,6 +17,7 @@ if [[ $INSTALL_TYPE != basic ]]; then
 		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test" 
 	elif [[ $INSTALL_TYPE == gcs ]]; then
 		export GOOGLE_APPLICATION_CREDENTIALS=$TRAVIS_BUILD_DIR/.travis/resources/gcs/GCS.json
+    echo "Listing $GS_BUCKET"; hdfs dfs -ls gs://$GS_BUCKET/; echo "Listing $GS_BUCKET DONE"
     tiledb_utils_tests "gs://$GS_BUCKET/travis_unit_test" &&
 		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "gs://$GS_BUCKET/travis_test"
 	elif [[ $INSTALL_TYPE == azure ]]; then
