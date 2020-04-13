@@ -17,7 +17,6 @@ if [[ $INSTALL_TYPE != basic ]]; then
 		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test" 
 	elif [[ $INSTALL_TYPE == gcs ]]; then
 		export GOOGLE_APPLICATION_CREDENTIALS=$TRAVIS_BUILD_DIR/.travis/resources/gcs/GCS.json
-    hdfs dfs -ls gs://nalini-oda-test/
     tiledb_utils_tests "gs://$GS_BUCKET/travis_unit_test" &&
 		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "gs://$GS_BUCKET/travis_test"
 	elif [[ $INSTALL_TYPE == azure ]]; then
@@ -27,7 +26,7 @@ if [[ $INSTALL_TYPE != basic ]]; then
 	if [[ ! $! -eq 0 ]]; then
         echo "Something wrong! run_examples.sh returned status code = $!"
         exit 1
-    else
+  else
 		diff travis_test.log $TRAVIS_BUILD_DIR/examples/expected_results
 	fi
 fi
