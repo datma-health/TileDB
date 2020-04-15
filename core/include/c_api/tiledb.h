@@ -259,6 +259,10 @@ typedef struct TileDB_ArraySchema {
   int* compression_;
   /** Specifies the compression level */
   int* compression_level_;
+  /** Compression type for the offsets for variable number of cells TILEDB_VAR_NUM for attribute */
+  int* offsets_compression_;
+  /** Compression level for the offsets for variable number of cells TILEDB_VAR_NUM for attribute */
+  int* offsets_compression_level_;
   /** 
    * Specifies if the array is dense (1) or sparse (0). If the array is dense, 
    * then the user must specify tile extents (see below).
@@ -340,6 +344,8 @@ TILEDB_EXPORT int tiledb_array_set_schema(
     const int* cell_val_num,
     const int* compression,
     const int* compression_level,
+    const int* offsets_compression,
+    const int* offsets_compression_level,
     int dense,
     const char** dimensions,
     int dim_num,

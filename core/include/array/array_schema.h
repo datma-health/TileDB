@@ -73,7 +73,7 @@
  * The first 4 bytes of the array schema is the version. Bump this version whenever
  * the schema is changed
  **/
-#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0x1u
+#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0x2u
 
 /* ********************************* */
 /*          GLOBAL VARIABLES         */
@@ -150,11 +150,23 @@ class ArraySchema {
   /** Returns the number of values per cell of the input attribute. */
   int cell_val_num(int attribute_id) const;
 
-  /** Returns the compression type of the attribute with the input id. */
+  /** Returns the compression type of the input attribute. */
   int compression(int attribute_id) const;
 
   /** Returns the compression level of the input attribute */
   int compression_level(int attribute_id) const;
+
+  /**
+   * Returns the compression type associated with the offsets to the input attribute.
+   * This is only relevant if the number of cells for the attribute is variable.
+   */
+  int offsets_compression(int attribute_id) const;
+
+  /**
+   * Returns the compression level associated with the offsets to the input attribute.
+   * This is only relevant if the number of cells for the attribute is variable.
+   */
+  int offsets_compression_level(int attribute_id) const;
 
   /** Returns the coordinates size. */
   size_t coords_size() const;
@@ -384,6 +396,12 @@ class ArraySchema {
 
   /** Sets the compression levels. */
   int set_compression_level(int* compression_level);
+
+    /** Sets the offsets compression types. */
+  int set_offsets_compression(int* compression);
+
+  /** Sets the offsets compression levels. */
+  int set_offsets_compression_level(int* compression_level);
 
   /** Sets the proper flag to indicate if the array is dense. */
   void set_dense(int dense);
@@ -753,9 +771,19 @@ class ArraySchema {
   std::vector<int> compression_;
   /**
    * The compression level for each attribute + 1 for coordinates. This level will be interpreted
-   * based on the compression type in compression_.
+   * based on the compression type in compression_. Introduced in schema version "1".
    */
   std::vector<int> compression_level_;
+  /**
+   * The compression type for the offsets associated with the attribute. It is only relevant for
+   * attributes that have variable number of cells(TILEDB_VAR_NUM). Introduced in schema version "2".
+   */
+  std::vector<int> offsets_compression_;
+   /**
+   * The compression level for the offsets associated with the attribute. It is only relevant for
+   * attributes that have variable number of cells(TILEDB_VAR_NUM). Introduced in schema version "2".
+   */
+  std::vector<int> offsets_compression_level_;
   /** Auxiliary variable used when calculating Hilbert ids. */
   int* coords_for_hilbert_;
   /** The size (in bytes) of the coordinates. */

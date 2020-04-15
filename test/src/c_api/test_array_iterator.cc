@@ -34,31 +34,21 @@
 #include "array_iterator.h"
 #include "tiledb.h"
 
-class ArrayIteratorFixture {
+class ArrayIteratorFixture : TempDir {
  public:
-  const std::string WORKSPACE = ".__array_iterator_test_ws/";
+  const std::string WORKSPACE = get_temp_dir() + "/array_iterator_test_ws/";
   std::string array_name_;
   TileDB_ArraySchema array_schema_;
   TileDB_CTX* tiledb_ctx_;
   TileDB_ArrayIterator* tiledb_array_iterator;
 
   ArrayIteratorFixture() {
-    // Remove workspace if it exists
-    std::string command = "rm -rf ";
-    command.append(WORKSPACE);
-    system(command.c_str());
-    
     CHECK_RC(tiledb_ctx_init(&tiledb_ctx_, NULL), TILEDB_OK);
     CHECK_RC(tiledb_workspace_create(tiledb_ctx_, WORKSPACE.c_str()), TILEDB_OK);
   }
 
   ~ArrayIteratorFixture() {
     CHECK_RC(tiledb_ctx_finalize(tiledb_ctx_), TILEDB_OK);
-    
-    // Remove the temporary workspace
-    std::string command = "rm -rf ";
-    command.append(WORKSPACE);
-    CHECK_RC(system(command.c_str()), 0);
   }
 
   void create_sparse_array(const char *array_name) {
@@ -84,7 +74,9 @@ class ArrayIteratorFixture {
         TILEDB_COL_MAJOR,
         NULL,
         compression,
-        NULL,
+        NULL, // compression_level
+        NULL, // offsets_compression
+        NULL, // offsets_compression_level
         dense,
         dimensions,
         2,

@@ -59,6 +59,41 @@ class ArraySchemaTestClass {
     c_schema.cell_val_num_= NULL;
     c_schema.compression_= {0};
     c_schema.compression_level_ = NULL;
+    c_schema.offsets_compression_ = NULL;
+    c_schema.offsets_compression_level_ = NULL;
+    c_schema.dimensions_ = const_cast<char **>(dimensions);
+    c_schema.dim_num_= 1;
+    c_schema.domain_= domain;
+    c_schema.tile_extents_= tile_extents;
+    c_schema.tile_order_= TILEDB_ROW_MAJOR;
+    c_schema.types_= types;
+  }
+};
+
+class ArraySchemaTestClass64BitDim {
+ public:
+  const char *ws = "this_workspace";
+  const char *array = "this_array_64";
+  const char* attributes[1] = {"this_attribute"};
+  const char* dimensions[1] = { "one_dim_64" };
+  int64_t domain[2] = {1, 1<33};
+  int64_t tile_extents[1] = {25};
+  int types[2] =  {TILEDB_INT64, TILEDB_INT64};
+
+  ArraySchemaC c_schema;
+
+  void init() {
+    c_schema.array_workspace_= const_cast<char *>(ws);
+    c_schema.array_name_= const_cast<char *>(array);
+    c_schema.attributes_= const_cast<char **>(attributes);
+    c_schema.attribute_num_ = 1;
+    c_schema.capacity_= 0;
+    c_schema.cell_order_= TILEDB_ROW_MAJOR;
+    c_schema.cell_val_num_= NULL;
+    c_schema.compression_= {0};
+    c_schema.compression_level_ = NULL;
+    c_schema.offsets_compression_ = NULL;
+    c_schema.offsets_compression_level_ = NULL;
     c_schema.dimensions_ = const_cast<char **>(dimensions);
     c_schema.dim_num_= 1;
     c_schema.domain_= domain;
@@ -101,6 +136,9 @@ TEST_CASE("Test Array Schema", "[array_schema]") {
   CHECK(schema.set_compression(NULL) == TILEDB_OK);
   CHECK(schema.set_compression_level(NULL) == TILEDB_OK);
 
+  CHECK(schema.set_offsets_compression(NULL) == TILEDB_OK);
+  CHECK(schema.set_offsets_compression_level(NULL) == TILEDB_OK);
+
   CHECK(schema.set_dimensions(NULL, 0) != TILEDB_OK);
   const char* dim1[1] = {"dim1"};
   CHECK(schema.set_dimensions(const_cast<char **>(dim1), 0) != TILEDB_OK);
@@ -135,6 +173,25 @@ TEST_CASE_METHOD(ArraySchemaTestClass, "Test Array Schema Print", "[array_schema
 }
 
 TEST_CASE_METHOD(ArraySchemaTestClass, "Test Array Schema Serialize", "[array_schema_serialize]") {
+  init();
+  ArraySchema schema(NULL);
+  CHECK(schema.init(&c_schema) == TILEDB_OK);
+  void *array_schema_serialized;
+  size_t array_schema_serialized_size;
+  CHECK(schema.serialize(array_schema_serialized, array_schema_serialized_size) == TILEDB_OK);
+  CHECK(array_schema_serialized_size > 0);
+  ArraySchema schema_for_deserialize(NULL);
+  CHECK(schema_for_deserialize.deserialize(array_schema_serialized, array_schema_serialized_size) == TILEDB_OK);
+}
+
+TEST_CASE_METHOD(ArraySchemaTestClass64BitDim, "Test Array Schema Print 64-Bit", "[array_schema_print_64]") {
+  init();
+  ArraySchema schema(NULL);
+  CHECK(schema.init(&c_schema) == TILEDB_OK);
+  schema.print();
+}
+
+TEST_CASE_METHOD(ArraySchemaTestClass64BitDim, "Test Array Schema Serialize 64-Bit", "[array_schema_serialize_64]") {
   init();
   ArraySchema schema(NULL);
   CHECK(schema.init(&c_schema) == TILEDB_OK);

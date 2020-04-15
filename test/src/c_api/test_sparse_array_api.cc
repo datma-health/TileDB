@@ -61,12 +61,6 @@ SparseArrayTestFixture::~SparseArrayTestFixture() {
   // Finalize TileDB context
   rc = tiledb_ctx_finalize(tiledb_ctx_);
   CHECK_RC(rc, TILEDB_OK);
-
-  // Remove the temporary workspace
-  std::string command = "rm -rf ";
-  command.append(WORKSPACE);
-  rc = system(command.c_str());
-  CHECK_RC(rc, 0);
 }
 
 
@@ -127,7 +121,9 @@ int SparseArrayTestFixture::create_sparse_array_1D(
            cell_order,
            NULL,
            compression,
-	   compression_level,
+           compression_level,
+           NULL, // Offsets compression
+           NULL, // Offsets compression level
            0, // Sparse
            dimensions,
            1,
@@ -348,6 +344,8 @@ int SparseArrayTestFixture::create_sparse_array_2D(
            NULL,
            compression,
 	   NULL,
+           NULL, // Offsets compression
+           NULL, // Offsets compression level
            dense,
            dimensions,
            2,
@@ -639,5 +637,5 @@ TEST_CASE_METHOD(SparseArrayTestFixture, "Test random read subregions", "[test_r
   delete progress_bar;
 } 
 
-
-
+TEST_CASE("Test backward compatibility version 2", "[test_backward_compatibility_2]") {
+}
