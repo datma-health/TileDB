@@ -970,8 +970,12 @@ int ArraySchema::type(int i) const {
 
 size_t ArraySchema::type_size(int i) const {
   assert(i>=0 && i <= attribute_num_);
-
-  return type_sizes_[i];
+  if (i == attribute_num_+1) {
+    // This is a special cased "search tile" that is basically the coordinate tile
+    return type_sizes_[i-1];
+  } else {
+    return type_sizes_[i];
+  }
 }
 
 int ArraySchema::var_attribute_num() const {

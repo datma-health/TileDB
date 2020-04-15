@@ -142,11 +142,14 @@ ReadState::ReadState(
   file_var_buffer_.resize(attribute_num_+1);
   reset_file_buffers();
 
-  // Get compression for tiles per attribute+coords from schema
-  codec_.resize(attribute_num_+1);
-  for(int i=0; i<attribute_num_+1; ++i) {
+  // Get compression for tiles per attribute+coords+search_tile from schema
+  codec_.resize(attribute_num_+2);
+  for(int i=0; i<attribute_num_+2; ++i) {
     codec_[i] = Codec::create(array_schema_, i);
   }
+
+  // Get offset compression for tiles per attribute.
+  // Only attributes that have variable number of cells are relevant.
   offsets_codec_.resize(attribute_num_);
   for(int i=0; i<attribute_num_; ++i) {
     if (array_schema_->var_size(i)) {
