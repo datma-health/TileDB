@@ -635,7 +635,4 @@ TEST_CASE_METHOD(SparseArrayTestFixture, "Test random read subregions", "[test_r
 
   // Delete progress bar
   delete progress_bar;
-} 
-
-TEST_CASE("Test backward compatibility version 2", "[test_backward_compatibility_2]") {
 }
