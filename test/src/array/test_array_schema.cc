@@ -128,6 +128,8 @@ TEST_CASE("Test Array Schema", "[array_schema]") {
   schema.set_capacity(0);
   
   schema.set_cell_val_num(NULL);
+  const int cell_val_num[2] = {1, TILEDB_VAR_NUM};
+  schema.set_cell_val_num(const_cast<int *>(cell_val_num));
   
   CHECK(schema.set_cell_order(-100) != TILEDB_OK);
   CHECK(schema.set_cell_order(TILEDB_ROW_MAJOR) == TILEDB_OK);
@@ -138,6 +140,15 @@ TEST_CASE("Test Array Schema", "[array_schema]") {
 
   CHECK(schema.set_offsets_compression(NULL) == TILEDB_OK);
   CHECK(schema.set_offsets_compression_level(NULL) == TILEDB_OK);
+
+  const int compression[3] = {TILEDB_GZIP, TILEDB_GZIP, TILEDB_GZIP};
+  CHECK(schema.set_compression(const_cast<int *>(compression)) == TILEDB_OK);
+  CHECK(schema.set_offsets_compression(NULL) == TILEDB_OK);
+  CHECK(schema.set_offsets_compression(const_cast<int *>(compression)) == TILEDB_OK);
+  const int offsets_compression[2] = {0, 0};
+  CHECK(schema.set_offsets_compression(const_cast<int *>(offsets_compression)) != TILEDB_OK);
+  const int offsets_compression1[2] = {0, TILEDB_GZIP};
+  CHECK(schema.set_offsets_compression(const_cast<int *>(offsets_compression1)) == TILEDB_OK);
 
   CHECK(schema.set_dimensions(NULL, 0) != TILEDB_OK);
   const char* dim1[1] = {"dim1"};
