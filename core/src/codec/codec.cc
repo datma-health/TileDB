@@ -86,9 +86,25 @@ static std::string get_blosc_compressor(const int compression_type) {
 }
 #endif
 
-Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
-  int compression_type = array_schema->compression(attribute_id);
-  int compression_level = array_schema->compression_level(attribute_id);
+Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, const bool is_offsets_compression) {
+  int compression_type;
+  if (is_offsets_compression) {
+    compression_type = array_schema->offsets_compression(attribute_id);
+  } else {
+    compression_type = array_schema->compression(attribute_id);
+  }
+  int compression_level;
+  if (is_offsets_compression) {
+    compression_level = array_schema->offsets_compression_level(attribute_id);
+  } else {
+    compression_level = array_schema->compression_level(attribute_id);
+  }
+  size_t type_size;
+  if (is_offsets_compression) {
+    type_size = sizeof(size_t);
+  } else {
+    type_size = array_schema->type_size(attribute_id);
+  }
   
   switch (compression_type) {
   case TILEDB_NO_COMPRESSION:
@@ -110,7 +126,6 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
   case TILEDB_BLOSC_SNAPPY:
   case TILEDB_BLOSC_ZLIB:
   case TILEDB_BLOSC_ZSTD: {
-    size_t type_size = array_schema->type_size(attribute_id);
     return new CodecBlosc(compression_level, get_blosc_compressor(compression_type), type_size);
   }
 #endif
@@ -119,6 +134,7 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id) {
     int dim_num = array_schema->dim_num();
     int cell_order = array_schema->cell_order();
     bool is_coords = (attribute_id == attribute_num);
+    // TODO: visit offsets compression for RLE
     size_t value_size = 
       (array_schema->var_size(attribute_id) || is_coords) ? 
       array_schema->type_size(attribute_id) :

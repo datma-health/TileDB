@@ -142,10 +142,21 @@ ReadState::ReadState(
   file_var_buffer_.resize(attribute_num_+1);
   reset_file_buffers();
 
-  // Get compression for tiles per attribute+coords from schema
+  // Get compression for tiles per attribute+coords+search_tile from schema
   codec_.resize(attribute_num_+2);
   for(int i=0; i<attribute_num_+2; ++i) {
     codec_[i] = Codec::create(array_schema_, i);
+  }
+
+  // Get offset compression for tiles per attribute.
+  // Only attributes that have variable number of cells are relevant.
+  offsets_codec_.resize(attribute_num_);
+  for(int i=0; i<attribute_num_; ++i) {
+    if (array_schema_->var_size(i)) {
+      offsets_codec_[i] = Codec::create(array_schema_, i, true);
+    } else {
+      offsets_codec_[i] = NULL;
+    }
   }
 }
 
@@ -154,6 +165,11 @@ ReadState::~ReadState() {
   for(auto i=0u; i<codec_.size(); ++i) {
     if (codec_[i]) {
       delete codec_[i];
+    }
+  }
+  for(auto i=0u; i<offsets_codec_.size(); ++i) {
+    if (offsets_codec_[i]) {
+      delete offsets_codec_[i];
     }
   }
 
@@ -1602,8 +1618,20 @@ int ReadState::decompress_tile(
     unsigned char* tile_compressed,
     size_t tile_compressed_size,
     unsigned char* tile,
-    size_t tile_size) {
-  if(codec_[attribute_id]->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size) != TILEDB_CD_OK) {
+    size_t tile_size,
+    bool decompress_offsets) {
+  Codec* codec;
+  if (decompress_offsets) {
+    codec = offsets_codec_[attribute_id];
+    if (codec == NULL) {
+      tile = tile_compressed;
+      tile_size = tile_compressed_size;
+      return TILEDB_RS_OK;
+    }
+  } else {
+    codec = codec_[attribute_id];
+  }
+  if(codec->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot decompress tile";
     PRINT_ERROR(errmsg);
     tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
@@ -2459,7 +2487,8 @@ int ReadState::prepare_tile_for_reading_var_cmp(
          static_cast<unsigned char*>(tile_compressed_), 
          tile_compressed_size, 
          static_cast<unsigned char*>(tiles_[attribute_id]),
-         tile_size) != TILEDB_RS_OK)
+         tile_size,
+         true) != TILEDB_RS_OK)
     return TILEDB_RS_ERR;
 
   // Set the tile size

@@ -33,16 +33,17 @@
 #ifndef __C_API_SPARSE_ARRAY_SPEC_H__
 #define __C_API_SPARSE_ARRAY_SPEC_H__
 
+#include "catch.h"
 #include "tiledb.h"
 
-class SparseArrayTestFixture {
+class SparseArrayTestFixture : TempDir {
  public:
   /* ********************************* */
   /*             CONSTANTS             */
   /* ********************************* */
 
   /** Workspace folder name. */
-  const std::string WORKSPACE = ".__workspace/";
+  const std::string WORKSPACE = get_temp_dir() + "/sparse_workspace/";
 
 
 

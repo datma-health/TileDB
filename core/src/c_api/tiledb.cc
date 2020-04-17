@@ -312,6 +312,8 @@ int tiledb_array_set_schema(
     const int* cell_val_num,
     const int* compression,
     const int* compression_level,
+    const int* offsets_compression,
+    const int* offsets_compression_level,
     int dense,
     const char** dimensions, 
     int dim_num,
@@ -329,9 +331,8 @@ int tiledb_array_set_schema(
     return TILEDB_ERR;
   }
 
-  //Nullify workspace
-  tiledb_array_schema->array_workspace_ = NULL;
-
+  memset(tiledb_array_schema, 0, sizeof(TileDB_ArraySchema));
+  
   // Set array name
   size_t array_name_len = strlen(array_name); 
   if(array_name == NULL || array_name_len > TILEDB_NAME_MAX_LEN) {
@@ -345,8 +346,7 @@ int tiledb_array_set_schema(
 
   // Set attributes and number of attributes
   tiledb_array_schema->attribute_num_ = attribute_num;
-  tiledb_array_schema->attributes_ = 
-      (char**) malloc(attribute_num*sizeof(char*));
+  tiledb_array_schema->attributes_ = (char**) malloc(attribute_num*sizeof(char*));
   for(int i=0; i<attribute_num; ++i) { 
     size_t attribute_len = strlen(attributes[i]);
     if(attributes[i] == NULL || attribute_len > TILEDB_NAME_MAX_LEN) {
@@ -382,22 +382,19 @@ int tiledb_array_set_schema(
   memcpy(tiledb_array_schema->domain_, domain, domain_len);
 
   // Set tile extents
-  if(tile_extents == NULL) {
-    tiledb_array_schema->tile_extents_ = NULL;
-  } else {
+  if(tile_extents != NULL) {
     tiledb_array_schema->tile_extents_ = malloc(tile_extents_len); 
     memcpy(tiledb_array_schema->tile_extents_, tile_extents, tile_extents_len);
   }
 
   // Set types
   tiledb_array_schema->types_ = (int*) malloc((attribute_num+1)*sizeof(int));
-  for(int i=0; i<attribute_num+1; ++i)
+  for(int i=0; i<attribute_num+1; ++i) {
     tiledb_array_schema->types_[i] = types[i];
+  }
 
   // Set cell val num
-  if(cell_val_num == NULL) {
-    tiledb_array_schema->cell_val_num_ = NULL; 
-  } else {
+  if(cell_val_num != NULL) {
     tiledb_array_schema->cell_val_num_ = 
         (int*) malloc((attribute_num)*sizeof(int));
     for(int i=0; i<attribute_num; ++i) {
@@ -413,23 +410,35 @@ int tiledb_array_set_schema(
   tiledb_array_schema->capacity_ = capacity;
 
   // Set compression
-  if(compression == NULL) {
-    tiledb_array_schema->compression_ = NULL; 
-  } else {
-    tiledb_array_schema->compression_ = 
-        (int*) malloc((attribute_num+1)*sizeof(int));
-    for(int i=0; i<attribute_num+1; ++i)
+  if(compression != NULL) {
+    tiledb_array_schema->compression_ = (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i) {
       tiledb_array_schema->compression_[i] = compression[i];
+    }
   }
 
   // Set compression levels
-  if (compression_level == NULL) {
-    tiledb_array_schema->compression_level_ = NULL;
-  } else {
-    tiledb_array_schema->compression_level_ = 
-      (int*) malloc((attribute_num+1)*sizeof(int));
-    for(int i=0; i<attribute_num+1; ++i)
+  if (compression_level != NULL) {
+    tiledb_array_schema->compression_level_ = (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i) {
       tiledb_array_schema->compression_level_[i] = compression_level[i];
+    }
+  }
+
+  // Set offsets compression
+  if(offsets_compression != NULL) {
+    tiledb_array_schema->offsets_compression_ = (int*) malloc((attribute_num)*sizeof(int));
+    for(int i=0; i<attribute_num; ++i) {
+      tiledb_array_schema->offsets_compression_[i] = offsets_compression[i];
+    }
+  }
+
+  // Set offsets compression levels
+  if (offsets_compression_level != NULL) {
+    tiledb_array_schema->offsets_compression_level_ = (int*) malloc((attribute_num)*sizeof(int));
+    for(int i=0; i<attribute_num; ++i) {
+      tiledb_array_schema->offsets_compression_level_[i] = offsets_compression_level[i];
+    }
   }
 
   // Success
@@ -445,6 +454,7 @@ int tiledb_array_create(
 
   // Copy array schema to a C struct
   ArraySchemaC array_schema_c;
+  memset(&array_schema_c, 0, sizeof(array_schema_c));
   array_schema_c.array_name_ = array_schema->array_name_;
   array_schema_c.attributes_ = array_schema->attributes_;
   array_schema_c.attribute_num_ = array_schema->attribute_num_;
@@ -453,6 +463,8 @@ int tiledb_array_create(
   array_schema_c.cell_val_num_ = array_schema->cell_val_num_;
   array_schema_c.compression_ = array_schema->compression_;
   array_schema_c.compression_level_ = array_schema->compression_level_;
+  array_schema_c.offsets_compression_ = array_schema->offsets_compression_;
+  array_schema_c.offsets_compression_level_ = array_schema->offsets_compression_level_;
   array_schema_c.dense_ = array_schema->dense_;
   array_schema_c.dimensions_ = array_schema->dimensions_;
   array_schema_c.dim_num_ = array_schema->dim_num_;
@@ -585,6 +597,8 @@ int tiledb_array_get_schema(
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
   tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
+  tiledb_array_schema->offsets_compression_ = array_schema_c.offsets_compression_;
+  tiledb_array_schema->offsets_compression_level_ = array_schema_c.offsets_compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -633,6 +647,8 @@ int tiledb_array_load_schema(
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
   tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
+  tiledb_array_schema->offsets_compression_ = array_schema_c.offsets_compression_;
+  tiledb_array_schema->offsets_compression_level_ = array_schema_c.offsets_compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -697,6 +713,14 @@ int tiledb_array_free_schema(
   // Free compression level
   if(tiledb_array_schema->compression_level_ != NULL) 
     free(tiledb_array_schema->compression_level_);
+
+  // Free offsets compression
+  if(tiledb_array_schema->offsets_compression_ != NULL)
+    free(tiledb_array_schema->offsets_compression_);
+
+  // Free offsets compression level
+  if(tiledb_array_schema->compression_level_ != NULL) 
+    free(tiledb_array_schema->offsets_compression_level_);
 
   // Free cell val num
   if(tiledb_array_schema->cell_val_num_ != NULL)
@@ -1031,6 +1055,8 @@ int tiledb_metadata_set_schema(
     return TILEDB_ERR;
   }
 
+  memset(tiledb_metadata_schema, 0, sizeof(TileDB_MetadataSchema));
+
   // Set metadata name
   size_t metadata_name_len = strlen(metadata_name); 
   if(metadata_name == NULL || metadata_name_len > TILEDB_NAME_MAX_LEN) {
@@ -1110,6 +1136,7 @@ int tiledb_metadata_create(
 
   // Copy metadata schema to the proper struct
   MetadataSchemaC metadata_schema_c;
+  memset(&metadata_schema_c, 0, sizeof(metadata_schema_c));
   metadata_schema_c.metadata_name_ = metadata_schema->metadata_name_;
   metadata_schema_c.attributes_ = metadata_schema->attributes_;
   metadata_schema_c.attribute_num_ = metadata_schema->attribute_num_;
