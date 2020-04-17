@@ -439,6 +439,8 @@ static void print_compression_type(int compression) {
       std::cout << "\tType =  RLE\n";
     else if(compression == TILEDB_NO_COMPRESSION)
       std::cout << "\tType =  NONE\n";
+    else
+      std::cout << "tType =" << std::to_string(compression) << "\n";
 }
 
 void ArraySchema::print() const {
