@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -278,32 +278,38 @@ TEST_CASE("Test locking support", "[locking_support]") {
   test_locking_support("Gibberish");
 }
 
-void set_disable_file_locking() {
-  std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING=1";
-  CHECK(putenv(const_cast<char *>(disable_file_locking_env.c_str())) == 0);
-  const char *env_value = getenv("TILEDB_DISABLE_FILE_LOCKING");
+void test_keep_file_handles_open_support(const std::string& keep_file_handles_open_value) {
+  std::string keep_file_handles_open_env = "TILEDB_KEEP_FILE_HANDLES_OPEN="+keep_file_handles_open_value;
+  CHECK(putenv(const_cast<char *>(keep_file_handles_open_env.c_str())) == 0);
+  const char *value = keep_file_handles_open_value.c_str();
+  const char *env_value = getenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
   REQUIRE(env_value != NULL);
-  REQUIRE(strcmp(env_value, "1") == 0);
-
+  CHECK(strcmp(value, env_value) == 0);
   PosixFS fs;
-  REQUIRE(!fs.locking_support());
+  if (strcasecmp(value, "true") == 0 || strcmp(value, "1") == 0) {
+    CHECK(fs.keep_write_file_handles_open());
+  } else {
+    CHECK(!fs.keep_write_file_handles_open());
+  }
 }
 
-void unset_disable_file_locking() {
-  std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING";
-  CHECK_RC(unsetenv("TILEDB_DISABLE_FILE_LOCKING"), 0);
-  const char *env_value = getenv("TILEDB_DISABLE_FILE_LOCKING");
-  REQUIRE(env_value == NULL);
-
-  PosixFS fs;
-  REQUIRE(fs.locking_support());
+TEST_CASE("Test keep file handles open", "[keep_file_handles_open_support]") {
+  test_keep_file_handles_open_support("True");
+  test_keep_file_handles_open_support("true");
+  test_keep_file_handles_open_support("TRUE");
+  test_keep_file_handles_open_support("1");
+  test_keep_file_handles_open_support("0");
+  test_keep_file_handles_open_support("False");
+  test_keep_file_handles_open_support("false");
+  test_keep_file_handles_open_support("FALSE");
+  test_keep_file_handles_open_support("Gibberish");
 }
 
-TEST_CASE("Test writing with locking support that keeps file descriptors open for write until explicitly closed", "[write_without_lock_support]") {
-  set_disable_file_locking();
+TEST_CASE("Test writing with keeps file descriptors open until explicitly closed", "[write_keep_file_handles_open]") {
+  CHECK(setenv("TILEDB_KEEP_FILE_HANDLES_OPEN", "1", 1) == 0);
 
   PosixFS fs;
-  REQUIRE(!fs.locking_support());
+  REQUIRE(fs.keep_write_file_handles_open());
 
   std::string test_dir = "test_posixfs_dir_locking";
   if (fs.is_dir(test_dir)) {
@@ -352,11 +358,11 @@ TEST_CASE("Test writing with locking support that keeps file descriptors open fo
 }
 
 
-TEST_CASE("Test reading/writing with TILEDB_DISABLE_FILE_LOCKING set for write and unset for read", "[write_disable_fl_set_write_unset_read]") {
-  set_disable_file_locking();
-   
+TEST_CASE("Test reading/writing with keep file handles open set for write and unset for read", "[write_keep_file_handles_set_write_unset_read]") {
+  CHECK(setenv("TILEDB_KEEP_FILE_HANDLES_OPEN", "1", 1) == 0);
+
   PosixFS fs;
-  REQUIRE(!fs.locking_support());
+  REQUIRE(fs.keep_write_file_handles_open());
 
   std::string test_dir = "test_dir_locking1";
   if (fs.is_dir(test_dir)) {
@@ -374,7 +380,8 @@ TEST_CASE("Test reading/writing with TILEDB_DISABLE_FILE_LOCKING set for write a
   }
   CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
 
-  unset_disable_file_locking();
+  unsetenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
+
   PosixFS fs1;
   
   void *buffer = malloc(6*n_iter);

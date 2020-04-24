@@ -35,7 +35,9 @@
 
 #include "c_api_sparse_array_spec.h"
 #include "progress_bar.h"
+#include "storage_manager.h"
 #include "storage_posixfs.h"
+#include "utils.h"
 
 #include <cstring>
 #include <iostream>
@@ -640,83 +642,97 @@ TEST_CASE_METHOD(SparseArrayTestFixture, "Test random read subregions", "[test_r
   delete progress_bar;
 }
 
-class SparseArrayDisableFileLockingFixture {
+class SparseArrayEnvTestFixture : SparseArrayTestFixture {
   public:
   SparseArrayTestFixture *test_fixture;
 
-  SparseArrayDisableFileLockingFixture() {
+  SparseArrayEnvTestFixture() {
     test_fixture = NULL;
   }
 
-  ~SparseArrayDisableFileLockingFixture() {
+  ~SparseArrayEnvTestFixture() {
     delete test_fixture;
   }
 
   void set_disable_file_locking() {
-    std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING=1";
-    CHECK(putenv(const_cast<char *>(disable_file_locking_env.c_str())) == 0);
-    const char *env_value = getenv("TILEDB_DISABLE_FILE_LOCKING");
-    REQUIRE(env_value != NULL);
-    REQUIRE(strcmp(env_value, "1") == 0);
+    CHECK(setenv("TILEDB_DISABLE_FILE_LOCKING", "1", 1) == 0);
+    CHECK(is_env_set("TILEDB_DISABLE_FILE_LOCKING"));
 
     PosixFS fs;
     REQUIRE(!fs.locking_support());
   }
 
   void unset_disable_file_locking() {
-    std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING";
-    CHECK_RC(unsetenv("TILEDB_DISABLE_FILE_LOCKING"), 0);
-    const char *env_value = getenv("TILEDB_DISABLE_FILE_LOCKING");
-    REQUIRE(env_value == NULL);
-
+    unsetenv("TILEDB_DISABLE_FILE_LOCKING");
+    CHECK(!is_env_set("TILEDB_DISABLE_FILE_LOCKING"));
     PosixFS fs;
     REQUIRE(fs.locking_support());
   }
 
+  void set_keep_write_file_handles_open() {
+    CHECK(setenv("TILEDB_KEEP_FILE_HANDLES_OPEN", "1", 1) == 0);
+    CHECK(is_env_set("TILEDB_KEEP_FILE_HANDLES_OPEN"));
+    
+    PosixFS fs;
+    REQUIRE(fs.keep_write_file_handles_open());
+  }
+
+  void unset_keep_write_file_handles_open() {
+    unsetenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
+    CHECK(!is_env_set("KEEP_FILE_HANDLES_OPEN"));
+    PosixFS fs;
+    REQUIRE(!fs.keep_write_file_handles_open());
+  }
+
   int write_array() {
-    test_fixture = new SparseArrayTestFixture();
     // Set array name
-    test_fixture->set_array_name("sparse_test_disable_file_locking_env");
-    CHECK_RC(test_fixture->create_sparse_array_2D(4, 4, 0, 15, 0, 15, 0, false, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR), TILEDB_OK);
+    set_array_name("sparse_test_disable_file_locking_env");
+    CHECK_RC(create_sparse_array_2D(4, 4, 0, 15, 0, 15, 0, false, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR), TILEDB_OK);
 
     // Write array cells with value = row id * COLUMNS + col id
     // to disk
-    CHECK_RC(test_fixture->write_sparse_array_unsorted_2D(16, 16), TILEDB_OK);
+    CHECK_RC(write_sparse_array_unsorted_2D(16, 16), TILEDB_OK);
 
     return 0;
   }
 
   int read_array() {
-    CHECK(test_fixture->read_sparse_array_2D(4, 0, 4, 0, TILEDB_ARRAY_READ) != NULL);
+    CHECK(read_sparse_array_2D(4, 0, 4, 0, TILEDB_ARRAY_READ) != NULL);
     return 0;
+  }
+
+  bool consolidation_file_lock_exists() {
+    PosixFS fs;
+    return fs.is_file(array_name_+"/"+TILEDB_SM_CONSOLIDATION_FILELOCK_NAME);
   }
 };
 
-TEST_CASE_METHOD(SparseArrayDisableFileLockingFixture, "Test reading/writing with TILEDB_DISABLE_FILE_LOCKING unset", "[test_sparse_read_with_disable_filelocking_unset]") {
-  SparseArrayDisableFileLockingFixture test_fixture;
-  test_fixture.unset_disable_file_locking();
-  test_fixture.write_array();
+TEST_CASE_METHOD(SparseArrayEnvTestFixture, "Test reading/writing with env unset", "[test_sparse_read_with_env_unset]") {
+  unset_disable_file_locking();
+  unset_keep_write_file_handles_open();
+  write_array();
+  CHECK(consolidation_file_lock_exists());
 
   // TILEDB_DISABLE_FILE_LOCK unset
-  test_fixture.unset_disable_file_locking();
-  test_fixture.read_array();
+  unset_disable_file_locking();
+  read_array();
 
   // TILEDB_DISABLE_FILE_LOCK=1
-  test_fixture.set_disable_file_locking();
-  test_fixture.read_array();
+  set_disable_file_locking();
+  read_array();
 }
 
-TEST_CASE_METHOD(SparseArrayDisableFileLockingFixture, "Test reading/writing with TILEDB_DISABLE_FILE_LOCKING set", "[test_sparse_read_with_disable_filelocking_set]") {
-  SparseArrayDisableFileLockingFixture test_fixture;
-  test_fixture.set_disable_file_locking();
-  test_fixture.write_array();
+TEST_CASE_METHOD(SparseArrayEnvTestFixture, "Test reading/writing with env set", "[test_sparse_read_with_env_set]") {
+  set_disable_file_locking();
+  set_keep_write_file_handles_open();
+  write_array();
+  CHECK(!consolidation_file_lock_exists());
 
   // TILEDB_DISABLE_FILE_LOCK unset
-  test_fixture.unset_disable_file_locking();
-  test_fixture.read_array();
+  unset_disable_file_locking();
+  read_array();
 
   // TILEDB_DISABLE_FILE_LOCK=1
-  test_fixture.set_disable_file_locking();
-  test_fixture.read_array();
+  set_disable_file_locking();
+  read_array();
 }
-

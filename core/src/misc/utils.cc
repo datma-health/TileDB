@@ -256,6 +256,15 @@ bool is_hdfs_path(const std::string& pathURL) {
   }
 }
 
+bool is_env_set(const std::string& name) {
+  auto env_var = getenv(name.c_str());
+  if(env_var && ((strcasecmp(env_var, "true") == 0) || (strcmp(env_var, "1") == 0))) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 int create_dir(StorageFS *fs, const std::string& dir) {
   if (fs->create_dir(dir)) {
     tiledb_ut_errmsg = tiledb_fs_errmsg;

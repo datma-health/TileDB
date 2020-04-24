@@ -368,7 +368,7 @@ int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buf
   }
 
   // Not supporting simultaneous read/writes.
-  if (!locking_support() && get_fd(filename, write_map_, write_map_mtx_) >= 0) {
+  if (keep_write_file_handles_open() && get_fd(filename, write_map_, write_map_mtx_) >= 0) {
     POSIX_ERROR("Cannot open simultaneously for reads/writes", filename);
     return TILEDB_FS_ERR;
   }
@@ -425,7 +425,7 @@ static int write_to_file_kernel(int fd, const void *buffer, size_t buffer_size) 
   return TILEDB_FS_OK;
 }
 
-int PosixFS::write_to_file_no_locking_support(const std::string& filename, const void *buffer, size_t buffer_size) {
+int PosixFS::write_to_file_keep_file_handles_open(const std::string& filename, const void *buffer, size_t buffer_size) {
   int fd = get_fd(filename, write_map_, write_map_mtx_);
   if (fd == -1) {
     // Open file
@@ -453,8 +453,8 @@ int PosixFS::write_to_file(const std::string& filename, const void *buffer, size
     return TILEDB_FS_OK;
   }
 
-  if (!locking_support()) {
-    return write_to_file_no_locking_support(filename, buffer, buffer_size);
+  if (keep_write_file_handles_open()) {
+    return write_to_file_keep_file_handles_open(filename, buffer, buffer_size);
   }
 
   // Open file
@@ -540,7 +540,7 @@ int PosixFS::sync_path(const std::string& filename) {
 }
 
 int PosixFS::close_file(const std::string& filename) {
-  if (!locking_support()) {
+  if (keep_write_file_handles_open()) {
     int fd = get_fd(filename, write_map_, write_map_mtx_);
     if (fd >= 0) {
       int rc = close(fd);
@@ -552,6 +552,17 @@ int PosixFS::close_file(const std::string& filename) {
     }
   }
   return TILEDB_FS_OK;
+}
+
+bool PosixFS::keep_write_file_handles_open() {
+  if (keep_write_file_handles_open_set_) {
+    return keep_write_file_handles_open_;
+  }
+
+  keep_write_file_handles_open_ = is_env_set("TILEDB_KEEP_FILE_HANDLES_OPEN");
+  keep_write_file_handles_open_set_ = true;
+
+  return keep_write_file_handles_open_;
 }
 
 bool PosixFS::locking_support() {

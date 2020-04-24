@@ -48,6 +48,7 @@ using Catch::Matches;
 #define CHECK_RC(rc, expected) CHECK(rc == expected)
 
 std::string g_test_dir = "";
+std::string g_benchmark_config = std::string(TILEDB_TEST_DIR)+"/inputs/benchmark.config";
 
 class TempDir {
  public:
@@ -115,9 +116,12 @@ int main( int argc, char* argv[] )
   using namespace Catch::clara;
   auto cli
     = session.cli() // Get Catch's composite command line parser
-    | Opt( g_test_dir, "Specify test dir, default is $TMPDIR" ) // bind variable to a new option, with a hint string
-     ["--test-dir"] // the option names it will respond to
-    ("Specify test dir, default is $TMPDIR if not specified");        // description string for the help output
+      | Opt( g_test_dir, "test-dir-url" ) // bind variable to a new option, with a hint string
+      ["--test-dir"] // the option names it will respond to
+      ("Specify test dir, default is $TMPDIR if not specified") // description string for the help output
+      | Opt ( g_benchmark_config, "/path/to/TileDB/test/inputs/benchmark.config")
+      ["--benchmark-config"]
+      ("Specify config for benchmmarking, default is /path/to/TileDB/test/inputs/benchmark.config");
 
   // Now pass the new composite back to Catch so it uses that
   session.cli(cli);

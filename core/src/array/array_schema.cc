@@ -1244,7 +1244,7 @@ int ArraySchema::deserialize(
   return TILEDB_AS_OK;
 }
 
-int ArraySchema::init(const ArraySchemaC* array_schema_c) {
+int ArraySchema::init(const ArraySchemaC* array_schema_c, bool do_print) {
   // Set array workspace
   //KG: useless function - more trouble than worth fixing
   //set_array_workspace(array_schema_c->array_workspace_);
@@ -1310,6 +1310,10 @@ int ArraySchema::init(const ArraySchemaC* array_schema_c) {
   if(tile_coords_aux_ != NULL)
     free(tile_coords_aux_);
   tile_coords_aux_ = malloc(coords_size_*dim_num_);
+
+  if (do_print) { 
+    print();
+  }
 
   // Success
   return TILEDB_AS_OK;

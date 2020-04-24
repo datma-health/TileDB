@@ -345,9 +345,10 @@ class ArraySchema {
    * input C-style ArraySchemaC struct.
    *
    * @param array_schema_c The array schema in a C-style struct.
+   * @param do_print Option to print array_schema
    * @return TILEDB_AS_OK for success, and TILEDB_AS_ERR for error.
    */ 
-  int init(const ArraySchemaC* array_schema_c);  
+  int init(const ArraySchemaC* array_schema_c, bool do_print=false);
 
   /** 
    * Initializes the ArraySchema object using the information provided in the
