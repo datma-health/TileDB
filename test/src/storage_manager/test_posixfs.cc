@@ -337,7 +337,7 @@ TEST_CASE("Test writing with keeps file descriptors open until explicitly closed
   for (int i=0; i<n_iter; i++) {
     CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 6), TILEDB_FS_OK);
     REQUIRE(fs.is_file(test_dir+"/foo"));
-    CHECK(fs.file_size(test_dir+"/foo") == 6*(i+1));
+    CHECK(fs.file_size(test_dir+"/foo") == (size_t)(6*(i+1)));
   }
   CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
 
@@ -345,7 +345,7 @@ TEST_CASE("Test writing with keeps file descriptors open until explicitly closed
   
   buffer = realloc(buffer, 6*n_iter);
   CHECK_RC(fs1.read_from_file(test_dir+"/foo", 0, buffer, 6*n_iter), TILEDB_FS_OK);
-  CHECK(fs1.file_size(test_dir+"/foo") == 6*n_iter);
+  CHECK(fs1.file_size(test_dir+"/foo") == (size_t)(6*n_iter));
   CHECK_RC(fs1.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
   
   // Try closing non-existent file
@@ -376,7 +376,7 @@ TEST_CASE("Test reading/writing with keep file handles open set for write and un
   for (int i=0; i<n_iter; i++) {
     CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 6), TILEDB_FS_OK);
     REQUIRE(fs.is_file(test_dir+"/foo"));
-    CHECK(fs.file_size(test_dir+"/foo") == 6*(i+1));
+    CHECK(fs.file_size(test_dir+"/foo") == (size_t)(6*(i+1)));
   }
   CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
 
@@ -386,7 +386,7 @@ TEST_CASE("Test reading/writing with keep file handles open set for write and un
   
   void *buffer = malloc(6*n_iter);
   CHECK_RC(fs1.read_from_file(test_dir+"/foo", 0, buffer, 6*n_iter), TILEDB_FS_OK);
-  CHECK(fs1.file_size(test_dir+"/foo") == 6*n_iter);
+  CHECK(fs1.file_size(test_dir+"/foo") == (size_t)(6*n_iter));
   CHECK_RC(fs1.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
   
   // Try closing non-existent file

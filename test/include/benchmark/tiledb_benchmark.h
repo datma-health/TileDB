@@ -96,7 +96,7 @@ class BenchmarkConfig: public TempDir {
     buffer_sizes_.clear();
     size_t nbytes;
     int num_cells = is_write?num_cells_to_write_:num_cells_to_read_;
-    for(auto i=0; i<attributes_.size(); i++) {
+    for(auto i=0ul; i<attributes_.size(); i++) {
       if (attribute_cell_val_nums_[i] == TILEDB_VAR_NUM) {
         int64_t* buffer;
         buffers_.push_back(create_buffer(num_cells, &buffer, &nbytes, is_write, /*offsets*/true));
@@ -126,7 +126,7 @@ class BenchmarkConfig: public TempDir {
 
   void free_buffers() {
     int j = 0;
-    for(auto i=0; i<attributes_.size(); i++, j++) {
+    for(auto i=0ul; i<attributes_.size(); i++, j++) {
       if (attribute_cell_val_nums_[i] == TILEDB_VAR_NUM) {
         delete (int64_t *)buffers_[j++];
       }

@@ -1588,7 +1588,7 @@ int ArraySchema::set_compression(int* compression) {
 
 int ArraySchema::set_compression_level(int* compression_level) {
    // Set defaults based on codec
-  assert(compression_.size() == attribute_num_+1 && "set_compression() should be called before set_compression_level");
+  assert(compression_.size() == (size_t)(attribute_num_+1) && "set_compression() should be called before set_compression_level");
   compression_level_.clear();
   for(int i=0; i<attribute_num_+1; ++i) {
     if (compression_level == NULL) {
@@ -1603,8 +1603,8 @@ int ArraySchema::set_compression_level(int* compression_level) {
 }
 
 int ArraySchema::set_offsets_compression(int* offsets_compression) {
-  assert(compression_.size() == attribute_num_+1 && "set_compression() should be called before set_offsets_compression");
-  assert(cell_val_num_.size() >= attribute_num_ && "set_cell_val_num() should be called before set_offsets_compression");
+  assert(compression_.size() == (size_t)(attribute_num_+1) && "set_compression() should be called before set_offsets_compression");
+  assert(cell_val_num_.size() >= (size_t)(attribute_num_) && "set_cell_val_num() should be called before set_offsets_compression");
   offsets_compression_.clear();
   // Set offsets compression  
   if(offsets_compression == NULL) {
@@ -1641,7 +1641,7 @@ int ArraySchema::set_offsets_compression(int* offsets_compression) {
 
 int ArraySchema::set_offsets_compression_level(int* compression_level) {
    // Set defaults based on codec
-  assert(offsets_compression_.size() == attribute_num_ && "set_offsets_compression() should be called before set_offsets_compression_level");
+  assert(offsets_compression_.size() == (size_t)(attribute_num_) && "set_offsets_compression() should be called before set_offsets_compression_level");
   offsets_compression_level_.clear();
   for(int i=0; i<attribute_num_+1; ++i) {
     if (compression_level == NULL) {

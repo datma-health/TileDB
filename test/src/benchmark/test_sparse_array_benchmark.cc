@@ -52,11 +52,11 @@ TEST_CASE_METHOD(BenchmarkConfig, "Benchmark sparse array", "[benchmark_sparse]"
   Catch::Timer t;
   t.start();
   std::vector<std::thread> threads;
-  for (auto i=0; i<array_names_.size(); i++) {
+  for (auto i=0ul; i<array_names_.size(); i++) {
     std::thread thread_object(create_arrays, this, i);
     threads.push_back(std::move(thread_object));
   }
-  for (auto i=0; i<threads.size(); i++) {
+  for (auto i=0ul; i<threads.size(); i++) {
     threads[i].join();
   }
   std::cout << "Create arrays elapsed time = " << t.getElapsedMilliseconds() << "ms" << std::endl;
@@ -67,11 +67,11 @@ TEST_CASE_METHOD(BenchmarkConfig, "Benchmark sparse array", "[benchmark_sparse]"
     threads.clear();
     create_buffers(true);
     t.start();
-    for (auto i=0; i<array_names_.size(); i++) {
+    for (auto i=0ul; i<array_names_.size(); i++) {
       std::thread thread_object(write_arrays, this, i);
       threads.push_back(std::move(thread_object));
     }
-    for (auto i=0; i<threads.size(); i++) {
+    for (auto i=0ul; i<threads.size(); i++) {
       threads[i].join();
     }
     total_elapsed_time += t.getElapsedMilliseconds();
@@ -88,11 +88,11 @@ TEST_CASE_METHOD(BenchmarkConfig, "Benchmark sparse array", "[benchmark_sparse]"
   // Read Arrays
   threads.clear();
   create_buffers(false);
-  for (auto i=0; i<array_names_.size(); i++) {
+  for (auto i=0ul; i<array_names_.size(); i++) {
     std::thread thread_object(read_arrays, this, i);
     threads.push_back(std::move(thread_object));
   }
-  for (auto i=0; i<threads.size(); i++) {
+  for (auto i=0ul; i<threads.size(); i++) {
     threads[i].join();
   }
   std::cerr << "Read I/O Mode=" << get_io_read_mode(io_read_mode_) << std::endl;
