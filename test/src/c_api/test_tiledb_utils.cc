@@ -172,7 +172,7 @@ TEST_CASE_METHOD(TempDir, "Test multithreaded file utils", "[file_utils_multi_th
     threads.push_back(std::move(thread_object));
   }
 
-  CHECK(num_threads == threads.size());
+  CHECK((size_t)num_threads == threads.size());
 
   for (auto i=0; i<num_threads; i++) {
     threads[i].join();
