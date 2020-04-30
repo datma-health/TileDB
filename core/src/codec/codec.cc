@@ -179,7 +179,7 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
     case 0:
       break;
     default:
-      std::cerr << "Unsupported pre-compression filter: " << post_compress_type << "\n";
+      std::cerr << "Unsupported post-compression filter: " << post_compress_type << "\n";
   }
 
   return codec;
