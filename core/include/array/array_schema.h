@@ -82,6 +82,15 @@
 /** Stores potential error messages. */
 extern std::string tiledb_as_errmsg;
 
+/** Compression fields are stored as 1 byte in the schema, the last 4 least significant digits
+  * denote the main compression type, the next 2 denote pre compression filters and the leading 2 digits
+  * denote the post compression filters.
+  * Compression fields can be simply composed as a sum of 1 main compression type and optionally one pre
+  * and one post compression type.
+  * e.g. compression for an attribute could be TILEDB_GZIP+TILEDB_DELTA_ENCODE+TILEDB_CHECKSUM
+  *                                                            ^^^^pre^^^^      ^^^^post^^^^
+  */
+typedef enum filter_type_t {COMPRESS=0xF, PRE_COMPRESS=0x30, POST_COMPRESS=0xC0} filter_type_t;
 
 /** Specifies the array schema. */
 class ArraySchema {

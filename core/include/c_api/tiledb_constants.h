@@ -144,7 +144,7 @@
 /**@}*/
 
 /**@{*/
-/** Compression type. */
+/** Compression type. Range from 0-15 */
 #define TILEDB_NO_COMPRESSION                        0
 #define TILEDB_GZIP                                  1
 #define TILEDB_ZSTD                                  2
@@ -156,6 +156,17 @@
 #define TILEDB_BLOSC_ZLIB                            8
 #define TILEDB_BLOSC_ZSTD                            9
 #define TILEDB_RLE                                  10
+/**@}*/
+
+/**@{*/
+/** Pre compression filter defines. Range from 16-23 */
+#define TILEDB_DELTA_ENCODE                         16
+#define TILEDB_BYTE_SHUFFLE                         17
+/**@}*/
+
+/**@{*/
+/** Post compression filter defines. 24-31 */
+#define TILEDB_POST_FILTER_EXAMPLE_UNUSED           24
 /**@}*/
 
 /**@{*/

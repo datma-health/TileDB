@@ -69,12 +69,14 @@ int main(int argc, char *argv[]) {
         TILEDB_GZIP,              // a2
 #endif
         TILEDB_NO_COMPRESSION,    // a3
-        TILEDB_NO_COMPRESSION     // coordinates
+        TILEDB_GZIP
+        +TILEDB_DELTA_ENCODE      // coordinates
   };
   const int offsets_compression[] =
   {
         0,                        // a1 - DON'T CARE
-        TILEDB_GZIP,              // a2
+        TILEDB_GZIP
+        +TILEDB_DELTA_ENCODE,     // a2
         0                         // a3 - DON'T CARE
   };
   int64_t tile_extents[] = 

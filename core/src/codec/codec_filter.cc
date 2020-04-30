@@ -1,11 +1,11 @@
 /**
- * @file codec_gzip.h
+ * @file   codec_filter.cc
  *
  * @section LICENSE
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,23 +27,33 @@
  * 
  * @section DESCRIPTION
  *
- * CodecGzip derived from Codec for gzip support
- *
+ * This file implements the base class for pre and post compression filters
  */
 
-#ifndef __CODEC_GZIP_H__
-#define  __CODEC_GZIP_H__
+#include "codec_filter.h"
+#include <iostream>
+#include <string>
 
-#include "codec.h"
+/* ****************************** */
+/*             MACROS             */
+/* ****************************** */
 
-class CodecGzip : public Codec {
- public:
-  using Codec::Codec;
-  
-  int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;
+#ifdef TILEDB_VERBOSE
+#  define PRINT_ERROR(x) std::cerr << TILEDB_CDF_ERRMSG << x << ".\n" 
+#else
+#  define PRINT_ERROR(x) do { } while(0) 
+#endif
 
-  int do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) override;
-  
-};
+/* ****************************** */
+/*        GLOBAL VARIABLES        */
+/* ****************************** */
 
-#endif /*__CODEC_GZIP_H__*/
+std::string tiledb_cdf_errmsg = "";
+
+int CodecFilter::print_errmsg(const std::string& msg) {
+  if (msg.length() > 0) {
+    PRINT_ERROR(msg);
+    tiledb_cdf_errmsg = TILEDB_CDF_ERRMSG + msg;
+  }
+  return TILEDB_CDF_ERR;
+}
