@@ -40,7 +40,7 @@ class CodecDeltaEncode : public CodecFilter {
  public:
   using CodecFilter::CodecFilter;
 
-  CodecDeltaEncode(int type=TILEDB_UINT64, int filter_stride=1): CodecFilter(filter_stride) {
+  CodecDeltaEncode(int type=TILEDB_UINT64, int filter_stride=1): CodecFilter(filter_stride, true) {
     filter_name_ = "Delta Encoding";
     type_ = type;
   }

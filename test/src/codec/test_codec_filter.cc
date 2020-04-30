@@ -114,15 +114,15 @@ TEST_CASE("Test delta encoding", "[codec_filter_delta_encoding]") {
   }
   CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(vector1.data()), 10*sizeof(int64_t)) == TILEDB_CDF_OK);
   for (auto i=0u; i<10; i++) {
-    CHECK(vector1[i] == i+1);
+    CHECK(vector1[i] == (unsigned char)(i+1));
   }
   delete codec_filter;
 
-  codec_filter = new CodecDeltaEncode(TILEDB_INT64);
+  codec_filter = new CodecDeltaEncode(TILEDB_INT64, 1);
   CHECK(codec_filter->type() == TILEDB_INT64);
   delete codec_filter;
 
-  codec_filter = new CodecDeltaEncode(TILEDB_UINT32);
+  codec_filter = new CodecDeltaEncode(TILEDB_UINT32, 1);
   CHECK(codec_filter->type() == TILEDB_UINT32);
   delete codec_filter;
   

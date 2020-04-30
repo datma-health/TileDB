@@ -72,7 +72,9 @@ class CodecFilter {
   }
   
   virtual ~CodecFilter() {
-    free(filter_buffer_);
+    if (filter_buffer_ != NULL) {
+      free(filter_buffer_);
+    }
   }
 
   /**
