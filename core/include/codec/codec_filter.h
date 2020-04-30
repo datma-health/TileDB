@@ -33,6 +33,7 @@
 #ifndef __CODEC_FILTER_H__
 #define __CODEC_FILTER_H__
 
+#include <cassert>
 #include <iostream>
 #include <string>
 

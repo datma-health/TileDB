@@ -43,9 +43,9 @@ int do_code(T* tile, size_t tile_size_in_bytes, CodecFilter* filter) {
     return filter->print_errmsg("Only tiles that are divisible by stride supported");
   }
   std::vector<T> last(stride, 0);
-  for (T i=0; i<length; i++) {
+  for (size_t i=0; i<length; i++) {
     for (int j=0; j<stride; j++) {
-      T index = i*stride+j;
+      size_t index = i*stride+j;
       T current = tile[index];
       tile[index] = current - last[j];
       last[j] = current;
@@ -77,9 +77,9 @@ int do_decode(T* tile, size_t tile_size_in_bytes, CodecFilter* filter) {
     return filter->print_errmsg("Only tiles that are divisible by stride supported");
   }
   std::vector<T> last(stride, 0);
-  for (int i = 0; i < length; i++) {
+  for (size_t i = 0; i < length; i++) {
     for (int j=0; j<stride; j++) {
-      T index = i*stride+j;
+      size_t index = i*stride+j;
       T delta = tile[index];
       tile[index] = delta + last[j];
       last[j] = tile[index];
