@@ -34,6 +34,7 @@
 #ifndef TILEDB_TESTS_H
 #define TILEDB_TESTS_H
 
+#include "array_schema.h"
 #include "tiledb.h"
 #include "tiledb_constants.h"
 #include "tiledb_storage.h"
@@ -514,6 +515,27 @@ std::string get_attribute_info(BenchmarkConfig* config, const std::string& filen
   return attribute_info;
 }
 
+void print_array_schema(TileDB_CTX* tiledb_ctx, const std::string& array) {
+  std::string array_schema_filename = array+'/'+TILEDB_ARRAY_SCHEMA_FILENAME;
+  size_t buffer_size = file_size(tiledb_ctx, array_schema_filename);
+  void *buffer = malloc(buffer_size);
+  
+  // Load array schema into buffer
+  REQUIRE(read_file(tiledb_ctx, array_schema_filename, 0, buffer, buffer_size) == TILEDB_OK);
+
+  // Initialize array schema from buffer
+  ArraySchema* array_schema = new ArraySchema(NULL);
+  REQUIRE(array_schema->deserialize(buffer, buffer_size) == TILEDB_OK);
+
+  // Print the schema
+  array_schema->print();
+
+  delete array_schema;
+  free(buffer);
+
+  std::cerr << "\n\n";
+}
+
 void print_fragment_sizes(BenchmarkConfig* config, bool human_readable_sizes) {
   TileDB_CTX* tiledb_ctx;
   TileDB_Config tiledb_config;
@@ -525,6 +547,7 @@ void print_fragment_sizes(BenchmarkConfig* config, bool human_readable_sizes) {
   for(auto array : get_dirs(tiledb_ctx, config->workspace_)) {
     if (!is_array(tiledb_ctx, array)) continue;
     std::cerr << "\n\nArray " << get_name(array) << ":\n";
+    print_array_schema(tiledb_ctx, array);
     for(auto fragment: get_dirs(tiledb_ctx, array)) {
       if (!is_fragment(tiledb_ctx, fragment)) continue;
       std::cerr << "  Fragment " << get_name(fragment) << ":\n";
