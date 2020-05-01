@@ -36,6 +36,7 @@
 
 #include <iostream>
 #include <string>
+#include <string.h>
 
 #define CHECK_RC(...)                                      \
 do {                                                       \
