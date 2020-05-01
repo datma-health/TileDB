@@ -1,11 +1,11 @@
 /**
- * @file codec_rle.h
+ * @file   codec_filter_delta_encode.h
  *
  * @section LICENSE
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,36 +27,41 @@
  * 
  * @section DESCRIPTION
  *
- * CodecGzip derived from Codec for RLE support
- *
+ * This file defines the Delta Encoder Pre-Compression Filter
  */
 
-#ifndef __CODEC_RLE_H__
-#define  __CODEC_RLE_H__
+#ifndef __CODEC_DELTA_ENCODING_H__
+#define  __CODEC_DELTA_ENCODING_H__
 
-#include "codec.h"
+#include "codec_filter.h"
+#include "tiledb_constants.h"
 
-class CodecRLE : public Codec {
+class CodecDeltaEncode : public CodecFilter {
  public:
-  CodecRLE(int attribute_num, int dim_num, int cell_order, bool is_coords, size_t value_size):Codec(0){
-    attribute_num_ = attribute_num;
-    dim_num_ = dim_num;
-    cell_order_ = cell_order;
-    is_coords_ = is_coords;
-    value_size_ = value_size;
-  }
-  
-  int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;
+  using CodecFilter::CodecFilter;
 
-  int do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) override;
+  CodecDeltaEncode(int type=TILEDB_UINT64, int filter_stride=1): CodecFilter(filter_stride, true) {
+    filter_name_ = "Delta Encoding";
+    type_ = type;
+  }
+
+  int type() {
+    return type_;
+  }
+      
+  /**
+   * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
+   */
+  int code(unsigned char* tile, size_t tile_size) override;
+
+  /**
+   * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
+   */
+  int decode(unsigned char* tile_coded,  size_t tile_coded_size) override;
 
  private:
-  int attribute_num_;
-  int dim_num_;
-  int cell_order_;
-  bool is_coords_;
-  size_t value_size_;
+  int type_;
   
 };
 
-#endif /*__CODEC_RLE_H__*/
+#endif /*  __CODEC_DELTA_ENCODING_H__ */

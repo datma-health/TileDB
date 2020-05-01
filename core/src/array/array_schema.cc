@@ -6,6 +6,8 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -417,30 +419,35 @@ bool ArraySchema::is_contained_in_tile_slab_row(const void* range) const {
 }
 
 static void print_compression_type(int compression) {
-   if(compression == TILEDB_GZIP)
-      std::cout << "\tType = GZIP\n";
-    else if(compression == TILEDB_ZSTD)
-      std::cout << "\tType = ZSTD\n";
-    else if(compression == TILEDB_LZ4)
-      std::cout << "\tType = : LZ4\n";
-    else if(compression == TILEDB_BLOSC)
-      std::cout << "\tType = BLOSC\n";
-    else if(compression == TILEDB_BLOSC_LZ4)
-      std::cout << "\tType =  BLOSC_LZ4\n";
-    else if(compression == TILEDB_BLOSC_LZ4HC)
-      std::cout << "\tType = BLOSC_LZ4HC\n";
-    else if(compression == TILEDB_BLOSC_SNAPPY)
-      std::cout << "\tType = BLOSC_SNAPPY\n";
-    else if(compression == TILEDB_BLOSC_ZLIB)
-      std::cout << "\tType = BLOSC_ZLIB\n";
-    else if(compression == TILEDB_BLOSC_ZSTD)
-      std::cout << "\tType = BLOSC_ZSTD\n";
-    else if(compression == TILEDB_RLE)
-      std::cout << "\tType =  RLE\n";
-    else if(compression == TILEDB_NO_COMPRESSION)
-      std::cout << "\tType =  NONE\n";
-    else
-      std::cout << "\tType =" << std::to_string(compression) << "\n";
+  int compression_type = compression & COMPRESS;
+  if(compression_type == TILEDB_GZIP)
+    std::cout << "\tType = GZIP";
+  else if(compression_type == TILEDB_ZSTD)
+    std::cout << "\tType = ZSTD";
+  else if(compression_type == TILEDB_LZ4)
+    std::cout << "\tType = : LZ4";
+  else if(compression_type == TILEDB_BLOSC)
+    std::cout << "\tType = BLOSC";
+  else if(compression_type == TILEDB_BLOSC_LZ4)
+    std::cout << "\tType =  BLOSC_LZ4";
+  else if(compression_type == TILEDB_BLOSC_LZ4HC)
+    std::cout << "\tType = BLOSC_LZ4HC";
+  else if(compression_type == TILEDB_BLOSC_SNAPPY)
+    std::cout << "\tType = BLOSC_SNAPPY";
+  else if(compression_type == TILEDB_BLOSC_ZLIB)
+    std::cout << "\tType = BLOSC_ZLIB";
+  else if(compression_type == TILEDB_BLOSC_ZSTD)
+    std::cout << "\tType = BLOSC_ZSTD";
+  else if(compression_type == TILEDB_RLE)
+    std::cout << "\tType =  RLE";
+  else if(compression_type == TILEDB_NO_COMPRESSION)
+    std::cout << "\tType =  NONE";
+  else
+    std::cout << "\tType =" << std::to_string(compression);
+  int pre_compression_type = compression & PRE_COMPRESS;
+  if (pre_compression_type == TILEDB_DELTA_ENCODE)
+    std::cout << " + DELTA_ENCODE";
+  std::cout << "\n";
 }
 
 void ArraySchema::print() const {
@@ -960,11 +967,15 @@ int64_t ArraySchema::tile_slab_row_cell_num(const void* subarray) const {
 }
 
 int ArraySchema::type(int i) const {
-  if(i<0 || i>attribute_num_) {
+  if(i<0 || i>attribute_num_+1) {
     std::string errmsg = "Cannot retrieve type; Invalid attribute id";
     PRINT_ERROR(errmsg);
     tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
     return TILEDB_AS_ERR;
+  } 
+ if (i == attribute_num_+1) {
+    // This is a special cased "search tile" that is basically the coordinate tile
+    return types_[i-1];
   } else {
     return types_[i];
   }
@@ -1190,7 +1201,7 @@ int ArraySchema::deserialize(
       assert(offset + sizeof(char) <= buffer_size);
       memcpy(&compression_level, buffer + offset, sizeof(char));
       offset += sizeof(char);
-      compression_level_.push_back(Codec::normalize_level(compression_[i], static_cast<int>(compression_level)));
+      compression_level_.push_back(compression_level);
     }
   }
   // Load offsets_compression_. Support added in array schema version 2L
@@ -1210,7 +1221,7 @@ int ArraySchema::deserialize(
       assert(offset + sizeof(char) <= buffer_size);
       memcpy(&offsets_compression_level, buffer + offset, sizeof(char));
       offset += sizeof(char);
-      offsets_compression_level_.push_back(Codec::normalize_level(offsets_compression_[i], static_cast<int>(offsets_compression_level)));
+      offsets_compression_level_.push_back(offsets_compression_level);
     }
   }
   assert(offset == buffer_size); 
@@ -1545,19 +1556,33 @@ int ArraySchema::set_cell_order(int cell_order) {
   return TILEDB_AS_OK;
 }
 
+/** Compression fields are stored as 1 byte in the schema, the last 4 least significant digits
+  * denote the main compression type, the next 2 denote pre compression filters and the leading 2 digits
+  * denote the post compression filters.
+  * Compression fields can be simply composed as a sum of 1 main compression type and optionally one pre
+  * and one post compression type.
+  * e.g. compression for an attribute could be TILEDB_GZIP+TILEDB_DELTA_ENCODE+TILEDB_CHECKSUM
+  *                                                            ^^^^pre^^^^      ^^^^post^^^^
+  */
 static bool validate_compression(int *compression, int attribute_num) {
   for(int i=0; i<attribute_num; ++i) {
-    if(compression[i] != TILEDB_NO_COMPRESSION &&
-       compression[i] != TILEDB_GZIP         &&
-       compression[i] != TILEDB_ZSTD         && 
-       compression[i] != TILEDB_LZ4          && 
-       compression[i] != TILEDB_BLOSC        && 
-       compression[i] != TILEDB_BLOSC_LZ4    && 
-       compression[i] != TILEDB_BLOSC_LZ4HC  && 
-       compression[i] != TILEDB_BLOSC_SNAPPY && 
-       compression[i] != TILEDB_BLOSC_ZLIB   && 
-       compression[i] != TILEDB_BLOSC_ZSTD   &&
-       compression[i] != TILEDB_RLE) {
+    int compression_type = compression[i] & COMPRESS;
+    if(compression_type != TILEDB_NO_COMPRESSION &&
+       compression_type != TILEDB_GZIP         &&
+       compression_type != TILEDB_ZSTD         && 
+       compression_type != TILEDB_LZ4          && 
+       compression_type != TILEDB_BLOSC        && 
+       compression_type != TILEDB_BLOSC_LZ4    && 
+       compression_type != TILEDB_BLOSC_LZ4HC  && 
+       compression_type != TILEDB_BLOSC_SNAPPY && 
+       compression_type != TILEDB_BLOSC_ZLIB   && 
+       compression_type != TILEDB_BLOSC_ZSTD   &&
+       compression_type != TILEDB_RLE) {
+      return false;
+    }
+    int pre_compression_type = compression[i] & PRE_COMPRESS;
+    if (pre_compression_type != TILEDB_DELTA_ENCODE &&
+        pre_compression_type != 0) {
       return false;
     }
   }
@@ -1594,7 +1619,7 @@ int ArraySchema::set_compression_level(int* compression_level) {
     if (compression_level == NULL) {
       compression_level_.push_back(Codec::get_default_level(compression_[i]));
     } else {
-      compression_level_.push_back(Codec::normalize_level(compression_[i], compression_level[i]));
+      compression_level_.push_back(compression_level[i]);
     }
   }
 
@@ -1647,7 +1672,7 @@ int ArraySchema::set_offsets_compression_level(int* compression_level) {
     if (compression_level == NULL) {
       offsets_compression_level_.push_back(Codec::get_default_level(compression_[i]));
     } else {
-      offsets_compression_level_.push_back(Codec::normalize_level(compression_[i], compression_level[i]));
+      offsets_compression_level_.push_back(compression_level[i]);
     }
   }
 

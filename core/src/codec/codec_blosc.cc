@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@
 #define BLOSC_EXTERN_DECL extern
 #include "codec_blosc.h"
 
-int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecBlosc::do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
   // Allocate space to store the compressed tile
 #define BLOSC_MAX_OVERHEAD 16
   size_t compress_bound = tile_size + BLOSC_MAX_OVERHEAD;
@@ -85,7 +85,7 @@ int CodecBlosc::compress_tile(unsigned char* tile, size_t tile_size, void** tile
   return TILEDB_CD_OK;
 }
 
-int CodecBlosc::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecBlosc::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
   // Initialization
   blosc_init();
 

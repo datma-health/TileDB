@@ -1,11 +1,11 @@
 /**
- * @file codec_rle.h
+ * @file   codec_filter.cc
  *
  * @section LICENSE
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,36 +27,33 @@
  * 
  * @section DESCRIPTION
  *
- * CodecGzip derived from Codec for RLE support
- *
+ * This file implements the base class for pre and post compression filters
  */
 
-#ifndef __CODEC_RLE_H__
-#define  __CODEC_RLE_H__
+#include "codec_filter.h"
+#include <iostream>
+#include <string>
 
-#include "codec.h"
+/* ****************************** */
+/*             MACROS             */
+/* ****************************** */
 
-class CodecRLE : public Codec {
- public:
-  CodecRLE(int attribute_num, int dim_num, int cell_order, bool is_coords, size_t value_size):Codec(0){
-    attribute_num_ = attribute_num;
-    dim_num_ = dim_num;
-    cell_order_ = cell_order;
-    is_coords_ = is_coords;
-    value_size_ = value_size;
+#ifdef TILEDB_VERBOSE
+#  define PRINT_ERROR(x) std::cerr << TILEDB_CDF_ERRMSG << x << ".\n" 
+#else
+#  define PRINT_ERROR(x) do { } while(0) 
+#endif
+
+/* ****************************** */
+/*        GLOBAL VARIABLES        */
+/* ****************************** */
+
+std::string tiledb_cdf_errmsg = "";
+
+int CodecFilter::print_errmsg(const std::string& msg) {
+  if (msg.length() > 0) {
+    PRINT_ERROR(msg);
+    tiledb_cdf_errmsg = TILEDB_CDF_ERRMSG + msg;
   }
-  
-  int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;
-
-  int do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) override;
-
- private:
-  int attribute_num_;
-  int dim_num_;
-  int cell_order_;
-  bool is_coords_;
-  size_t value_size_;
-  
-};
-
-#endif /*__CODEC_RLE_H__*/
+  return TILEDB_CDF_ERR;
+}
