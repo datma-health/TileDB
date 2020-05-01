@@ -147,7 +147,7 @@ TEST_CASE("Test Array Schema", "[array_schema]") {
   CHECK(schema.set_offsets_compression(const_cast<int *>(compression)) == TILEDB_OK);
   const int offsets_compression[2] = {0, 0};
   CHECK(schema.set_offsets_compression(const_cast<int *>(offsets_compression)) != TILEDB_OK);
-  const int offsets_compression1[2] = {0, TILEDB_GZIP};
+  const int offsets_compression1[2] = {0, TILEDB_GZIP+TILEDB_DELTA_ENCODE};
   CHECK(schema.set_offsets_compression(const_cast<int *>(offsets_compression1)) == TILEDB_OK);
 
   CHECK(schema.set_dimensions(NULL, 0) != TILEDB_OK);
@@ -174,6 +174,8 @@ TEST_CASE("Test Array Schema", "[array_schema]") {
   
   CHECK(schema.set_tile_extents(NULL) == TILEDB_OK);
   CHECK(schema.set_tile_order(-1) != TILEDB_OK);
+
+  schema.print();
 }
 
 TEST_CASE_METHOD(ArraySchemaTestClass, "Test Array Schema Print", "[array_schema_print]") {
@@ -181,6 +183,12 @@ TEST_CASE_METHOD(ArraySchemaTestClass, "Test Array Schema Print", "[array_schema
   ArraySchema schema(NULL);
   CHECK(schema.init(&c_schema) == TILEDB_OK);
   schema.print();
+}
+
+TEST_CASE_METHOD(ArraySchemaTestClass, "Test Array Schema Init With Print", "[array_schema_init_with_print]") {
+  init();
+  ArraySchema schema(NULL);
+  CHECK(schema.init(&c_schema, true) == TILEDB_OK);
 }
 
 TEST_CASE_METHOD(ArraySchemaTestClass, "Test Array Schema Serialize", "[array_schema_serialize]") {
