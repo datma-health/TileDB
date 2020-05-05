@@ -157,6 +157,10 @@ if(USE_OPENMP AND NOT APPLE)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+if (NOT APPLE)
+  set(CMAKE_C_FLAGS "-std=gnu11")
+endif()
+
 # Add definitions
 add_definitions(-D_FILE_OFFSET_BITS=64)
 if(USE_MPI)
