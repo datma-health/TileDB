@@ -100,4 +100,37 @@ TEST_CASE("Test zlib", "[codec-z]") {
   free(zlib);
 }
 
+#include "codec_lz4.h"
+
+TEST_CASE("Test lz4", "[codec-lz4]") {
+  Codec* lz4 = new CodecLZ4(TILEDB_COMPRESSION_LEVEL_LZ4, 1);
+  unsigned char test_string[] = "HELLO";
+  unsigned char* buffer;
+  size_t buffer_size;
+
+  CHECK(lz4->compress_tile(test_string, 0, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+  CHECK(lz4->compress_tile(test_string, 6, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+
+  unsigned char* decompressed_string =  (unsigned char*)malloc(6);
+  CHECK(lz4->decompress_tile(buffer, buffer_size, decompressed_string, 6) == TILEDB_CD_OK);
+  CHECK(strlen((char *)decompressed_string) == 5);
+  CHECK(strcmp((char *)decompressed_string, (char *)test_string) == 0);
+
+  free(lz4);
+
+  // Try lz4 with bit-shuffline
+  lz4 = new CodecLZ4(TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4, 1);
+
+  CHECK(lz4->compress_tile(test_string, 0, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+  CHECK(lz4->compress_tile(test_string, 6, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+
+  memset(decompressed_string, 0, 6);
+  CHECK(lz4->decompress_tile(buffer, buffer_size, decompressed_string, 6) == TILEDB_CD_OK);
+  CHECK(strlen((char *)decompressed_string) == 5);
+  CHECK(strcmp((char *)decompressed_string, (char *)test_string) == 0);
+
+  free(lz4);
+
+  free(decompressed_string);
+}
 

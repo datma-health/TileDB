@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 
+/** nalinigans@github no support for avx2/sse2 instruction as yet in this included version 
 
 #if defined(__AVX2__) && defined (__SSE2__)
 #define USEAVX2
@@ -27,6 +28,8 @@
 #if defined(__ARM_NEON__) || (__ARM_NEON)
 #define USEARMNEON
 #endif
+
+*/
 
 // Conditional includes for SSE2 and AVX2.
 #ifdef USEAVX2

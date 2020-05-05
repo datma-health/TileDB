@@ -35,9 +35,7 @@
 #ifdef ENABLE_ZSTD
 #  include "codec_zstd.h"
 #endif
-#ifdef ENABLE_LZ4
-#  include "codec_lz4.h"
-#endif
+#include "codec_lz4.h"
 #ifdef ENABLE_BLOSC
 #  include "codec_blosc.h"
 #endif
@@ -120,11 +118,9 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
     codec = new CodecZStandard(compression_level);
     break;
 #endif
-#ifdef ENABLE_LZ4
   case TILEDB_LZ4:
-    codec = new CodecLZ4(compression_level);
+    codec = new CodecLZ4(compression_level, type_size);
     break;
-#endif
 #ifdef ENABLE_BLOSC
   case TILEDB_BLOSC:
   case TILEDB_BLOSC_LZ4:
@@ -170,7 +166,7 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
       }
       codec->set_pre_compression(filter);
       break;
-    default:
+  default:
       std::cerr << "Unsupported pre-compression filter: " << pre_compress_type << "\n";
   }
 

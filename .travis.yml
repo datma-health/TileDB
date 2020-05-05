@@ -85,7 +85,7 @@ after_success:
     - find deps -name *.gcda -type f -delete
     - if [[ $DEBUG_LCOV == true ]]; then
         lcov --directory core --capture --output-file coverage.info;
-        lcov --remove coverage.info '/opt*' '*/usr/*' -o coverage.info;
+        lcov --remove coverage.info '/opt*' '*/usr/*' */external/* -o coverage.info;
         lcov --list coverage.info;
       fi
     # Uploading report to CodeCov
