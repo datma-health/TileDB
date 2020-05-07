@@ -59,71 +59,85 @@ TEST_CASE("Test codec filter basic", "[codec_filter_basic]") {
   delete codec_filter;
 }
 
-TEST_CASE("Test delta encoding", "[codec_filter_delta_encoding]") {
-  CodecDeltaEncode* codec_filter = new CodecDeltaEncode();
-  CHECK(codec_filter->name() == "Delta Encoding");
-  CHECK(codec_filter->in_place());
-  CHECK(codec_filter->stride() == 1);
-  CHECK(codec_filter->type() == TILEDB_UINT64);
-
-  // Fill vector with 1's
-  std::vector<uint64_t> vector(10, 1);
-  CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(vector.data()), 10*sizeof(int64_t)) == TILEDB_CDF_OK);
-  CHECK(vector[0] == 1);
-  for (auto i=1u; i<10; i++) {
-    CHECK(vector[i] == 0);
-  }
-  CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(vector.data()), 10*sizeof(int64_t)) == TILEDB_CDF_OK);
-  for (auto i=0u; i<10; i++) {
-    CHECK(vector[i] == 1); // After decode they should match the original vector
+class TestDeltaEncoding {
+ public:
+  template<typename T>
+  size_t create_buffer(T** buffer, int stride, int length) {
+    size_t sz = sizeof(T)*length;
+    *buffer = reinterpret_cast<T *>(malloc(sz));
+    for (auto i=0l; i<length/stride; i++) {
+      for (auto j=0l; j<stride; j++) {
+        (*buffer)[i*stride+j] = i;
+      }
+    }
+    return sz;
   }
 
-  // Fill vector with 1,2,3,4...
-  for (auto i=0u; i<10; i++) {
-    vector[i] = i+1;
+  template<typename T>
+  void check_buffer(T* buffer, int stride, int length, bool is_encode) {
+    for (auto i=0l; i<length/stride; i++) {
+      for (auto j=0l; j<stride; j++) {
+        if (is_encode && i>0) {
+          CHECK(buffer[i*stride+j] == 1);
+        } else {
+          CHECK(buffer[i*stride+j] == i);
+        }
+      }
+    }
   }
-  CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(vector.data()), 10*sizeof(int64_t)) == TILEDB_CDF_OK);
-  for (auto i=0u; i<10; i++) {
-    CHECK(vector[i] == 1);
-  }
-   CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(vector.data()), 10*sizeof(int64_t)) == TILEDB_CDF_OK);
-  for (auto i=0u; i<10; i++) {
-    CHECK(vector[i] == i+1);
-  }
-  delete codec_filter;
 
-  codec_filter = new CodecDeltaEncode(TILEDB_UINT64, 3);
-  CHECK(codec_filter->type() == TILEDB_UINT64);
-  CHECK(codec_filter->stride() == 3);
-  // This should fail as 10 is not divisible by 3;
-  CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(vector.data()), 10*sizeof(int64_t)) == TILEDB_CDF_ERR);
-  delete codec_filter;
+  template<typename T>
+  void test_filter(CodecDeltaEncode* codec_filter, T** buffer, int stride, int length) {
+    size_t sz = create_buffer(buffer, stride, length); 
+    CHECK(sz == sizeof(T)*length);
+    CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(*buffer), sz) == 0);
+    check_buffer(*buffer, stride, length, true);
+    CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(*buffer), sz) == 0);
+    check_buffer(*buffer, stride, length, false);
 
-  codec_filter = new CodecDeltaEncode(TILEDB_INT32, 2);
-  CHECK(codec_filter->stride() == 2);
-
-  std::vector<int32_t> vector1(10);
-  // Fill vector with 1,2,3,4...
-  for (auto i=0u; i<10; i++) {
-    vector1[i] = i+1;
+    // code/decode should fail if length is not divisible by stride
+    if ((sz-1) % stride != 0) {
+      CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(*buffer), sz-1) != 0);
+      CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(*buffer), sz-1) != 0);
+    }
   }
-  CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(vector1.data()), 10*sizeof(int64_t)) == TILEDB_CDF_OK);
-  CHECK(vector1[0] == 1);
-  for (auto i=1u; i<10; i++) {
-    CHECK(vector1[i] == 2);
-  }
-  CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(vector1.data()), 10*sizeof(int64_t)) == TILEDB_CDF_OK);
-  for (auto i=0u; i<10; i++) {
-    CHECK(vector1[i] == (unsigned char)(i+1));
-  }
-  delete codec_filter;
 
-  codec_filter = new CodecDeltaEncode(TILEDB_INT64, 1);
-  CHECK(codec_filter->type() == TILEDB_INT64);
-  delete codec_filter;
+  void test_filter(int type, int stride, int length) {
+    CodecDeltaEncode* codec_filter = new CodecDeltaEncode(type, stride);
+    CHECK(codec_filter->name() == "Delta Encoding");
+    CHECK(codec_filter->in_place());
+    CHECK(codec_filter->stride() == stride);
+    CHECK(codec_filter->type() == type);
 
-  codec_filter = new CodecDeltaEncode(TILEDB_UINT32, 1);
-  CHECK(codec_filter->type() == TILEDB_UINT32);
-  delete codec_filter;
+    unsigned char* buffer = 0;
+    switch (type) {
+      case TILEDB_INT32:
+        test_filter(codec_filter, reinterpret_cast<int32_t **>(&buffer), stride, length);
+        break;
+      case TILEDB_INT64:
+        test_filter(codec_filter, reinterpret_cast<int64_t **>(&buffer), stride, length);
+        break;
+      case TILEDB_UINT32:
+        test_filter(codec_filter, reinterpret_cast<uint32_t **>(&buffer), stride, length);
+        break;
+      case TILEDB_UINT64:
+        test_filter(codec_filter, reinterpret_cast<uint64_t **>(&buffer), stride, length);
+        break;
+    }
+
+    free(buffer);
+    delete codec_filter;
+  }
+
+
+  TestDeltaEncoding() {};
   
+};
+  
+TEST_CASE_METHOD(TestDeltaEncoding, "Test delta encoding", "[codec_filter_delta_encoding]") {
+  test_filter(TILEDB_INT64, 1, 10);
+  test_filter(TILEDB_INT32, 2, 20);
+  test_filter(TILEDB_UINT32, 3, 9);
+  test_filter(TILEDB_UINT64, 4, 16);
 }
+
