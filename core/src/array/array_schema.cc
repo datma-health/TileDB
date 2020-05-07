@@ -1647,7 +1647,7 @@ int ArraySchema::set_offsets_compression(int* offsets_compression) {
     for(int i=0; i<attribute_num_; ++i) {
       if (cell_val_num_[i] == TILEDB_VAR_NUM) {
         if ((compression_[i] > TILEDB_NO_COMPRESSION && offsets_compression[i] == TILEDB_NO_COMPRESSION) ||
-            (compression_[i] == TILEDB_NO_COMPRESSION && offsets_compression[i] >= TILEDB_NO_COMPRESSION)) {
+            (compression_[i] == TILEDB_NO_COMPRESSION && offsets_compression[i] > TILEDB_NO_COMPRESSION)) {
           std::string errmsg = "Unsupported. For a given VAR attribute, both compression and offsets_compression have to either have compression or not\n";
           PRINT_ERROR(errmsg);
           tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;

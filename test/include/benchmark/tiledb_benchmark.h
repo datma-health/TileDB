@@ -49,6 +49,9 @@ class BenchmarkConfig: public TempDir {
  public:    
   BenchmarkConfig() {
     do_benchmark_ = is_env_set("TILEDB_BENCHMARK");
+    if (!do_benchmark_) {
+      return;
+    }
 
     std::ifstream config_stream(g_benchmark_config);
     if (config_stream.is_open()) {
@@ -86,7 +89,15 @@ class BenchmarkConfig: public TempDir {
       if (is_offsets) {
         typed_buffer[i] = (T)i;
       } else {
-        typed_buffer[i] = (T)(i<<2);
+	// TODO: Make this a template function and configurable via benchmark.config later
+	// typed_buffer[i] = (T)(i<<2);
+	// typed_buffer[i] = (T)(i%2);
+	// typed_buffer[i] = (T)((i%2)-1);
+	// typed_buffer[i] = (T)((i%3);
+	// typed_buffer[i] = (T)((i%3)-1);
+	// typed_buffer[i] = (T)(rand()%2);
+	// typed_buffer[i] = (T)(rand()%3);
+        typed_buffer[i] = (T)((rand()%3)-1);
       }
     }
     return reinterpret_cast<void *>(typed_buffer);
@@ -178,6 +189,7 @@ class BenchmarkConfig: public TempDir {
   int num_cells_to_read_ = 1024;
 
   bool human_readable_sizes_ = true;
+  bool print_array_schema_ = true;
 
   std::vector<void *> buffers_;
   std::vector<size_t> buffer_sizes_;
@@ -227,6 +239,8 @@ class BenchmarkConfig: public TempDir {
         num_cells_to_read_ = std::stoi(value);
       } else if (name == "Print_Human_Readable_Sizes") {
         human_readable_sizes_ = (std::stoi(value) != 0);
+      } else if (name == "Print_Array_Schema") {
+	print_array_schema_ = (std::stoi(value) != 0);
       } else {
         std::cerr << "Unrecognized benchmark config name : " << name << std::endl;
       }
@@ -547,7 +561,9 @@ void print_fragment_sizes(BenchmarkConfig* config, bool human_readable_sizes) {
   for(auto array : get_dirs(tiledb_ctx, config->workspace_)) {
     if (!is_array(tiledb_ctx, array)) continue;
     std::cerr << "\n\nArray " << get_name(array) << ":\n";
-    print_array_schema(tiledb_ctx, array);
+    if (config->print_array_schema_) {
+      print_array_schema(tiledb_ctx, array);
+    }
     for(auto fragment: get_dirs(tiledb_ctx, array)) {
       if (!is_fragment(tiledb_ctx, fragment)) continue;
       std::cerr << "  Fragment " << get_name(fragment) << ":\n";
