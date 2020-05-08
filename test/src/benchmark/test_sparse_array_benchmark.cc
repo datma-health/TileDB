@@ -49,6 +49,7 @@ TEST_CASE_METHOD(BenchmarkConfig, "Benchmark sparse array", "[benchmark_sparse]"
   create_workspace(this);
 
   // Create Arrays
+  std::cout << "Number of arrays to create=" << std::to_string(array_names_.size()) << std::endl;
   Catch::Timer t;
   t.start();
   std::vector<std::thread> threads;
@@ -62,6 +63,7 @@ TEST_CASE_METHOD(BenchmarkConfig, "Benchmark sparse array", "[benchmark_sparse]"
   std::cout << "Create arrays elapsed time = " << t.getElapsedMilliseconds() << "ms" << std::endl;
 
   // Write Arrays
+  std::cout << "\nNumber of cells to write= " << std::to_string(num_cells_to_write_) << std::endl;
   auto total_elapsed_time = 0ul;
   for (auto j=0; j<fragments_per_array_; j++) {
     threads.clear();
@@ -77,7 +79,7 @@ TEST_CASE_METHOD(BenchmarkConfig, "Benchmark sparse array", "[benchmark_sparse]"
     total_elapsed_time += t.getElapsedMilliseconds();
     free_buffers();
   }
-  std::cerr << "\nWrite I/O Mode=" << get_io_write_mode(io_write_mode_) << std::endl;
+  std::cerr << "Write I/O Mode=" << get_io_write_mode(io_write_mode_) << std::endl;
   std::cerr << "Write Mode=" << get_array_mode(array_write_mode_) << std::endl;
   std::cerr << "Number of fragments per array = " << std::to_string(fragments_per_array_) << std::endl;
   std::cerr << "Write arrays elapsed time = " << total_elapsed_time << "ms" << std::endl;
@@ -86,6 +88,7 @@ TEST_CASE_METHOD(BenchmarkConfig, "Benchmark sparse array", "[benchmark_sparse]"
   }
 
   // Read Arrays
+  std::cout << "\nNumber of cells to write= " << std::to_string(num_cells_to_read_) << std::endl;
   threads.clear();
   create_buffers(false);
   for (auto i=0ul; i<array_names_.size(); i++) {
