@@ -447,6 +447,8 @@ static void print_compression_type(int compression) {
   int pre_compression_type = compression & PRE_COMPRESS;
   if (pre_compression_type == TILEDB_DELTA_ENCODE)
     std::cout << " + DELTA_ENCODE";
+  else if(pre_compression_type == TILEDB_BIT_SHUFFLE)
+    std::cout << " + BIT_SHUFFLE";
   std::cout << "\n";
 }
 
@@ -1582,6 +1584,7 @@ static bool validate_compression(int *compression, int attribute_num) {
     }
     int pre_compression_type = compression[i] & PRE_COMPRESS;
     if (pre_compression_type != TILEDB_DELTA_ENCODE &&
+        pre_compression_type != TILEDB_BIT_SHUFFLE &&
         pre_compression_type != 0) {
       return false;
     }

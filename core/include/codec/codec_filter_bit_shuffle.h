@@ -1,5 +1,5 @@
 /**
- * @file   codec_filter_delta_encode.h
+ * @file   codec_filter_bit_shuffle.h
  *
  * @section LICENSE
  *
@@ -27,26 +27,22 @@
  * 
  * @section DESCRIPTION
  *
- * This file defines the Delta Encoder Pre-Compression Filter
+ * This file defines the Bit Shuffle Pre-Compression Filter
  */
 
-#ifndef __CODEC_DELTA_ENCODING_H__
-#define  __CODEC_DELTA_ENCODING_H__
+#ifndef __CODEC_BIT_SHUFFLE_H__
+#define  __CODEC_BIT_SHUFFLE_H__
 
 #include "codec_filter.h"
 #include "tiledb_constants.h"
 
-class CodecDeltaEncode : public CodecFilter {
+class CodecBitShuffle : public CodecFilter {
  public:
   using CodecFilter::CodecFilter;
 
-  CodecDeltaEncode(int type, int stride=1): CodecFilter(type, true) {
-    filter_name_ = "Delta Encoding";
-    stride_ = stride;
-  }
-
-  const int stride() {
-    return stride_;
+  CodecBitShuffle(int type): CodecFilter(type, false) {
+    filter_name_ = "Bit Shuffle";
+    type_ = type;
   }
       
   /**
@@ -57,11 +53,8 @@ class CodecDeltaEncode : public CodecFilter {
   /**
    * @return TILEDB_CDF_OK on success and TILEDB_CDF_ERR on error.
    */
-  int decode(unsigned char* tile,  size_t tile_size) override;
-
- private:
-  int stride_;
+  int decode(unsigned char* tile_coded,  size_t tile_coded_size) override;
   
 };
 
-#endif /*  __CODEC_DELTA_ENCODING_H__ */
+#endif /*  __CODEC_BIT_SHUFFLE_H__ */

@@ -41,6 +41,7 @@
 #endif
 #include "codec_rle.h"
 #include "codec_filter.h"
+#include "codec_filter_bit_shuffle.h"
 #include "codec_filter_delta_encode.h"
 #include "tiledb.h"
 
@@ -166,6 +167,9 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
       }
       codec->set_pre_compression(filter);
       break;
+    case TILEDB_BIT_SHUFFLE:
+      codec->set_pre_compression(new CodecBitShuffle(array_schema->type(attribute_id)));
+      break;
   default:
       std::cerr << "Unsupported pre-compression filter: " << pre_compress_type << "\n";
   }
@@ -203,13 +207,20 @@ int Codec::print_errmsg(const std::string& msg) {
 }
 
 int Codec::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
-  if (pre_compression_filter_ && pre_compression_filter_->in_place()) {
+  unsigned char* tile_precompressed = tile;
+  if (pre_compression_filter_) {
     if (pre_compression_filter_->code(tile, tile_size) != 0) {
       return print_errmsg("Could not apply filter " + pre_compression_filter_->name() + " before compressing");
     }
+    if (!pre_compression_filter_->in_place()) {
+      if (pre_compression_filter_->buffer() == NULL) {
+        return print_errmsg("Error from precompression filter " + pre_compression_filter_->name());
+      }
+      tile_precompressed = pre_compression_filter_->buffer();
+    }
   }
-    
-  if (do_compress_tile(tile, tile_size, tile_compressed, tile_compressed_size)) {
+
+  if (do_compress_tile(tile_precompressed, tile_size, tile_compressed, tile_compressed_size)) {
     return print_errmsg("Could not compress with " + name());
   }
   
@@ -217,10 +228,17 @@ int Codec::compress_tile(unsigned char* tile, size_t tile_size, void** tile_comp
 }
 
 int Codec::decompress_tile(unsigned char* tile_compressed, size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
-  if (do_decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size)) {
+  unsigned char* buffer = tile;
+  if (pre_compression_filter_ && !pre_compression_filter_->in_place()) {
+    if (pre_compression_filter_->allocate_buffer(tile_size) != TILEDB_CDF_OK) {
+      return print_errmsg("OOM while trying to allocate memory for decompress using " + pre_compression_filter_->name());
+    }
+    buffer = pre_compression_filter_->buffer();
+  }
+  if (do_decompress_tile(tile_compressed, tile_compressed_size, buffer, tile_size)) {
     return print_errmsg("Could not compress with " + name());
   }
-  if (pre_compression_filter_ && pre_compression_filter_->in_place()) {
+  if (pre_compression_filter_) {
     if (pre_compression_filter_->decode(tile, tile_size) != 0) {
       return print_errmsg("Could not apply filter " + pre_compression_filter_->name() + " after decompressing");
     }

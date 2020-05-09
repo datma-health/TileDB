@@ -118,7 +118,7 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
 
   free(lz4);
 
-  // Try lz4 with bit-shuffline
+  // Try lz4 with bit-shuffle
   lz4 = new CodecLZ4(TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4, 1);
 
   CHECK(lz4->compress_tile(test_string, 0, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);

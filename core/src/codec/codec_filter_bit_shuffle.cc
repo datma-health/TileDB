@@ -1,5 +1,5 @@
 /**
- * @file   codec_filter_delta_encode.cc
+ * @file   codec_filter_bit_shuffle.cc
  *
  * @section LICENSE
  *
@@ -27,37 +27,29 @@
  * 
  * @section DESCRIPTION
  *
- * This file implements the Delta Encoder Pre-Compression Filter.
+ * This file implements the Bit Shuffle Pre-Compression Filter.
  */
 
-#include "codec_filter_delta_encode.h"
+#include "bitshuffle_core.h"
+#include "codec_filter_bit_shuffle.h"
 #include "tiledb_constants.h"
 
-#include <vector>
-
 template<typename T>
-int do_code(T* tile, size_t tile_size_in_bytes, CodecDeltaEncode* filter) {
+int do_code(T* tile, size_t tile_size_in_bytes, CodecFilter* filter) {
   if (tile_size_in_bytes%sizeof(T) != 0) {
     return filter->print_errmsg("Tile size to pre-compression filter " + filter->name() + " should be a multiple of sizeof type");
   }
-  int stride = filter->stride();
-  size_t length = tile_size_in_bytes/sizeof(T)/stride;
-  if (tile_size_in_bytes/sizeof(T)%stride != 0) {
-    return filter->print_errmsg("Only tiles that are divisible by stride supported");
+
+  if (filter->allocate_buffer(tile_size_in_bytes) == TILEDB_CDF_ERR) {
+    return filter->print_errmsg("OOM while tring to allocate memory for filter " + filter->name());
   }
-  std::vector<T> last(stride, 0);
-  for (size_t i=0; i<length; i++) {
-    for (int j=0; j<stride; j++) {
-      size_t index = i*stride+j;
-      T current = tile[index];
-      tile[index] = current - last[j];
-      last[j] = current;
-    }
-  }
+  
+  bshuf_bitshuffle(tile, filter->buffer(), tile_size_in_bytes/sizeof(T), sizeof(T), 0);
+      
   return TILEDB_CDF_OK;
 }
 
-int CodecDeltaEncode::code(unsigned char* tile, size_t tile_size) {
+int CodecBitShuffle::code(unsigned char* tile, size_t tile_size) {
   switch (type_) {
     case TILEDB_INT32:
       return do_code(reinterpret_cast<int32_t *>(tile), tile_size, this);
@@ -68,33 +60,22 @@ int CodecDeltaEncode::code(unsigned char* tile, size_t tile_size) {
     case TILEDB_UINT64:
       return do_code(reinterpret_cast<uint64_t *>(tile), tile_size, this);
     default:
-      return print_errmsg("CodecDeltaEncode not implemented for type");
+      return print_errmsg("CodecBitShuffle not implemented for type");
   }
 }
 
 template<typename T>
-int do_decode(T* tile, size_t tile_size_in_bytes, CodecDeltaEncode* filter) {
+int do_decode(T* tile, size_t tile_size_in_bytes, CodecFilter* filter) {
   if (tile_size_in_bytes%sizeof(T) != 0) {
     return filter->print_errmsg("Tile size to pre-compression filter " + filter->name() + " should be a multiple of sizeof type");
   }
-  int stride = filter->stride();
-  size_t length = tile_size_in_bytes/sizeof(T)/stride;
-  if (tile_size_in_bytes/sizeof(T)%stride != 0) {
-    return filter->print_errmsg("Only tiles that are divisible by stride supported");
-  }
-  std::vector<T> last(stride, 0);
-  for (size_t i = 0; i < length; i++) {
-    for (int j=0; j<stride; j++) {
-      size_t index = i*stride+j;
-      T delta = tile[index];
-      tile[index] = delta + last[j];
-      last[j] = tile[index];
-    }
-  }
+  
+  bshuf_bitunshuffle(filter->buffer(), tile, tile_size_in_bytes/sizeof(T), sizeof(T), 0);
+ 
   return TILEDB_CDF_OK;
 }
 
-int CodecDeltaEncode::decode(unsigned char* tile, size_t tile_size) {
+int CodecBitShuffle::decode(unsigned char* tile, size_t tile_size) {
   switch (type_) {
     case TILEDB_INT32:
       return do_decode(reinterpret_cast<int32_t *>(tile), tile_size, this);
@@ -105,6 +86,6 @@ int CodecDeltaEncode::decode(unsigned char* tile, size_t tile_size) {
     case TILEDB_UINT64:
       return do_decode(reinterpret_cast<uint64_t *>(tile), tile_size, this);
     default:
-      return print_errmsg("CodecDeltaEncode not implemented for type");
+      return print_errmsg("CodecBitShuffle not implemented for type");
   }
 }

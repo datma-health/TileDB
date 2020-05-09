@@ -27,28 +27,23 @@
  * 
  * @section DESCRIPTION
  *
- * Test pre-post compression filters
+ * Test pre and post compression filters
  */
 
 #include "catch.h"
 #include "codec_filter_delta_encode.h"
+#include "codec_filter_bit_shuffle.h"
 #include "tiledb_constants.h"
 
 TEST_CASE("Test codec filter basic", "[codec_filter_basic]") {
-  CodecFilter* codec_filter = new CodecFilter();
-  CHECK(codec_filter->stride() == 1);
-  CHECK(codec_filter->in_place());
-  CHECK(codec_filter->name() == "");
-  delete codec_filter;
-
-  codec_filter = new CodecFilter(3);
-  CHECK(codec_filter->stride() == 3);
+  CodecFilter* codec_filter = new CodecFilter(TILEDB_INT32);
+  CHECK(codec_filter->type() == TILEDB_INT32);
   CHECK(codec_filter->in_place());
   CHECK(codec_filter->name() == "");
   delete codec_filter;
 
   codec_filter = new CodecFilter(5, false);
-  CHECK(codec_filter->stride() == 5);
+  CHECK(codec_filter->type() == 5);
   CHECK(!codec_filter->in_place());
   CHECK(codec_filter->name() == "");
   size_t sz = 0;
@@ -59,7 +54,7 @@ TEST_CASE("Test codec filter basic", "[codec_filter_basic]") {
   delete codec_filter;
 }
 
-class TestDeltaEncoding {
+class TestCodecFilterFixture {
  public:
   template<typename T>
   size_t create_buffer(T** buffer, int stride, int length) {
@@ -86,28 +81,54 @@ class TestDeltaEncoding {
     }
   }
 
+  template<typename Base, typename T>
+  inline bool instanceof(const T*) {
+    return std::is_base_of<Base, T>::value;
+  }
+
   template<typename T>
-  void test_filter(CodecDeltaEncode* codec_filter, T** buffer, int stride, int length) {
+  void test_filter(CodecFilter* codec_filter, T** buffer, int stride, int length) {
     size_t sz = create_buffer(buffer, stride, length); 
     CHECK(sz == sizeof(T)*length);
     CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(*buffer), sz) == 0);
-    check_buffer(*buffer, stride, length, true);
+    // Check output of encoding, only works with delta encoding for now
+    if(instanceof<CodecDeltaEncode>(codec_filter)) {
+      check_buffer(*buffer, stride, length, true);
+    }
+
     CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(*buffer), sz) == 0);
+    // Check output after decoding, it should be identical to the created buffer
     check_buffer(*buffer, stride, length, false);
 
-    // code/decode should fail if length is not divisible by stride
+    // code/decode should fail if length is not divisible by type_size and stride
+    if ((sz-1) % sizeof(T) != 0) {
+      CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(*buffer), sz-1) != 0);
+      CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(*buffer), sz-1) != 0);
+    }
     if ((sz-1) % stride != 0) {
       CHECK(codec_filter->code(reinterpret_cast<unsigned char*>(*buffer), sz-1) != 0);
       CHECK(codec_filter->decode(reinterpret_cast<unsigned char*>(*buffer), sz-1) != 0);
     }
   }
 
-  void test_filter(int type, int stride, int length) {
-    CodecDeltaEncode* codec_filter = new CodecDeltaEncode(type, stride);
-    CHECK(codec_filter->name() == "Delta Encoding");
-    CHECK(codec_filter->in_place());
-    CHECK(codec_filter->stride() == stride);
-    CHECK(codec_filter->type() == type);
+  void test_filter(int filter_type, int type, int length, int stride=1) {
+    CodecFilter *codec_filter = NULL;
+    switch (filter_type) {
+      case TILEDB_DELTA_ENCODE:
+        codec_filter = new CodecDeltaEncode(type, stride);
+        CHECK(codec_filter->name() == "Delta Encoding");
+        CHECK(codec_filter->in_place());
+        CHECK(codec_filter->type() == type);
+        CHECK(reinterpret_cast<CodecDeltaEncode *>(codec_filter)->stride() == stride);
+        break;
+      case TILEDB_BIT_SHUFFLE:
+        codec_filter = new CodecBitShuffle(type);
+        CHECK(!codec_filter->in_place());
+        CHECK(codec_filter->type() == type);
+        break;
+      default:
+        return;
+    }
 
     unsigned char* buffer = 0;
     switch (type) {
@@ -130,14 +151,19 @@ class TestDeltaEncoding {
   }
 
 
-  TestDeltaEncoding() {};
+  TestCodecFilterFixture() {};
   
 };
   
-TEST_CASE_METHOD(TestDeltaEncoding, "Test delta encoding", "[codec_filter_delta_encoding]") {
-  test_filter(TILEDB_INT64, 1, 10);
-  test_filter(TILEDB_INT32, 2, 20);
-  test_filter(TILEDB_UINT32, 3, 9);
-  test_filter(TILEDB_UINT64, 4, 16);
+TEST_CASE_METHOD(TestCodecFilterFixture, "Test delta encoding", "[codec_filter_delta_encoding]") {
+  test_filter(TILEDB_DELTA_ENCODE, TILEDB_INT64, 10, 1);
+  test_filter(TILEDB_DELTA_ENCODE, TILEDB_INT32, 20, 2);
+  test_filter(TILEDB_DELTA_ENCODE, TILEDB_UINT32, 9, 3);
+  test_filter(TILEDB_DELTA_ENCODE, TILEDB_UINT64, 16, 4);
+
+  test_filter(TILEDB_BIT_SHUFFLE, TILEDB_INT64, 10);
+  test_filter(TILEDB_BIT_SHUFFLE, TILEDB_INT32, 20);
+  test_filter(TILEDB_BIT_SHUFFLE, TILEDB_UINT32, 9, 3);
+  test_filter(TILEDB_BIT_SHUFFLE, TILEDB_UINT64, 16);
 }
 

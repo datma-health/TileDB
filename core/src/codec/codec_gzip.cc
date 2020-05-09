@@ -52,6 +52,10 @@ int CodecGzip::do_compress_tile(unsigned char* tile, size_t tile_size, void** ti
         realloc(tile_compressed_, tile_compressed_allocated_size_);
   }
 
+  if (tile_compressed_ == NULL) {
+    return print_errmsg("OOM while trying to allocate memory for compress using " + name());
+  }
+
   // Compress tile
   ssize_t gzip_size = 
     gzip(tile, tile_size, (unsigned char*)tile_compressed_, tile_compressed_allocated_size_, compression_level_);

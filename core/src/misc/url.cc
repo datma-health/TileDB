@@ -88,7 +88,8 @@ void url::parse(const std::string& url_s)
 
   // protocol is case insensitive
   protocol_.reserve(std::distance(start_iter, protocol_iter));
-  std::transform(start_iter, protocol_iter, back_inserter(protocol_), std::ptr_fun<int,int>(tolower));
+  //std::transform(start_iter, protocol_iter, back_inserter(protocol_), std::ptr_fun<int,int>(tolower));
+  std::transform(start_iter, protocol_iter, back_inserter(protocol_), [](int c){return std::tolower(c);});
   if (protocol_iter == end_iter) {
     return;
   }
@@ -100,7 +101,8 @@ void url::parse(const std::string& url_s)
 
   // host is case insensitive
   host_.reserve(distance(protocol_iter, port_iter));
-  std::transform(protocol_iter, port_iter, back_inserter(host_), std::ptr_fun<int,int>(tolower));
+  //std::transform(protocol_iter, port_iter, back_inserter(host_), std::ptr_fun<int,int>(tolower));
+  std::transform(protocol_iter, port_iter, back_inserter(host_), [](int c){return std::tolower(c);});
 
   if (port_iter != path_iter) {
     ++port_iter;
