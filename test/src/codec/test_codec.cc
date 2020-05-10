@@ -103,7 +103,8 @@ TEST_CASE("Test zlib", "[codec-z]") {
 #include "codec_lz4.h"
 
 TEST_CASE("Test lz4", "[codec-lz4]") {
-  Codec* lz4 = new CodecLZ4(TILEDB_COMPRESSION_LEVEL_LZ4, 1);
+  // Try lz4 with default compression
+  Codec* lz4 = new CodecLZ4(TILEDB_COMPRESSION_LEVEL_LZ4);
   unsigned char test_string[] = "HELLO";
   unsigned char* buffer;
   size_t buffer_size;
@@ -118,8 +119,8 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
 
   free(lz4);
 
-  // Try lz4 with bit-shuffle
-  lz4 = new CodecLZ4(TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4, 1);
+  // Try lz4 with acceleration=2
+  lz4 = new CodecLZ4(2);
 
   CHECK(lz4->compress_tile(test_string, 0, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
   CHECK(lz4->compress_tile(test_string, 6, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);

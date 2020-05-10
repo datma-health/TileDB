@@ -38,17 +38,11 @@
 
 class CodecLZ4 : public Codec {
  public:
-  
- CodecLZ4(int compression_level, size_t type_size):Codec(compression_level) {
-    type_size_ = type_size;
-  }
+  using Codec::Codec;
 
   int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;
 
   int do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) override;
-
- private:
-  size_t type_size_;
   
 };
 

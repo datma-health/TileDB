@@ -211,9 +211,9 @@
 #ifndef TILEDB_COMPRESSION_LEVEL_BLOSC
 #  define TILEDB_COMPRESSION_LEVEL_BLOSC                         5
 #endif
-
-#define TILEDB_COMPRESSION_LEVEL_LZ4 0
-#define TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4 1
+#ifndef TILEDB_COMPRESSION_LEVEL_LZ4
+#define TILEDB_COMPRESSION_LEVEL_LZ4                             1
+#endif
 /**@}*/
 
 /**@{*/

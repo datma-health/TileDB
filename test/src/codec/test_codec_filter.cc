@@ -75,7 +75,7 @@ class TestCodecFilterFixture {
         if (is_encode && i>0) {
           CHECK(buffer[i*stride+j] == 1);
         } else {
-          CHECK(buffer[i*stride+j] == i);
+          CHECK(buffer[i*stride+j] == (T)i);
         }
       }
     }

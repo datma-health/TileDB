@@ -33,17 +33,15 @@
 #include "codec_lz4.h"
 #include "tiledb_constants.h"
 
-#include "bitshuffle.h"
 #include "lz4.h"
 
 int CodecLZ4::do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
-  // Allocate space to store the compressed tile
-  size_t compress_bound;
-  if (compression_level_ == TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4) {
-    compress_bound = bshuf_compress_lz4_bound(tile_size/type_size_, type_size_, 0);
-  } else {
-    compress_bound = LZ4_compressBound(tile_size);
+  if (tile_size > LZ4_MAX_INPUT_SIZE) {
+    return print_errmsg("Input tile size exceeds LZ4 max supported value");
   }
+
+  // Allocate space to store the compressed tile
+  size_t compress_bound  = LZ4_compressBound(tile_size);
   if(tile_compressed_ == NULL) {
     tile_compressed_allocated_size_ = compress_bound; 
     tile_compressed_ = malloc(compress_bound); 
@@ -57,10 +55,10 @@ int CodecLZ4::do_compress_tile(unsigned char* tile, size_t tile_size, void** til
 
   // Compress tile
   int64_t lz4_size;
-  if (compression_level_ == TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4) {
-    lz4_size = bshuf_compress_lz4(tile, tile_compressed_, tile_size/type_size_, type_size_, 0);
-  } else {
+  if (compression_level_ <= 1) {
     lz4_size = LZ4_compress_default((const char*)tile, (char*)tile_compressed_, tile_size, compress_bound);
+  } else {
+    lz4_size =  LZ4_compress_fast((const char*)tile, (char*)tile_compressed_, tile_size, compress_bound, compression_level_);
   }
   if (lz4_size < 0) {
     return print_errmsg("Failed compressing with LZ4");
@@ -75,14 +73,9 @@ int CodecLZ4::do_compress_tile(unsigned char* tile, size_t tile_size, void** til
 
 int CodecLZ4::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
   // Decompress tile 
-  int64_t lz4_decompressed_size;
-  if (compression_level_ == TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4) {
-    lz4_decompressed_size = bshuf_decompress_lz4(tile_compressed, tile, tile_size/type_size_, type_size_, 0);
-  } else {
-    lz4_decompressed_size = LZ4_decompress_safe((const char*)tile_compressed, (char*)tile, tile_compressed_size, tile_size);
-  }
+  int64_t lz4_decompressed_size = LZ4_decompress_safe((const char*)tile_compressed, (char*)tile, tile_compressed_size, tile_size);
   if (lz4_decompressed_size < 0) {
-return print_errmsg("LZ4 decompression failed. lz4 error code="+std::to_string(lz4_decompressed_size));
+    return print_errmsg("LZ4 decompression failed. lz4 error code="+std::to_string(lz4_decompressed_size));
   }
 
   // Success

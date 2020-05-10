@@ -100,13 +100,6 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
   int compression_type = get_filter_type(array_schema, attribute_id, is_offsets_compression, COMPRESS);
   int compression_level = array_schema->compression_level(attribute_id);
 
-  size_t type_size;
-  if (is_offsets_compression) {
-    type_size = sizeof(size_t);
-  } else {
-    type_size = array_schema->type_size(attribute_id);
-  }
-
   Codec* codec = NULL;
   switch (compression_type) {
   case TILEDB_NO_COMPRESSION:
@@ -120,7 +113,7 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
     break;
 #endif
   case TILEDB_LZ4:
-    codec = new CodecLZ4(compression_level, type_size);
+    codec = new CodecLZ4(compression_level);
     break;
 #ifdef ENABLE_BLOSC
   case TILEDB_BLOSC:
@@ -129,6 +122,12 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
   case TILEDB_BLOSC_SNAPPY:
   case TILEDB_BLOSC_ZLIB:
   case TILEDB_BLOSC_ZSTD: {
+    size_t type_size;
+    if (is_offsets_compression) {
+      type_size = sizeof(size_t);
+    } else {
+      type_size = array_schema->type_size(attribute_id);
+    }
     codec = new CodecBlosc(compression_level, get_blosc_compressor(compression_type), type_size);
     break;
   }
