@@ -34,6 +34,25 @@
 #include "codec_filter_bit_shuffle.h"
 #include "tiledb_constants.h"
 
+const std::string err_msg(int rc) {
+  switch (rc) {
+  case -1:
+    return "Fail to allocate memory";
+  case -11:
+    return "Missing SSE";
+  case -12:
+    return "Missing AVX";
+  case -80:
+    return "Input size not a multiple of 8";
+  case -81:
+    return "Block Size not a multiple of 8";
+  case -91:
+    return "Decompression error, wrong number of bytes processed";
+  default:
+    return "Internal error";
+  }
+}
+
 template<typename T>
 int do_code(T* tile, size_t tile_size_in_bytes, CodecFilter* filter) {
   if (tile_size_in_bytes%sizeof(T) != 0) {
@@ -44,7 +63,10 @@ int do_code(T* tile, size_t tile_size_in_bytes, CodecFilter* filter) {
     return filter->print_errmsg("OOM while tring to allocate memory for filter " + filter->name());
   }
   
-  bshuf_bitshuffle(tile, filter->buffer(), tile_size_in_bytes/sizeof(T), sizeof(T), 0);
+  int rc = bshuf_bitshuffle(tile, filter->buffer(), tile_size_in_bytes/sizeof(T), sizeof(T), 0);
+  if (rc < 0) {
+    return filter->print_errmsg("Bit shuffle error: " + err_msg(rc));
+  }
       
   return TILEDB_CDF_OK;
 }
@@ -70,7 +92,10 @@ int do_decode(T* tile, size_t tile_size_in_bytes, CodecFilter* filter) {
     return filter->print_errmsg("Tile size to pre-compression filter " + filter->name() + " should be a multiple of sizeof type");
   }
   
-  bshuf_bitunshuffle(filter->buffer(), tile, tile_size_in_bytes/sizeof(T), sizeof(T), 0);
+  int rc = bshuf_bitunshuffle(filter->buffer(), tile, tile_size_in_bytes/sizeof(T), sizeof(T), 0);
+  if (rc < 0) {
+    return filter->print_errmsg("Bit unshuffle error: " + err_msg(rc));
+  }
  
   return TILEDB_CDF_OK;
 }
