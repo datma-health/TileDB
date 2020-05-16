@@ -96,14 +96,25 @@ int get_filter_type(const ArraySchema* array_schema, const int attribute_id,
   }
 }
 
+int get_filter_level(const ArraySchema* array_schema, const int attribute_id,
+                         const bool is_offsets_compression) {
+  if (is_offsets_compression) {
+    return array_schema->offsets_compression_level(attribute_id);
+  } else {
+    return array_schema->compression_level(attribute_id);
+  }
+}
+
 Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, const bool is_offsets_compression) {
   int compression_type = get_filter_type(array_schema, attribute_id, is_offsets_compression, COMPRESS);
-  int compression_level = array_schema->compression_level(attribute_id);
-
-  Codec* codec = NULL;
-  switch (compression_type) {
-  case TILEDB_NO_COMPRESSION:
+  if (compression_type == TILEDB_NO_COMPRESSION) {
     return NULL;
+  }
+  
+  int compression_level = get_filter_level(array_schema, attribute_id, is_offsets_compression);
+  Codec* codec = NULL;
+
+  switch (compression_type) {
   case TILEDB_GZIP:
     codec = new CodecGzip(compression_level);
     break;
