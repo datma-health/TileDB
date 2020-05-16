@@ -93,7 +93,7 @@ class BenchmarkConfig: public TempDir {
 	// typed_buffer[i] = (T)(i<<2);
 	// typed_buffer[i] = (T)(i%2);
 	// typed_buffer[i] = (T)((i%2)-1);
-	// typed_buffer[i] = (T)((i%3);
+	// typed_buffer[i] = (T)(i%3);
 	// typed_buffer[i] = (T)((i%3)-1);
 	// typed_buffer[i] = (T)(rand()%2);
 	// typed_buffer[i] = (T)(rand()%3);

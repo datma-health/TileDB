@@ -62,7 +62,8 @@ int main(int argc, char *argv[]) {
   };
   const int compression[] = 
   { 
-        TILEDB_GZIP,              // a1
+        TILEDB_GZIP
+        +TILEDB_BIT_SHUFFLE,      // a1
 #ifdef ENABLE_BLOSC
 	TILEDB_BLOSC,             // a2
 #else

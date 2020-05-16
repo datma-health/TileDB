@@ -65,9 +65,8 @@ class CodecFilter {
    *
    * @param compression_level
    */
-  CodecFilter(int filter_stride=1, bool filter_in_place=true) {
-    assert(filter_stride > 0);
-    filter_stride_ = filter_stride;
+  CodecFilter(int type, bool filter_in_place=true) {
+    type_ = type;
     filter_in_place_ = filter_in_place;
   }
   
@@ -87,8 +86,28 @@ class CodecFilter {
     return filter_in_place_;
   }
 
-  const int stride() {
-    return filter_stride_;
+  int allocate_buffer(size_t size) {
+    if (filter_buffer_ == NULL) {
+      assert(filter_buffer_allocated_size_ == 0);
+      filter_buffer_ = malloc(size);
+      filter_buffer_allocated_size_ = size;
+    } else if (filter_buffer_allocated_size_ < size) {
+      filter_buffer_ = realloc(filter_buffer_, size);
+      filter_buffer_allocated_size_ = size;
+    }
+    if (filter_buffer_ == NULL) {
+      return TILEDB_CDF_ERR;
+    } else {
+      return TILEDB_CDF_OK;
+    }
+  }
+
+  int type() {
+    return type_;
+  }
+
+  unsigned char* buffer() {
+    return reinterpret_cast<unsigned char*>(filter_buffer_);
   }
 
   virtual int code(unsigned char* tile, size_t tile_size, unsigned char* tile_coded, size_t& tile_coded_size) {
@@ -112,10 +131,15 @@ class CodecFilter {
  protected:
   std::string filter_name_ = "";
   bool filter_in_place_;
-  int filter_stride_;
 
-  /** Internal buffer malloc'ed if necessary */
+  int type_;
+
+  /**
+   * Internal buffer malloc'ed if necessary
+   * Support only for pre compression filters for now
+   */
   void* filter_buffer_ = NULL;
+  size_t filter_buffer_allocated_size_ = 0;
 };
 
 #endif /* __CODEC_FILTER_H_ */

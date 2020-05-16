@@ -24,11 +24,7 @@ if [[ $INSTALL_CODEC == true && $TRAVIS_OS_NAME == linux ]]; then
 		export ENABLE_BLOSC=1
 	popd
 
-	# Install LZ4 - Not enabled - Travis/Trusty distr has a very old version of lz4
-	sudo apt-get -y install liblz4-dev &&
-		export ENABLE_LZ4=0
 else
 	export ENABLE_ZSTD=0
 	export ENABLE_BLOSC=0
-	export ENABLE_LZ4=0
 fi

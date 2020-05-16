@@ -159,14 +159,14 @@
 /**@}*/
 
 /**@{*/
-/** Pre compression filter defines. Range from 16-23 */
-#define TILEDB_DELTA_ENCODE                         16
-#define TILEDB_BYTE_SHUFFLE                         17
+/** Pre compression filter defines. Can only range from 1 to 3 for now */
+#define TILEDB_DELTA_ENCODE                         (1<<4)
+#define TILEDB_BIT_SHUFFLE                          (2<<4)
 /**@}*/
 
 /**@{*/
-/** Post compression filter defines. 24-31 */
-#define TILEDB_POST_FILTER_EXAMPLE_UNUSED           24
+/** Post compression filter defines. Can only range from 1 to 3 for now */
+#define TILEDB_POST_FILTER_EXAMPLE_UNUSED           (1<<6)
 /**@}*/
 
 /**@{*/
@@ -211,9 +211,9 @@
 #ifndef TILEDB_COMPRESSION_LEVEL_BLOSC
 #  define TILEDB_COMPRESSION_LEVEL_BLOSC                         5
 #endif
-
-#define TILEDB_COMPRESSION_LEVEL_LZ4 0
-#define TILEDB_COMPRESSION_LEVEL_BSHUF_LZ4 1
+#ifndef TILEDB_COMPRESSION_LEVEL_LZ4
+#define TILEDB_COMPRESSION_LEVEL_LZ4                             1
+#endif
 /**@}*/
 
 /**@{*/

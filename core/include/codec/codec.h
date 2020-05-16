@@ -93,10 +93,9 @@ class Codec {
    * Destructor
    */
   virtual ~Codec() {
-    if(tile_compressed_ != NULL) {
+    if (tile_compressed_ != NULL) {
       free(tile_compressed_);
-    }
-    if (pre_compression_filter_) {
+    }    if (pre_compression_filter_) {
       delete pre_compression_filter_;
     }
     if (post_compression_filter_) {
@@ -210,6 +209,7 @@ class Codec {
   void* tile_compressed_ = NULL;
   /** Allocated size for internal buffer used in the case of compression. */
   size_t tile_compressed_allocated_size_ = 0;
+
   void *dl_handle_ = NULL;
   std::string dl_error_;
 #ifdef __APPLE__
