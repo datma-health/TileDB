@@ -540,7 +540,7 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
   if (rc != TILEDB_UT_OK) {
     std::string errmsg = "Cannot write segment to file";
     PRINT_ERROR(errmsg);
-    tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
+    tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg + '\n' + tiledb_ut_errmsg;
     return TILEDB_WS_ERR;
   }
 
