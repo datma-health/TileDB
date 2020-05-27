@@ -267,6 +267,16 @@ void test_locking_support(const std::string& disable_file_locking_value) {
 }
 
 TEST_CASE("Test locking support", "[locking_support]") {
+  PosixFS fs;
+  CHECK(!fs.disable_file_locking()); // default
+  CHECK(fs.locking_support());
+  fs.set_disable_file_locking(true);
+  CHECK(fs.disable_file_locking());
+  CHECK(!fs.locking_support());
+  fs.set_disable_file_locking(false);
+  CHECK(!fs.disable_file_locking());
+  CHECK(fs.locking_support());
+
   test_locking_support("True");
   test_locking_support("true");
   test_locking_support("TRUE");
@@ -294,6 +304,13 @@ void test_keep_file_handles_open_support(const std::string& keep_file_handles_op
 }
 
 TEST_CASE("Test keep file handles open", "[keep_file_handles_open_support]") {
+  PosixFS fs;
+  CHECK(!fs.keep_write_file_handles_open()); // default
+  fs.set_keep_write_file_handles_open(true);
+  CHECK(fs.keep_write_file_handles_open());
+  fs.set_keep_write_file_handles_open(false);
+  CHECK(!fs.keep_write_file_handles_open());
+
   test_keep_file_handles_open_support("True");
   test_keep_file_handles_open_support("true");
   test_keep_file_handles_open_support("TRUE");
@@ -356,6 +373,7 @@ TEST_CASE("Test writing with keeps file descriptors open until explicitly closed
 
   free(buffer);
 }
+
 
 
 TEST_CASE("Test reading/writing with keep file handles open set for write and unset for read", "[write_keep_file_handles_set_write_unset_read]") {

@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,25 +54,3 @@ bool StorageFS::locking_support() {
   return false;
 }
 
-void StorageFS::set_disable_file_locking(const bool val) {
-  disable_file_locking_ = val;
-}
-
-bool StorageFS::disable_file_locking() {
-  if (is_disable_file_locking_set) {
-    return disable_file_locking_;
-  }
-
-  is_disable_file_locking_set = true;
-
-  if(disable_file_locking_)
-    return true;
-
-  auto env_var = getenv("TILEDB_DISABLE_FILE_LOCKING");
-  if(env_var && (strcasecmp(env_var, "true") == 0 || strcmp(env_var, "1") == 0)) {
-    disable_file_locking_ = true;
-    return true;
-  }
-  disable_file_locking_ = false;
-  return false;
-}

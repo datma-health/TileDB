@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -554,17 +554,36 @@ int PosixFS::close_file(const std::string& filename) {
   return TILEDB_FS_OK;
 }
 
+bool PosixFS::locking_support() {
+  return !disable_file_locking();
+}
+
+void PosixFS::set_keep_write_file_handles_open(const bool val) {
+  keep_write_file_handles_open_ = val;
+}
+
 bool PosixFS::keep_write_file_handles_open() {
   if (keep_write_file_handles_open_set_) {
     return keep_write_file_handles_open_;
   }
-
-  keep_write_file_handles_open_ = is_env_set("TILEDB_KEEP_FILE_HANDLES_OPEN");
+  if (getenv("TILEDB_KEEP_FILE_HANDLES_OPEN")) {
+    keep_write_file_handles_open_ = is_env_set("TILEDB_KEEP_FILE_HANDLES_OPEN");
+  }
   keep_write_file_handles_open_set_ = true;
-
   return keep_write_file_handles_open_;
 }
 
-bool PosixFS::locking_support() {
-  return !disable_file_locking();
+void PosixFS::set_disable_file_locking(const bool val) {
+  disable_file_locking_ = val;
+}
+
+bool PosixFS::disable_file_locking() {
+  if (is_disable_file_locking_set) {
+    return disable_file_locking_;
+  }
+  if (getenv("TILEDB_DISABLE_FILE_LOCKING")) {
+    disable_file_locking_ = is_env_set("TILEDB_DISABLE_FILE_LOCKING");
+  }
+  is_disable_file_locking_set = true;
+  return disable_file_locking_;
 }

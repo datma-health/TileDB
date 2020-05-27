@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corp.
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -116,7 +116,7 @@ int tiledb_ctx_init(
 #endif
         tiledb_config->read_method_, 
         tiledb_config->write_method_,
-        tiledb_config->disable_file_locking_) == TILEDB_SMC_ERR) {
+        tiledb_config->enable_shared_posixfs_optimizations_) == TILEDB_SMC_ERR) {
       strcpy(tiledb_errmsg, tiledb_smc_errmsg.c_str());
       return TILEDB_ERR;
     }

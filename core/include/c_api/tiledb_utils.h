@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
+ * @copyright Copyright (c) 2020 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +43,7 @@ namespace TileDBUtils {
 
 bool is_cloud_path(const std::string& path);
 
-int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite=false, const bool disable_file_locking=false);
+int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite=false);
 
 int create_workspace(const std::string &workspace, bool replace=false);
 
