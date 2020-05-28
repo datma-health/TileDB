@@ -1860,15 +1860,15 @@ size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
   return 0;
 }
 
-inline bool invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {
+inline int invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {
   if (sanity_check_fs(tiledb_ctx)) {
     tiledb_fs_errmsg.clear(); 
-    bool rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
+    int rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
     if (!tiledb_fs_errmsg.empty())
       strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
     return rc;
   }
-  return false;
+  return TILEDB_ERR;
 }
 
 int set_working_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {

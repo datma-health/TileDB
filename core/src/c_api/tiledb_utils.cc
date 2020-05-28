@@ -92,15 +92,8 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
 
   if (is_workspace(*ptiledb_ctx, workspace)) {
     if (replace) {
-      rc = tiledb_delete(*ptiledb_ctx, workspace.c_str());
-      if (rc != TILEDB_OK) {
-        snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Workspace=%s may have non-tiledb artifacts. Deleting them all!!", workspace.c_str());
-#ifdef TILEDB_VERBOSE
-        std::cerr << "[TileDB::Utils] Warning:" << tiledb_errmsg << std::endl;
-#endif
-        if (!delete_dir(*ptiledb_ctx, workspace.c_str())) {
-          return NOT_CREATED;
-        }
+      if (is_dir(*ptiledb_ctx, workspace) && delete_dir(*ptiledb_ctx, workspace) ) {
+        return NOT_CREATED;
       }
     } else {
       return UNCHANGED;
