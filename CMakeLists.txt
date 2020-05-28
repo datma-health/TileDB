@@ -83,11 +83,12 @@ find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
 
 set(TILEDB_LIB_DEPENDENCIES ${ZLIB_LIBRARIES} ${LIBUUID_LIBRARY})
-find_package(LZ4)
+
+#find_package(LZ4)
 #include_directories(${LZ4_INCLUDE_DIR})
-if(LZ4_FOUND)
-  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
-endif()
+#if(LZ4_FOUND)
+#  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
+#endif()
 
 if(ENABLE_BLOSC)
     find_package(BLOSC REQUIRED)

@@ -45,12 +45,14 @@
 
 namespace TileDBUtils {
 
-static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home)
+static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,
+                 const bool enable_shared_posixfs_optimizations=false)
 {
   int rc;
   TileDB_Config tiledb_config;
   memset(&tiledb_config, 0, sizeof(TileDB_Config));
   tiledb_config.home_ = strdup(home.c_str());
+  tiledb_config.enable_shared_posixfs_optimizations_ = enable_shared_posixfs_optimizations;
   rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
   return rc;
 }
@@ -74,11 +76,12 @@ bool is_cloud_path(const std::string& path) {
 #define NOT_DIR -1
 #define NOT_CREATED -2
 #define UNCHANGED 1
-int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool replace)
+int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool replace,
+                         const bool enable_shared_posixfs_optimizations)
 {
   *ptiledb_ctx = NULL;
   int rc;
-  rc = setup(ptiledb_ctx, workspace);
+  rc = setup(ptiledb_ctx, workspace, enable_shared_posixfs_optimizations);
   if (rc) {
     return NOT_CREATED;
   }
