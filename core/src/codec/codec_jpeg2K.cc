@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -299,9 +299,9 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    l_param.cp_tx0 = 0;
    l_param.cp_ty0 = 0;
 
-   l_param.tile_size_on = OPJ_FALSE;
-   l_param.cp_tdx = 0;
-   l_param.cp_tdy = 0;
+   l_param.tile_size_on = OPJ_TRUE;
+   l_param.cp_tdx = (OPJ_UINT32)tile_image_width_;
+   l_param.cp_tdy = (OPJ_UINT32)tile_image_height_;
 
    /* code block size */
    l_param.cblockw_init = cblockw_init;
@@ -344,7 +344,7 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       return print_errmsg("jpeg2k_compress: failed to setup codec");
    }
 
-   l_image = opj_image_create(num_comps, &l_image_params, OPJ_CLRSPC_GRAY);
+   l_image = opj_image_tile_create(num_comps, &l_image_params, OPJ_CLRSPC_GRAY);
 
    if (! l_image) {
       cleanup(NULL, NULL, l_codec, NULL);
@@ -356,9 +356,9 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    l_image->x1 = offsetx + (OPJ_UINT32)tile_image_width_;
    l_image->y1 = offsety + (OPJ_UINT32)tile_image_height_;
 
-// Copy pixels to l_image component data from l_data (tile_in) 
-   size_t num_bytes = tile_image_width_ * tile_image_height_ * sizeof(OPJ_INT32);
-   memcpy(l_image->comps[0].data, l_data, num_bytes);
+// Copy pixels to l_image component data from l_data (tile_in) OPJ_BYTE 
+   OPJ_UINT32 num_pixels = tile_image_width_ * tile_image_height_ ;
+   //memcpy(l_image->comps[0].data, l_data, num_bytes);
 
 /**
  * to debug by comparing image information and parameters from external run
@@ -382,7 +382,8 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       return print_errmsg("jpeg2k_compress: failed to start compress");
    }
 
-   if (! opj_encode(l_codec, l_stream)) {
+//CPB   if (! opj_encode(l_codec, l_stream)) {
+   if (! opj_write_tile(l_codec, 0, l_data, num_pixels, l_stream)) {
       cleanup(NULL, l_stream, l_codec, l_image);
       return print_errmsg("jpeg2k_compress: failed to encode the tile");
    }
@@ -516,17 +517,10 @@ int CodecJPEG2K::decompress_tile(unsigned char* tile_compressed, size_t tile_com
 
 
    // Add header portion -- write ints into char array
-   OPJ_UINT32 *buffer = (OPJ_UINT32 *)tile_out;
-   OPJ_BYTE *ob = l_data;
+   OPJ_BYTE *ob = (OPJ_BYTE *)tile_out;
 
    // Copy pixel data to output buffer
-   size_t i;
-   for (i = 0; i < l_data_size; ++i) {
-      buffer[i] = (OPJ_UINT32) (0x000000FF & (*ob));
-      ++ob;
-   }
-
-   //memcpy(ob, l_data, copy_bytes);
+   memcpy(ob, l_data, l_data_size);
 
    /* Free memory */
    cleanup(l_data, l_stream, l_codec, l_image);

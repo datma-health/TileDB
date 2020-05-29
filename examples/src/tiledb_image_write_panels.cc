@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,13 +35,13 @@
 #include "examples.h"
 #include <stdlib.h>
 
-int *build_image(size_t num_comps, size_t width, size_t height)
+uint8_t* build_image(size_t num_comps, size_t width, size_t height)
 {
-   size_t buffer_size = (num_comps * width * height) * sizeof(int);
-   int *image_buffer = (int *)malloc(buffer_size);
-   int *l_data = image_buffer;
+   size_t buffer_size = (num_comps * width * height) * sizeof(uint8_t);
+   uint8_t* image_buffer = (uint8_t*)malloc(buffer_size);
+   uint8_t* l_data = image_buffer;
 
-   int R[10], G[10], B[10];
+   uint8_t R[10], G[10], B[10];
 //       Black,        Red,          Orange
    R[0] =   0;   R[1] = 201;   R[2] = 234;
    G[0] =   0;   G[1] =  23;   G[2] =  85;
@@ -109,10 +109,9 @@ int main(int argc, char *argv[]) {
   size_t panel_height = 100;  // per panel
   size_t num_panels = 9;
   size_t num_panel_pixels = panel_width * panel_height;
-  size_t buffer_bytes = num_panels * (num_panel_pixels * sizeof(int));
-  size_t image_bytes  = img_width * img_height * sizeof(int);
+  size_t buffer_bytes = num_panels * (num_panel_pixels * sizeof(uint8_t));
 
-  int* buffer_image = build_image(num_comps, img_width, img_height);
+  uint8_t* buffer_image = build_image(num_comps, img_width, img_height);
 
   const void* buffers[] = 
   { 

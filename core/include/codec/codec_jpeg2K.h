@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,6 +63,8 @@ JPEG2K_EXTERN_DECL opj_stream_t* (*opj_stream_create_memory_stream)(void *, OPJ_
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_setup_decoder)(opj_codec_t *, opj_dparameters_t *);
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_read_header)(opj_stream_t *, opj_codec_t *, opj_image_t **);
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_set_decode_area)(opj_codec_t *, opj_image_t *, int, int, int, int);
+JPEG2K_EXTERN_DECL opj_image_t* (*opj_image_tile_create)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE);
+JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_write_tile)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32 , opj_stream_t *);
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_read_tile_header)(opj_codec_t *, opj_stream_t *, OPJ_UINT32 *, OPJ_UINT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_UINT32 *, OPJ_BOOL *);
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_decode_tile_data)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *);
 JPEG2K_EXTERN_DECL OPJ_BOOL (*opj_end_decompress)(opj_codec_t *, opj_stream_t *);
@@ -106,6 +108,8 @@ class CodecJPEG2K_base : public Codec {
 	  BIND_SYMBOL(dl_handle_, opj_setup_decoder, "opj_setup_decoder", (OPJ_BOOL(*)(opj_codec_t *, opj_dparameters_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_read_header, "opj_read_header", (OPJ_BOOL(*)(opj_stream_t *, opj_codec_t *, opj_image_t **)));
 	  BIND_SYMBOL(dl_handle_, opj_set_decode_area, "opj_set_decode_area", (OPJ_BOOL(*)(opj_codec_t *, opj_image_t *, int, int, int, int)));
+	  BIND_SYMBOL(dl_handle_, opj_image_tile_create, "opj_image_tile_create", (opj_image_t*(*)(OPJ_UINT32, opj_image_cmptparm_t *, OPJ_COLOR_SPACE)));
+	  BIND_SYMBOL(dl_handle_, opj_write_tile, "opj_write_tile", (OPJ_BOOL(*)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_read_tile_header, "opj_read_tile_header", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *, OPJ_UINT32 *, OPJ_UINT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_INT32 *, OPJ_UINT32 *, OPJ_BOOL *)));
 	  BIND_SYMBOL(dl_handle_, opj_decode_tile_data, "opj_decode_tile_data", (OPJ_BOOL(*)(opj_codec_t *, OPJ_UINT32, OPJ_BYTE *, OPJ_UINT32, opj_stream_t *)));
 	  BIND_SYMBOL(dl_handle_, opj_end_decompress, "opj_end_decompress", (OPJ_BOOL(*)(opj_codec_t *, opj_stream_t *)));

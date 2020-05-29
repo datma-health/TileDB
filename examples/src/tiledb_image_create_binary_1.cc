@@ -5,7 +5,7 @@
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,11 +48,11 @@ int main(int argc, char *argv[]) {
   // Prepare parameters for array schema
   const char* array_name = "my_workspace/image_arrays/tissue150165";
   const char* attributes[] = { "R", "G", "B" };      // Three channels
-  const char* dimensions[] = { "width", "height" };  // 2-D image dimensions
+  const char* dimensions[] = { "height", "width" };  // 2-D image dimensions
   int64_t domain[] = 
   { 
-      0, 149,                        // width
-      0, 164                         // height
+      0, 164,                         // height
+      0, 149                          // width
   };                
   const int cell_val_num[] = 
   { 
@@ -74,15 +74,15 @@ int main(int argc, char *argv[]) {
   };
   int64_t tile_extents[] = 
   { 
-      150,                        // width
-      165                         // height
+      165,                        // height
+      150                         // width
   };               
   const int types[] = 
   { 
-      TILEDB_INT32,                // R channel
-      TILEDB_INT32,                // G channel
-      TILEDB_INT32,                // B channel
-      TILEDB_INT64                 // coordinates
+      TILEDB_UINT8,               // R channel
+      TILEDB_UINT8,               // G channel
+      TILEDB_UINT8,               // B channel
+      TILEDB_INT64                // coordinates
   };
   
   // Set array schema

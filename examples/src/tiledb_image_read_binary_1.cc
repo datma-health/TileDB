@@ -35,11 +35,12 @@
 #include "examples.h"
 #include <stdlib.h>
 
-void check_results(char *buffer_image, size_t num_bytes)
+void check_results(uint8_t* buffer_image, size_t num_pixels)
 {
    size_t i, errors = 0;
    std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue150x165.bin";
-   char *original_image = (char *)malloc(num_bytes);
+   size_t num_bytes = num_pixels * sizeof(uint);
+   unsigned int* original_image = (unsigned int*)malloc(num_bytes);
    FILE *infile;
    infile = fopen(filename.c_str(), "rb"); // r for read, b for binary
    fread(original_image, num_bytes, 1, infile);
@@ -50,8 +51,8 @@ void check_results(char *buffer_image, size_t num_bytes)
    errfile = fopen("t150x165_err", "w");
 
    unsigned int b, o;
-   for (i = 0; i < num_bytes; ++i) {
-      b = buffer_image[i];
+   for (i = 0; i < num_pixels; ++i) {
+      b = (unsigned int) (0x000000FF & buffer_image[i]);
       o = original_image[i];
       if (b != o) {
          unsigned int d = (b > o) ? b-o : o-b; 
@@ -95,10 +96,10 @@ int main(int argc, char *argv[]) {
    size_t num_comps = 3;
    size_t width  = 150;
    size_t height = 165;
-   size_t full_image_bytes = (num_comps * width * height) * sizeof(int);
-   size_t buffer_image_bytes = width * height * sizeof(int);
+   size_t full_image_pixels = num_comps * width * height;
+   size_t buffer_image_bytes = width * height * sizeof(uint8_t);
  
-   int *buffer_image = (int*)malloc(full_image_bytes);
+   uint8_t* buffer_image = (uint8_t*)malloc(full_image_pixels);
    void* buffers[] = 
    { 
        &buffer_image[0*width*height],   // R buffer
@@ -116,7 +117,7 @@ int main(int argc, char *argv[]) {
    // Read from array
    CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes)); 
 
-   check_results((char*)buffer_image, full_image_bytes); 
+   check_results(buffer_image, full_image_pixels); 
 
    // Finalize the array
    CHECK_RC(tiledb_array_finalize(tiledb_array));
@@ -126,7 +127,7 @@ int main(int argc, char *argv[]) {
 
    FILE *bin_ptr;
    bin_ptr = fopen("tissue_decode.bin","wb");
-   fwrite(buffer_image, full_image_bytes, 1, bin_ptr);
+   fwrite(buffer_image, full_image_pixels, 1, bin_ptr);
    fclose(bin_ptr);
 
    return 0;

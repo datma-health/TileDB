@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,10 +35,10 @@
 #include "examples.h"
 #include <stdlib.h>
 
-void check_results(int *buffer_image)
+void check_results(uint8_t* buffer_image)
 {
 
-   int R[10], G[10], B[10];
+   uint8_t R[10], G[10], B[10];
 //       Black,        Red,          Orange
    R[0] =   0;   R[1] = 201;   R[2] = 234;
    G[0] =   0;   G[1] =  23;   G[2] =  85;
@@ -59,7 +59,7 @@ void check_results(int *buffer_image)
    G[9] = 130;
    B[9] = 130;
 
-   int *l_data = buffer_image;
+   uint8_t* l_data = buffer_image;
    int num_comps = 3, width = 300, height = 300;
 
    size_t c, i, j, k;
@@ -141,10 +141,10 @@ int main(int argc, char *argv[]) {
    size_t panel_height = 100;  // per panel
    size_t num_panels = 9;
    size_t num_panel_pixels = panel_width * panel_height;
-   size_t buffer_bytes = num_panels * (num_panel_pixels * sizeof(int));
-   size_t full_image_bytes  = num_comps *img_width * img_height * sizeof(int);
+   size_t buffer_bytes = num_panels * (num_panel_pixels * sizeof(uint8_t));
+   size_t full_image_bytes  = num_comps *img_width * img_height * sizeof(uint8_t);
  
-   int* buffer_image = (int*)malloc(full_image_bytes);
+   uint8_t* buffer_image = (uint8_t*)malloc(full_image_bytes);
  
    void* buffers[] = 
    { 
