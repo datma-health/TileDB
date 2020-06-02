@@ -45,13 +45,14 @@
 
 namespace TileDBUtils {
 
-static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home, const bool disable_file_locking=false)
+static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,
+                 const bool enable_shared_posixfs_optimizations=false)
 {
   int rc;
   TileDB_Config tiledb_config;
   memset(&tiledb_config, 0, sizeof(TileDB_Config));
   tiledb_config.home_ = strdup(home.c_str());
-  tiledb_config.disable_file_locking_ = disable_file_locking;
+  tiledb_config.enable_shared_posixfs_optimizations_ = enable_shared_posixfs_optimizations;
   rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
   return rc;
 }
@@ -75,11 +76,12 @@ bool is_cloud_path(const std::string& path) {
 #define NOT_DIR -1
 #define NOT_CREATED -2
 #define UNCHANGED 1
-int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool replace, const bool disable_file_locking)
+int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool replace,
+                         const bool enable_shared_posixfs_optimizations)
 {
   *ptiledb_ctx = NULL;
   int rc;
-  rc = setup(ptiledb_ctx, workspace, disable_file_locking);
+  rc = setup(ptiledb_ctx, workspace, enable_shared_posixfs_optimizations);
   if (rc) {
     return NOT_CREATED;
   }
@@ -90,15 +92,8 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
 
   if (is_workspace(*ptiledb_ctx, workspace)) {
     if (replace) {
-      rc = tiledb_delete(*ptiledb_ctx, workspace.c_str());
-      if (rc != TILEDB_OK) {
-        snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Workspace=%s may have non-tiledb artifacts. Deleting them all!!", workspace.c_str());
-#ifdef TILEDB_VERBOSE
-        std::cerr << "[TileDB::Utils] Warning:" << tiledb_errmsg << std::endl;
-#endif
-        if (!delete_dir(*ptiledb_ctx, workspace.c_str())) {
-          return NOT_CREATED;
-        }
+      if (is_dir(*ptiledb_ctx, workspace) && delete_dir(*ptiledb_ctx, workspace) ) {
+        return NOT_CREATED;
       }
     } else {
       return UNCHANGED;

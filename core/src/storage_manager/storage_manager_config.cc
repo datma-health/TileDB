@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -86,7 +86,7 @@ int StorageManagerConfig::init(
 #endif
     int read_method,
     int write_method,
-    const bool disable_file_locking) {
+    const bool enable_shared_posixfs_optimizations) {
   // Initialize home
   if (strstr(home, "://")) {
      if (fs_ != NULL)
@@ -115,8 +115,11 @@ int StorageManagerConfig::init(
      return TILEDB_SMC_OK;
    }
 
-   if (fs_ == NULL)
+  if (fs_ == NULL) {
      fs_ = new PosixFS();
+     dynamic_cast<PosixFS *>(fs_)->set_disable_file_locking(enable_shared_posixfs_optimizations);
+     dynamic_cast<PosixFS *>(fs_)->set_keep_write_file_handles_open(enable_shared_posixfs_optimizations);
+  }
 
    if(home == NULL) {
      home_ = "";
@@ -142,11 +145,8 @@ int StorageManagerConfig::init(
      write_method_ != TILEDB_IO_MPI)
     write_method_ = TILEDB_IO_WRITE;  // Use default 
 
-  fs_->set_disable_file_locking(disable_file_locking);
-
   return TILEDB_SMC_OK;
 }
-
 
 /* ****************************** */
 /*            ACCESSORS           */

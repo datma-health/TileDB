@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -107,7 +107,7 @@ class StorageManagerConfig {
    *          TileDB will use POSIX write.
    *        - TILEDB_IO_MPI
    *          TileDB will use MPI-IO write.
-   * @param disable_file_locking disable locks in POSIX fs if set
+   * @param enable_shared_posixfs_optimizations in POSIX fs if set
    * @return void. 
    */
   int init(
@@ -115,7 +115,7 @@ class StorageManagerConfig {
       MPI_Comm* mpi_comm,
       int read_method,
       int write_methods,
-      const bool disable_file_locking);
+      const bool enable_shared_posixfs_optimizations);
 #else
   /**
    * Initializes the configuration parameters.
@@ -135,14 +135,14 @@ class StorageManagerConfig {
    *          TileDB will use POSIX write.
    *        - TILEDB_IO_MPI
    *          TileDB will use MPI-IO write.
-   * @param disable_file_locking disable locks in POSIX fs if set
+   * @param enable_shared_posixfs_optimizations if set
    * @return void. 
    */
   int init(
       const char* home,
       int read_method,
       int write_method,
-      const bool disable_file_locking);
+      const bool enable_shared_posixfs_optimizations);
 #endif
  
   /* ********************************* */

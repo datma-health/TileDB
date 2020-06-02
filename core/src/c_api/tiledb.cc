@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corp.
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -116,7 +116,7 @@ int tiledb_ctx_init(
 #endif
         tiledb_config->read_method_, 
         tiledb_config->write_method_,
-        tiledb_config->disable_file_locking_) == TILEDB_SMC_ERR) {
+        tiledb_config->enable_shared_posixfs_optimizations_) == TILEDB_SMC_ERR) {
       strcpy(tiledb_errmsg, tiledb_smc_errmsg.c_str());
       return TILEDB_ERR;
     }
@@ -1860,15 +1860,15 @@ size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
   return 0;
 }
 
-inline bool invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {
+inline int invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {
   if (sanity_check_fs(tiledb_ctx)) {
     tiledb_fs_errmsg.clear(); 
-    bool rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
+    int rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
     if (!tiledb_fs_errmsg.empty())
       strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
     return rc;
   }
-  return false;
+  return TILEDB_ERR;
 }
 
 int set_working_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
