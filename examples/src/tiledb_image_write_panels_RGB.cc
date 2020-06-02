@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,15 +36,17 @@
 #include <stdlib.h>
 #define HEADER_SIZE 3
 
-int *build_image(size_t num_comps, size_t width, size_t height, size_t num_panels)
+uint8_t* build_image(size_t num_comps, size_t width, size_t height, size_t num_panels)
 {
-   size_t panel_bytes = (num_comps*width*height + HEADER_SIZE) * sizeof(int);
+   size_t panel_bytes = HEADER_SIZE * sizeof(int)
+                      + (num_comps * width * height) * sizeof(uint8_t);
    size_t buffer_size = num_panels * panel_bytes;
-   int *image_buffer = (int *)malloc(buffer_size);
-   int *l_data = image_buffer;
+   uint8_t* image_buffer = (uint8_t*)malloc(buffer_size);
+   uint8_t* l_data = image_buffer;
+   int* header_ptr;
 
 
-   int R[10], G[10], B[10];
+   uint8_t R[10], G[10], B[10];
 //       Black,        Red,          Orange
    R[0] =   0;   R[1] = 201;   R[2] = 234;
    G[0] =   0;   G[1] =  23;   G[2] =  85;
@@ -67,10 +69,12 @@ int *build_image(size_t num_comps, size_t width, size_t height, size_t num_panel
 
    for (int panel = 0; panel < num_panels; ++panel) {
       // Insert "header" info into image buffer
-      *l_data = num_comps; ++l_data;
-      *l_data = width    ; ++l_data;
-      *l_data = height   ; ++l_data;
-   
+      header_ptr = (int*)l_data;
+      *header_ptr = num_comps; ++header_ptr;
+      *header_ptr = width    ; ++header_ptr;
+      *header_ptr = height   ; ++header_ptr;
+      l_data = (uint8_t*)header_ptr;
+
       for (size_t i = 0; i < width*height; ++i) {
          *l_data = R[panel]; ++l_data;
       }
@@ -114,10 +118,10 @@ int main(int argc, char *argv[]) {
   size_t panel_height = 100;  // per panel
   size_t num_panels = 9;
   size_t num_panel_pixels = num_comps * panel_width * panel_height;
-  size_t buffer_bytes = num_panels * ((num_panel_pixels + HEADER_SIZE) * sizeof(int));
+  size_t buffer_bytes = num_panels * (num_panel_pixels * sizeof(uint8_t) + HEADER_SIZE * sizeof(int));
 
 
-  int* buffer_image = build_image(num_comps, panel_width, panel_height, num_panels);
+  uint8_t* buffer_image = build_image(num_comps, panel_width, panel_height, num_panels);
 
   const void* buffers[] = 
   { 
