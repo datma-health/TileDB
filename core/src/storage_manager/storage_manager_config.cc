@@ -88,7 +88,7 @@ int StorageManagerConfig::init(
     int write_method,
     const bool enable_shared_posixfs_optimizations) {
   // Initialize home
-  if (strstr(home, "://")) {
+  if (home !=  NULL && strstr(home, "://")) {
      if (fs_ != NULL)
        delete fs_;
      home_ = std::string(home, strlen(home));
@@ -113,19 +113,18 @@ int StorageManagerConfig::init(
      read_method_ = TILEDB_IO_READ;
      write_method_ = TILEDB_IO_WRITE;
      return TILEDB_SMC_OK;
-   }
-
-  if (fs_ == NULL) {
-     fs_ = new PosixFS();
-     dynamic_cast<PosixFS *>(fs_)->set_disable_file_locking(enable_shared_posixfs_optimizations);
-     dynamic_cast<PosixFS *>(fs_)->set_keep_write_file_handles_open(enable_shared_posixfs_optimizations);
   }
 
-   if(home == NULL) {
-     home_ = "";
-   } else {
-     home_ = std::string(home, strlen(home));
-   } 
+  // Default Posix case
+  assert(fs_ != NULL);
+  dynamic_cast<PosixFS *>(fs_)->set_disable_file_locking(enable_shared_posixfs_optimizations);
+  dynamic_cast<PosixFS *>(fs_)->set_keep_write_file_handles_open(enable_shared_posixfs_optimizations);
+
+  if(home == NULL) {
+    home_ = "";
+  } else {
+    home_ = std::string(home, strlen(home));
+  }
 
 #ifdef HAVE_MPI
   // Initialize MPI communicator
