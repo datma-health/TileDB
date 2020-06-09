@@ -256,6 +256,7 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    opj_image_t * l_image;
    opj_image_cmptparm_t l_image_params;   // only need one component
    opj_stream_t * l_stream;
+   size_t opj_compress_size;
 
    OPJ_UINT32 i;
    OPJ_BYTE *l_data;
@@ -393,9 +394,13 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       return print_errmsg("jpeg2k_compress: failed to end compress");
    }
 
-   *tile_compressed = opj_mem_stream_copy(l_stream, &tile_compressed_size);
+   tile_compressed_ = opj_mem_stream_copy(l_stream, &opj_compress_size);
 
    cleanup(NULL, l_stream, l_codec, l_image);
+
+   // Set output
+   *tile_compressed = tile_compressed_;
+   tile_compressed_size = opj_compress_size;
 
    // Success
    return TILEDB_CD_OK;
@@ -559,6 +564,7 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
    opj_image_t * l_image;
    opj_image_cmptparm_t l_image_params[NUM_COMPS_MAX];
    opj_stream_t * l_stream;
+   size_t opj_compress_size;
 
    opj_image_cmptparm_t * l_current_param_ptr;
    OPJ_UINT32 i;
@@ -680,13 +686,6 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
 // Copy pixels to l_image component data from l_data (tile_in)
 
    OPJ_UINT32 num_pixels = num_comps * image_width * image_height;
-/*
-   size_t num_bytes = num_pixels * sizeof(OPJ_INT32);
-   for (compno = 0; compno < num_comps; ++compno) {
-      memcpy(l_image->comps[compno].data, l_data, num_bytes);
-      l_data += num_pixels;
-   }
-*/
 
 /**
  * to debug by comparing image information and parameters from external run
@@ -710,7 +709,6 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
       return print_errmsg("jpeg2k_compress: failed to start compress");
    }
 
-//CPB if (! opj_encode(l_codec, l_stream)) {
    if (! opj_write_tile(l_codec, 0, l_data, num_pixels, l_stream)) {
       cleanup(NULL, l_stream, l_codec, l_image);
       return print_errmsg("jpeg2k_compress: failed to encode the tile");
@@ -721,9 +719,13 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
       return print_errmsg("jpeg2k_compress: failed to end compress");
    }
 
-   *tile_compressed = opj_mem_stream_copy(l_stream, &tile_compressed_size);
+   tile_compressed_ = opj_mem_stream_copy(l_stream, &opj_compress_size);
 
    cleanup(NULL, l_stream, l_codec, l_image);
+
+   // Set output
+   *tile_compressed = tile_compressed_;
+   tile_compressed_size = opj_compress_size;
 
    // Success
    return TILEDB_CD_OK;
