@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@
 #include <stdlib.h>
 #define HEADER_SIZE 3
 
-void check_results(char *buffer_image, size_t num_bytes)
+void check_results(uint8_t* buffer_image, size_t num_pixels)
 {
 /** 
  * Tissue image file doesn't have header values; thus, take out the header
@@ -45,21 +45,21 @@ void check_results(char *buffer_image, size_t num_bytes)
 **/
    size_t i, errors = 0;
    std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue165x150.bin";
-   size_t bytes_to_read = num_bytes - (HEADER_SIZE * sizeof(int));
-   char *original_image = (char *)malloc(bytes_to_read);
+   size_t num_bytes = num_pixels * sizeof(int);
+   unsigned int* original_image = (unsigned int*)malloc(num_bytes);
    FILE *infile;
    infile = fopen(filename.c_str(), "rb"); // r for read, b for binary
-   fread(original_image, bytes_to_read, 1, infile);
+   fread(original_image, num_bytes, 1, infile);
    fclose(infile);
 
    FILE *errfile;
    errfile = fopen("t165x150_err", "w");
-   char *l_buffer = buffer_image;
+   uint8_t* l_buffer = buffer_image;
    l_buffer += HEADER_SIZE * sizeof(int);   // skip over header bytes from buffer_image
 
    unsigned int b, o;
-   for (i = 0; i < bytes_to_read; ++i) {
-      b = l_buffer[i];
+   for (i = 0; i < num_pixels; ++i) {
+      b = (unsigned int) (0x000000FF & l_buffer[i]);
       o = original_image[i];
       if (b != o) {
          unsigned int d = (b > o) ? b-o : o-b;
@@ -103,9 +103,11 @@ int main(int argc, char *argv[]) {
    size_t num_comps = 3;
    size_t width  = 165;
    size_t height = 150;
-   size_t full_image_bytes = (num_comps * width * height + HEADER_SIZE) * sizeof(int);
+   size_t full_image_pixels = num_comps * width * height;
+   size_t full_image_bytes = HEADER_SIZE * sizeof(int) 
+                           + full_image_pixels * sizeof(uint8_t);
 
-   int *buffer_image = (int*)malloc(full_image_bytes);
+   uint8_t* buffer_image = (uint8_t*)malloc(full_image_bytes);
    void* buffers[] =
    {
        buffer_image                // whole image
@@ -119,20 +121,13 @@ int main(int argc, char *argv[]) {
    // Read from array
    CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes)); 
 
-   check_results((char*)buffer_image, full_image_bytes); 
+   check_results(buffer_image, full_image_pixels); 
 
    // Finalize the array
    CHECK_RC(tiledb_array_finalize(tiledb_array));
  
    /* Finalize context. */
    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx));
-
-/**
-   FILE *bin_ptr;
-   bin_ptr = fopen("tissue_decode.bin","wb");
-   fwrite(buffer_image, full_image_bytes, 1, bin_ptr);
-   fclose(bin_ptr);
-**/
 
    return 0;
 }

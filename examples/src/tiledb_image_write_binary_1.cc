@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,14 +39,21 @@
 
 using namespace std;
 
-int *read_image(const char* filename, size_t num_bytes)
+uint8_t* read_image(const char* filename, size_t image_pixels)
 {
-   int *image_buffer = (int *)malloc(num_bytes);
+   size_t file_image_bytes = image_pixels * sizeof(int);
+   size_t image_bytes = image_pixels * sizeof(uint8_t);
+   int *read_image_buffer = (int *)malloc(file_image_bytes); // number of file bytes
+   uint8_t *image_buffer = (uint8_t *)malloc(image_bytes);   // number of pixel bytes
    FILE *infile;
    infile = fopen(filename, "rb"); // r for read, b for binary
-   fread(image_buffer, num_bytes, 1, infile);
+   fread(read_image_buffer, file_image_bytes, 1, infile);
    fclose(infile);
 
+   for (size_t i = 0; i < image_pixels; ++i)
+       image_buffer[i] = read_image_buffer[i];
+      
+   free(read_image_buffer);
    return image_buffer;
 }
 
@@ -77,12 +84,12 @@ int main(int argc, char *argv[]) {
   size_t num_comps = 3;
   size_t width  = 150;
   size_t height = 165;
-  size_t full_image_bytes = (num_comps * width * height) * sizeof(int);
-  size_t buffer_image_bytes = (width * height) * sizeof(int);
+  size_t full_image_pixels = num_comps * width * height;
+  size_t buffer_image_bytes = (width * height) * sizeof(uint8_t);
 
   std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue150x165.bin";
 
-  int * buffer_image = read_image(filename.c_str(), full_image_bytes);
+  uint8_t* buffer_image = read_image(filename.c_str(), full_image_pixels);
 
   const void* buffers[] = 
   { 

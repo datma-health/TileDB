@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,10 +36,10 @@
 #include <stdlib.h>
 #define HEADER_SIZE 3
 
-void check_results(int *buffer_image)
+void check_results(uint8_t *buffer_image)
 {
 
-   int R[10], G[10], B[10];
+   uint8_t R[10], G[10], B[10];
 //       Black,        Red,          Orange
    R[0] =   0;   R[1] = 201;   R[2] = 234;
    G[0] =   0;   G[1] =  23;   G[2] =  85;
@@ -60,11 +60,12 @@ void check_results(int *buffer_image)
    G[9] = 130;
    B[9] = 130;
 
-   int *l_data = buffer_image;
-   int num_comps = l_data[0];
-   int width = l_data[1];
-   int height = l_data[2];
+   int *header_data = (int*)buffer_image;
+   int num_comps = header_data[0];
+   int width = header_data[1];
+   int height = header_data[2];
    int num_panels = 9;
+   uint8_t* l_data = buffer_image;
 
    size_t i, j;
    int Rerrs[9] = {0,0,0,0,0,0,0,0,0};
@@ -86,7 +87,7 @@ void check_results(int *buffer_image)
 
    int errors = 0;
    for (i = 0; i < num_panels; ++i) {
-      l_data += 3;   // skip over panel header
+      l_data += HEADER_SIZE*sizeof(int);   // skip over panel header
       for (j = 0; j < width*height; ++j) {
          if (*l_data != R[i]) { ++Rerrs[i]; ++errors; }
          ++l_data;
@@ -146,9 +147,9 @@ int main(int argc, char *argv[]) {
    size_t panel_height = 100;  // per panel
    size_t num_panels = 9;
    size_t num_panel_pixels = num_comps * panel_width * panel_height;
-   size_t buffer_bytes = num_panels * ((num_panel_pixels + HEADER_SIZE) * sizeof(int));
+   size_t buffer_bytes = num_panels * ((num_panel_pixels * sizeof(uint8_t) + HEADER_SIZE * sizeof(int)));
  
-   int* buffer_image = (int*)malloc(buffer_bytes);
+   uint8_t* buffer_image = (uint8_t*)malloc(buffer_bytes);
  
    void* buffers[] = 
    { 

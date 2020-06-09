@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,23 +42,30 @@
 
 using namespace std;
 
-int *read_image(const char* filename, size_t num_bytes)
+uint8_t* read_image(const char* filename, size_t image_pixels)
 {
 /**
  *  Tissue image file doesn't have header bytes, so those will be added
  * here to ensure the image buffer is configured for TILEDB_JPEG2K_RGB 
  * compression.
 **/
-   int *image_buffer = (int *)malloc(num_bytes);
-   size_t bytes_to_read = num_bytes - (HEADER_SIZE * sizeof(int));
-   int *l_buffer = image_buffer;
-   *l_buffer = 3;   ++l_buffer;  // Add number of components
-   *l_buffer = 165; ++l_buffer;  // Add number of width
-   *l_buffer = 150; ++l_buffer;  // Add number of height
+   size_t file_image_bytes = image_pixels * sizeof(int);
+   int *read_image_buffer = (int *)malloc(file_image_bytes); // number of file bytes
+   size_t image_bytes = image_pixels*sizeof(uint8_t) + HEADER_SIZE*sizeof(int);
+   uint8_t* image_buffer = (uint8_t*)malloc(image_bytes);
+   uint8_t *l_buffer = image_buffer;
+   *l_buffer = 3;   l_buffer += sizeof(int);  // Add number of components
+   *l_buffer = 165; l_buffer += sizeof(int);  // Add number of width
+   *l_buffer = 150; l_buffer += sizeof(int);  // Add number of height
    FILE *infile;
    infile = fopen(filename, "rb"); // r for read, b for binary
-   fread(l_buffer, bytes_to_read, 1, infile);
+   fread(read_image_buffer, file_image_bytes, 1, infile);
    fclose(infile);
+
+   for (size_t i = 0; i < image_pixels; ++i)
+      l_buffer[i] = read_image_buffer[i];
+
+   free(read_image_buffer);
 
    return image_buffer;
 }
@@ -90,11 +97,13 @@ int main(int argc, char *argv[]) {
   size_t num_comps = 3;
   size_t width  = 165;
   size_t height = 150;
-  size_t full_image_bytes = (num_comps * width * height + HEADER_SIZE) * sizeof(int);
+   size_t full_image_pixels = num_comps * width * height;
+   size_t full_image_bytes = HEADER_SIZE*sizeof(int) 
+                           + (num_comps * width * height) * sizeof(uint8_t);
 
   std::string filename = std::string(TILEDB_EXAMPLE_DIR)+"/data/tissue165x150.bin";
 
-  int * buffer_image = read_image(filename.c_str(), full_image_bytes);
+  uint8_t* buffer_image = read_image(filename.c_str(), full_image_pixels);
 
   const void* buffers[] =
   {

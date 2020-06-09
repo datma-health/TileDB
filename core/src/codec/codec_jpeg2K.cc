@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -256,6 +256,7 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    opj_image_t * l_image;
    opj_image_cmptparm_t l_image_params;   // only need one component
    opj_stream_t * l_stream;
+   size_t opj_compress_size;
 
    OPJ_UINT32 i;
    OPJ_BYTE *l_data;
@@ -299,9 +300,9 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    l_param.cp_tx0 = 0;
    l_param.cp_ty0 = 0;
 
-   l_param.tile_size_on = OPJ_FALSE;
-   l_param.cp_tdx = 0;
-   l_param.cp_tdy = 0;
+   l_param.tile_size_on = OPJ_TRUE;
+   l_param.cp_tdx = (OPJ_UINT32)tile_image_width_;
+   l_param.cp_tdy = (OPJ_UINT32)tile_image_height_;
 
    /* code block size */
    l_param.cblockw_init = cblockw_init;
@@ -344,7 +345,7 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       return print_errmsg("jpeg2k_compress: failed to setup codec");
    }
 
-   l_image = opj_image_create(num_comps, &l_image_params, OPJ_CLRSPC_GRAY);
+   l_image = opj_image_tile_create(num_comps, &l_image_params, OPJ_CLRSPC_GRAY);
 
    if (! l_image) {
       cleanup(NULL, NULL, l_codec, NULL);
@@ -356,9 +357,9 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
    l_image->x1 = offsetx + (OPJ_UINT32)tile_image_width_;
    l_image->y1 = offsety + (OPJ_UINT32)tile_image_height_;
 
-// Copy pixels to l_image component data from l_data (tile_in) 
-   size_t num_bytes = tile_image_width_ * tile_image_height_ * sizeof(OPJ_INT32);
-   memcpy(l_image->comps[0].data, l_data, num_bytes);
+// Copy pixels to l_image component data from l_data (tile_in) OPJ_BYTE 
+   OPJ_UINT32 num_pixels = tile_image_width_ * tile_image_height_ ;
+   //memcpy(l_image->comps[0].data, l_data, num_bytes);
 
 /**
  * to debug by comparing image information and parameters from external run
@@ -382,7 +383,8 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       return print_errmsg("jpeg2k_compress: failed to start compress");
    }
 
-   if (! opj_encode(l_codec, l_stream)) {
+//CPB   if (! opj_encode(l_codec, l_stream)) {
+   if (! opj_write_tile(l_codec, 0, l_data, num_pixels, l_stream)) {
       cleanup(NULL, l_stream, l_codec, l_image);
       return print_errmsg("jpeg2k_compress: failed to encode the tile");
    }
@@ -392,9 +394,13 @@ int CodecJPEG2K::compress_tile(unsigned char* tile_in, size_t tile_size_in, void
       return print_errmsg("jpeg2k_compress: failed to end compress");
    }
 
-   *tile_compressed = opj_mem_stream_copy(l_stream, &tile_compressed_size);
+   tile_compressed_ = opj_mem_stream_copy(l_stream, &opj_compress_size);
 
    cleanup(NULL, l_stream, l_codec, l_image);
+
+   // Set output
+   *tile_compressed = tile_compressed_;
+   tile_compressed_size = opj_compress_size;
 
    // Success
    return TILEDB_CD_OK;
@@ -516,17 +522,10 @@ int CodecJPEG2K::decompress_tile(unsigned char* tile_compressed, size_t tile_com
 
 
    // Add header portion -- write ints into char array
-   OPJ_UINT32 *buffer = (OPJ_UINT32 *)tile_out;
-   OPJ_BYTE *ob = l_data;
+   OPJ_BYTE *ob = (OPJ_BYTE *)tile_out;
 
    // Copy pixel data to output buffer
-   size_t i;
-   for (i = 0; i < l_data_size; ++i) {
-      buffer[i] = (OPJ_UINT32) (0x000000FF & (*ob));
-      ++ob;
-   }
-
-   //memcpy(ob, l_data, copy_bytes);
+   memcpy(ob, l_data, l_data_size);
 
    /* Free memory */
    cleanup(l_data, l_stream, l_codec, l_image);
@@ -549,7 +548,7 @@ int CodecJPEG2K::decompress_tile(unsigned char* tile_compressed, size_t tile_com
  *   image height. These tiles will need to be "hand" created; the TileDB
  *   tile will then correspond to a blob of RGB pixels and prefaced header.
  *
- *   FUTURE enhancement: pack bits per pixel into upper 16 bits of num_comps
+ *   FUTURE enhancement??: pack bits per pixel into upper 16 bits of num_comps
  *     To be used for images with more than 8 bpp (or for int16_t pixels).
  */
 
@@ -565,6 +564,7 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
    opj_image_t * l_image;
    opj_image_cmptparm_t l_image_params[NUM_COMPS_MAX];
    opj_stream_t * l_stream;
+   size_t opj_compress_size;
 
    opj_image_cmptparm_t * l_current_param_ptr;
    OPJ_UINT32 i;
@@ -599,17 +599,17 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
    l_data = (OPJ_BYTE*) &tile_in[header_offset];
 
    /** number of quality layers in the stream */
-   if (quality_loss) {
-      l_param.tcp_numlayers = 1;
-      l_param.cp_fixed_quality = 1;
-      l_param.tcp_distoratio[0] = 20;
-   }
-   else { // Set for lossless compression
+   if (!quality_loss) { // Set for lossless compression
       l_param.cp_disto_alloc = 1;
       l_param.cp_fixed_alloc = 0;
       l_param.tcp_numlayers = 1;
       l_param.tcp_rates[0] = 0.0;
       l_param.tcp_distoratio[0] = 0.0;
+   }
+   else {
+      l_param.tcp_numlayers = 1;
+      l_param.cp_fixed_quality = 1;
+      l_param.tcp_distoratio[0] = 20;
    }
 
    /* tile definitions parameters */
@@ -617,9 +617,9 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
    l_param.cp_tx0 = 0;
    l_param.cp_ty0 = 0;
 
-   l_param.tile_size_on = OPJ_FALSE;
-   l_param.cp_tdx = 0;
-   l_param.cp_tdy = 0;
+   l_param.tile_size_on = OPJ_TRUE;
+   l_param.cp_tdx = (OPJ_UINT32)image_width;
+   l_param.cp_tdy = (OPJ_UINT32)image_height;
 
    /* code block size */
    l_param.cblockw_init = cblockw_init;
@@ -670,36 +670,22 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
       return print_errmsg(msg);
    }
 
-   if (num_comps == 3)
-      l_image = opj_image_create(num_comps, l_image_params, OPJ_CLRSPC_SRGB);
-   else if (num_comps == 1)
-      l_image = opj_image_create(num_comps, l_image_params, OPJ_CLRSPC_GRAY);
-   else
-      l_image = opj_image_create(num_comps, l_image_params, OPJ_CLRSPC_UNKNOWN);
+   // RGB images MUST have 3 components
+   l_image = opj_image_tile_create(num_comps, l_image_params, OPJ_CLRSPC_SRGB);
 
    if (! l_image) {
       cleanup(NULL, NULL, l_codec, NULL);
-      char msg[100];
-      sprintf(msg, "ERROR -> j2k_compress: failed to setup tile image!\n");
-      return print_errmsg(msg);
+      return print_errmsg("j2k_compress: failed to setup tile image");
    }
 
    l_image->x0 = offsetx;
    l_image->y0 = offsety;
    l_image->x1 = offsetx + (OPJ_UINT32)image_width;
    l_image->y1 = offsety + (OPJ_UINT32)image_height;
-/** should be set in opj_image_create() **
-   l_image->color_space = OPJ_CLRSPC_SRGB;
-**/
 
 // Copy pixels to l_image component data from l_data (tile_in)
 
-   size_t num_pixels = image_width * image_height;
-   size_t num_bytes = num_pixels * sizeof(OPJ_INT32);
-   for (compno = 0; compno < num_comps; ++compno) {
-      memcpy(l_image->comps[compno].data, l_data, num_bytes);
-      l_data += num_bytes;
-   }
+   OPJ_UINT32 num_pixels = num_comps * image_width * image_height;
 
 /**
  * to debug by comparing image information and parameters from external run
@@ -723,7 +709,7 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
       return print_errmsg("jpeg2k_compress: failed to start compress");
    }
 
-   if (! opj_encode(l_codec, l_stream)) {
+   if (! opj_write_tile(l_codec, 0, l_data, num_pixels, l_stream)) {
       cleanup(NULL, l_stream, l_codec, l_image);
       return print_errmsg("jpeg2k_compress: failed to encode the tile");
    }
@@ -733,9 +719,13 @@ int CodecJPEG2K_RGB::compress_tile(unsigned char* tile_in, size_t tile_size_in, 
       return print_errmsg("jpeg2k_compress: failed to end compress");
    }
 
-   *tile_compressed = opj_mem_stream_copy(l_stream, &tile_compressed_size);
+   tile_compressed_ = opj_mem_stream_copy(l_stream, &opj_compress_size);
 
    cleanup(NULL, l_stream, l_codec, l_image);
+
+   // Set output
+   *tile_compressed = tile_compressed_;
+   tile_compressed_size = opj_compress_size;
 
    // Success
    return TILEDB_CD_OK;
@@ -861,14 +851,8 @@ int CodecJPEG2K_RGB::decompress_tile(unsigned char* tile_compressed, size_t tile
    buffer[2] = image_height;  // image height
    buffer += 3;
 
-   OPJ_BYTE *ob = l_data;
-
-   // Copy pixel data to output buffer
-   size_t i;
-   for (i = 0; i < l_data_size; ++i) {
-      buffer[i] = (OPJ_UINT32) (0x000000FF & (*ob));
-      ++ob;
-   }
+   // Copy pixel data to output buffer (offset by header)
+   memcpy((void*)buffer, l_data, l_data_size);
 
    /* Free memory */
    cleanup(l_data, l_stream, l_codec, l_image);

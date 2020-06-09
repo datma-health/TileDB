@@ -5,7 +5,7 @@
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
  * @section DESCRIPTION
  *
  * Example to create dense array to hold whole 165x150 binary image using 
- *   TILEDB_JPEG2K_RGB compression
+ *   TILEDB JPEG2K_RGB compression
  *
  */
 
@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
 
   // Prepare parameters for array schema
   const char* array_name = "my_workspace/image_arrays/tissue165150";
+  int cell_V_Num = 3*165*150*sizeof(uint8_t) + 3*sizeof(int);
   const char* attributes[] = { "imageRGB" };      // one whole image
   const char* dimensions[] = { "one" };  // one whole image
   int64_t domain[] = 
@@ -57,7 +58,8 @@ int main(int argc, char *argv[]) {
 
   const int cell_val_num[] = 
   { 
-      74253                        // integer pixels in 3 components + header
+      cell_V_Num                        // uint8_t pixels in 3 components 
+                                        //                   + header (3*int)
   };
   const int compression[] = 
   { 
@@ -75,7 +77,7 @@ int main(int argc, char *argv[]) {
   };               
   const int types[] = 
   { 
-      TILEDB_INT32,                // imageRGB
+      TILEDB_UINT8,                // imageRGB
       TILEDB_INT64                 // coordinates
   };
   

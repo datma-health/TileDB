@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,15 +50,16 @@ int main(int argc, char *argv[]) {
   // Prepare parameters for array schema
   const char* array_name = "my_workspace/image_arrays/panelimage_RGB";
   const char* attributes[] = { "imageRGB" };          // one image
-  const char* dimensions[] = { "width", "height" };   // 2-D image dimensions
+  const char* dimensions[] = { "height", "width" };   // 2-D image dimensions
+  int cell_V_num = 3*100*100*sizeof(uint8_t) + 3*sizeof(int);
   int64_t domain[] = 
   { 
-      0, 2,                       // width
-      0, 2                        // height
+      0, 2,                       // height
+      0, 2                        // width
   };                
   const int cell_val_num[] = 
   { 
-     30003                       // integer pixels in panel plus header
+     cell_V_num                  // uint8_t pixels in panel plus header (3*int)
                                  // 3 x (100 x 100) + 3
   };
   const int compression[] = 
@@ -73,12 +74,12 @@ int main(int argc, char *argv[]) {
   };
   int64_t tile_extents[] = 
   { 
-      1,                          // width
-      1                           // height
+      1,                          // height
+      1                           // width
   };               
   const int types[] = 
   { 
-      TILEDB_INT32,               // image
+      TILEDB_UINT8,               // image
       TILEDB_INT64                // coordinates
   };
   
