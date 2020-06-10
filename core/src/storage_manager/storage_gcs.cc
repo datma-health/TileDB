@@ -137,7 +137,10 @@ hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) 
   // Default buffer sizes are huge in the GCS connector. TileDB reads/writes in smaller chunks,
   // so the buffer size can be made a little smaller.
   hdfsBuilderConfSetStr(builder, "fs.gs.outputstream.upload.chunk.size", "262144");
-    
+
+  // This is deprecated in the newer versions. But, gatk uses a very old version of the gcs connector.
+  hdfsBuilderConfSetStr(builder, "fs.gs.io.buffersize.write", "262144");
+
   hdfsFS hdfs_handle = hdfsBuilderConnect(builder);
   free(value);
   return hdfs_handle;
