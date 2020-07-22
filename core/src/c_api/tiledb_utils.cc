@@ -54,6 +54,7 @@ static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,
   tiledb_config.home_ = strdup(home.c_str());
   tiledb_config.enable_shared_posixfs_optimizations_ = enable_shared_posixfs_optimizations;
   rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
+  free(const_cast<char*>(tiledb_config.home_));
   return rc;
 }
 
