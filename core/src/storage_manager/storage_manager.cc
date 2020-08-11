@@ -1538,9 +1538,6 @@ int StorageManager::config_set(StorageManagerConfig* config) {
 
 int StorageManager::consolidation_filelock_create(
     const std::string& dir) const {
-  if (!fs_->locking_support()) {
-    return TILEDB_SM_OK;
-  }
   
   // Create file
   std::string filename = dir + "/" + TILEDB_SM_CONSOLIDATION_FILELOCK_NAME;
@@ -1590,12 +1587,14 @@ int StorageManager::consolidation_filelock_lock(
   // Create consolidation lock file if necessary
   if (!fs_->is_file(filename)) {
     if (consolidation_filelock_create(array_name_real)) {
+      std::string errmsg =
+        "Cannot lock consolidation filelock; Cannot create consolidation lock file "+filename;
       return TILEDB_SM_ERR;
     }
   }
 
   // Open the file
-  fd = ::open(filename.c_str(), O_RDWR);
+  fd = ::open(filename.c_str(), (lock_type == TILEDB_SM_SHARED_LOCK) ? O_RDONLY : O_RDWR);
   if(fd == -1) {
     std::string errmsg = 
         "Cannot lock consolidation filelock; Cannot open filelock";
