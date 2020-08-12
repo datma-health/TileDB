@@ -52,7 +52,6 @@ configure_hadoop() {
   configure_passphraseless_ssh &&
   cp -fr $TRAVIS_BUILD_DIR/.travis/resources/hadoop/* $HADOOP_DIR/etc/hadoop &&
   mkdir $HADOOP_DIR/logs &&  
-  $HADOOP_DIR/bin/hadoop &&
   $HADOOP_DIR/bin/hadoop namenode -format &&
   $HADOOP_DIR/sbin/start-dfs.sh &&
   echo "configure_hadoop successful"
