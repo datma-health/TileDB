@@ -25,9 +25,9 @@ install_prereqs() {
 download_gcs_connector() {
   if [[ $INSTALL_TYPE == gcs ]]; then
     wget -q https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar
-	mv gcs-connector-latest-hadoop2.jar ${HADOOP_DIR}/share/hadoop/common
-	echo "Listing ${HADOOP_DIR}/share/hadoop/common"
-	ls -l ${HADOOP_DIR}/share/hadoop/common
+	  mv gcs-connector-hadoop3-latest.jar ${HADOOP_DIR}/share/hadoop/common
+    echo "Listing ${HADOOP_DIR}/share/hadoop/common"
+	  ls -l ${HADOOP_DIR}/share/hadoop/common
   fi
 }
 
