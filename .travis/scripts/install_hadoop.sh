@@ -51,6 +51,7 @@ configure_passphraseless_ssh() {
 configure_hadoop() {
   configure_passphraseless_ssh &&
   cp -fr $TRAVIS_BUILD_DIR/.travis/resources/hadoop/* $HADOOP_DIR/etc/hadoop &&
+  rm -f $HADOOP_DIR/etc/hadoop/hadoop-metrics2.properties &&
   mkdir $HADOOP_DIR/logs &&  
   $HADOOP_DIR/bin/hadoop namenode -format &&
   $HADOOP_DIR/sbin/start-dfs.sh &&
