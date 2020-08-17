@@ -6,7 +6,7 @@
 INSTALL_DIR=${INSTALL_DIR:-/usr}
 USER=`whoami`
 
-HADOOP=hadoop-${HADOOP_VER:-2.9.2}
+HADOOP=hadoop-${HADOOP_VER:-3.2.1}
 HADOOP_DIR=${INSTALL_DIR}/$HADOOP
 
 install_prereqs() {
@@ -24,10 +24,10 @@ install_prereqs() {
 
 download_gcs_connector() {
   if [[ $INSTALL_TYPE == gcs ]]; then
-    wget -q https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-latest-hadoop2.jar
-	mv gcs-connector-latest-hadoop2.jar ${HADOOP_DIR}/share/hadoop/common
-	echo "Listing ${HADOOP_DIR}/share/hadoop/common"
-	ls -l ${HADOOP_DIR}/share/hadoop/common
+    wget -q https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar
+	  mv gcs-connector-hadoop3-latest.jar ${HADOOP_DIR}/share/hadoop/common
+    echo "Listing ${HADOOP_DIR}/share/hadoop/common"
+	  ls -l ${HADOOP_DIR}/share/hadoop/common
   fi
 }
 
@@ -52,7 +52,6 @@ configure_hadoop() {
   configure_passphraseless_ssh &&
   cp -fr $TRAVIS_BUILD_DIR/.travis/resources/hadoop/* $HADOOP_DIR/etc/hadoop &&
   mkdir $HADOOP_DIR/logs &&  
-  $HADOOP_DIR/bin/hadoop &&
   $HADOOP_DIR/bin/hadoop namenode -format &&
   $HADOOP_DIR/sbin/start-dfs.sh &&
   echo "configure_hadoop successful"
