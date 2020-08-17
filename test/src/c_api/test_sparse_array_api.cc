@@ -726,7 +726,7 @@ TEST_CASE_METHOD(SparseArrayEnvTestFixture, "Test reading/writing with env set",
   set_disable_file_locking();
   set_keep_write_file_handles_open();
   write_array();
-  CHECK(!consolidation_file_lock_exists());
+  CHECK(consolidation_file_lock_exists());
 
   // TILEDB_DISABLE_FILE_LOCK unset
   unset_disable_file_locking();
