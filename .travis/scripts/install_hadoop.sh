@@ -52,6 +52,7 @@ configure_hadoop() {
   configure_passphraseless_ssh &&
   cp -fr $TRAVIS_BUILD_DIR/.travis/resources/hadoop/* $HADOOP_DIR/etc/hadoop &&
   mkdir $HADOOP_DIR/logs &&  
+  export HADOOP_OPTS="-Djava.library.path=$HADOOP_DIR/lib/native" &&
   export HADOOP_ROOT_LOGGER=ERROR,console &&
   $HADOOP_DIR/bin/hadoop namenode -format &&
   $HADOOP_DIR/sbin/start-dfs.sh &&
