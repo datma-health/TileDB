@@ -39,7 +39,7 @@ matrix:
       env: INSTALL_TYPE=basic
 
 before_install:
-    - pushd $TRAVIS_BUILD_DIR/.travis && openssl aes-256-cbc -K $encrypted_f493007ff7ad_key -iv $encrypted_f493007ff7ad_iv -in r.tar.enc -out r.tar -d && tar xf r.tar && popd;
+    - pushd $TRAVIS_BUILD_DIR/.travis && openssl aes-256-cbc -K $encrypted_b8311a874f1e_key -iv $encrypted_b8311a874f1e_iv -in r.tar.enc -out r.tar -d && tar xf r.tar && popd;
 
 install:
     # Install prerequisites
