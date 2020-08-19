@@ -53,7 +53,7 @@ configure_hadoop() {
   cp -fr $TRAVIS_BUILD_DIR/.travis/resources/hadoop/* $HADOOP_DIR/etc/hadoop &&
   mkdir $HADOOP_DIR/logs &&  
   export HADOOP_OPTS="-Djava.library.path=$HADOOP_DIR/lib/native" &&
-  export HADOOP_ROOT_LOGGER=ERROR,console &&
+  export HADOOP_ROOT_LOGGER="ERROR,console" &&
   $HADOOP_DIR/bin/hadoop namenode -format &&
   $HADOOP_DIR/sbin/start-dfs.sh &&
   echo "configure_hadoop successful"
@@ -61,6 +61,7 @@ configure_hadoop() {
 
 setup_paths() {
   export PATH=$HADOOP_DIR/bin:$PATH
+  export LD_LIBRARY_PATH=$HADOOP_DIR/lib/native:$LD_LIBRARY_PATH
   export CLASSPATH=`$HADOOP_DIR/bin/hadoop classpath --glob`
   AZURE_JARS=`find $HADOOP_DIR/share/hadoop/tools/lib -name *azure*jar | tr '\n' ':'`
   if [[ ! -z $AZURE_JARS ]]; then
