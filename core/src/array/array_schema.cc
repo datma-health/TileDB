@@ -1671,7 +1671,7 @@ int ArraySchema::set_offsets_compression_level(int* compression_level) {
    // Set defaults based on codec
   assert(offsets_compression_.size() == (size_t)(attribute_num_) && "set_offsets_compression() should be called before set_offsets_compression_level");
   offsets_compression_level_.clear();
-  for(int i=0; i<attribute_num_+1; ++i) {
+  for(int i=0; i<attribute_num_; ++i) {
     if (compression_level == NULL) {
       offsets_compression_level_.push_back(Codec::get_default_level(compression_[i]));
     } else {
