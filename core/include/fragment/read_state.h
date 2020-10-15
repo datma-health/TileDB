@@ -418,6 +418,7 @@ class ReadState {
   
   /** Compression per attribute */
   std::vector<Codec *> codec_;
+  std::vector<Codec *> offsets_codec_;
 
   /** Indicates if the read operation on this fragment finished. */
   bool done_;
@@ -637,7 +638,8 @@ class ReadState {
       unsigned char* tile_compressed,
       size_t tile_compressed_size,
       unsigned char* tile,
-      size_t tile_size);
+      size_t tile_size,
+      bool decompress_offsets = false);
 
   /** 
    * Returns the cell position in the search tile that is after the

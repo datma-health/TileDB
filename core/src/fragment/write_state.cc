@@ -137,6 +137,14 @@ WriteState::WriteState(
   for(int i=0; i<attribute_num_+1; ++i) {
     codec_[i] = Codec::create(array_schema_, i);
   }
+  offsets_codec_.resize(attribute_num_);
+  for(int i=0; i<attribute_num_; ++i) {
+    if (array_schema_->var_size(i)) {
+      offsets_codec_[i] = Codec::create(array_schema_, i, true);
+    } else {
+      offsets_codec_[i] = NULL;
+    }
+  }
 }
 
 WriteState::~WriteState() {
@@ -144,6 +152,11 @@ WriteState::~WriteState() {
   for(auto i=0u; i<codec_.size(); ++i) {
     if (codec_[i]) {
       delete codec_[i];
+    }
+  }
+  for(auto i=0u; i<offsets_codec_.size(); ++i) {
+    if (offsets_codec_[i]) {
+      delete offsets_codec_[i];
     }
   }
     
@@ -527,7 +540,7 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
   if (rc != TILEDB_UT_OK) {
     std::string errmsg = "Cannot write segment to file";
     PRINT_ERROR(errmsg);
-    tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
+    tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg + '\n' + tiledb_ut_errmsg;
     return TILEDB_WS_ERR;
   }
 
@@ -574,8 +587,20 @@ int WriteState::compress_tile(
     unsigned char* tile, 
     size_t tile_size,
     void** tile_compressed,
-    size_t& tile_compressed_size) {
-  if(codec_[attribute_id]->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size) != TILEDB_CD_OK) {
+    size_t& tile_compressed_size,
+    bool compress_offsets) {
+  Codec* codec;
+  if (compress_offsets) {
+    codec = offsets_codec_[attribute_id];
+    if (codec == NULL) {
+      tile_compressed = reinterpret_cast<void **>(&tile);
+      tile_compressed_size = tile_size;
+      return TILEDB_WS_OK;
+    }
+  } else {
+   codec = codec_[attribute_id];
+  }
+  if(codec->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot compress tile";
     PRINT_ERROR(errmsg);
     tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
@@ -601,7 +626,8 @@ int WriteState::compress_and_write_tile(int attribute_id) {
          tile, 
          tile_size,
 	 &tile_compressed,
-         tile_compressed_size) != TILEDB_WS_OK) 
+         tile_compressed_size,
+         array_schema_->var_size(attribute_id)) != TILEDB_WS_OK) 
     return TILEDB_WS_ERR;
 
   // Write segment to file

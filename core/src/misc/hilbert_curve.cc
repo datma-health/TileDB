@@ -147,7 +147,7 @@ void HilbertCurve::TransposetoAxes(int* X, int b, int n) {
   M = 2 << (b - 1);
   for(Q = 2; Q != M; Q <<= 1) {
     P = Q - 1;
-    for(i = n-1; i; i--)
+    for(i = n-1; i; i--) {
       if(X[i] & Q)  // invert
         X[0] ^= P;                              
       else {        // exchange
@@ -156,7 +156,8 @@ void HilbertCurve::TransposetoAxes(int* X, int b, int n) {
         X[i] ^= t; 
       } 
       if(X[0] & Q)  // invert
-        X[0] ^= P; 
+        X[0] ^= P;
+    }
   }
 } 
 

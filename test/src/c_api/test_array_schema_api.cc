@@ -1,12 +1,12 @@
 /**
- * @file   c_api_array_schema_spec.cc
+ * @file test_array_schema_api.cc
  *
  * @section LICENSE
  *
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -67,12 +67,6 @@ ArraySchemaTestFixture::~ArraySchemaTestFixture() {
   rc = tiledb_ctx_finalize(tiledb_ctx_);
   REQUIRE(rc == TILEDB_OK);
 
-  // Remove the temporary workspace
-  std::string command = "rm -rf ";
-  command.append(WORKSPACE);
-  rc = system(command.c_str());
-  REQUIRE(rc == 0);
-
   // Free array schema
   if(array_schema_set_) {
     rc = tiledb_array_free_schema(&array_schema_);
@@ -92,7 +86,7 @@ int ArraySchemaTestFixture::create_dense_array(std::string array_name, int attri
   int rc;
   const char* attributes[] = { "MY_ATTRIBUTE" };
   const char* dimensions[] = { "X", "Y" };
-  int64_t domain[] = { 0, 99, 0, 99 };
+  int64_t domain[] = { 0, 99, 0, 1L<<62 };
   int64_t tile_extents[] = { 10, 10 };
   const int types[] = { attribute_datatype, TILEDB_INT64 };
   const int compression[] = { compression_type, TILEDB_NO_COMPRESSION };
@@ -116,6 +110,10 @@ int ArraySchemaTestFixture::create_dense_array(std::string array_name, int attri
       // Compression
       compression,
       // Compression level, NULL will get defaults
+      NULL,
+      // Offsets compression
+      NULL,
+      // Offsets compression level
       NULL,
       // Dense array
       1,
@@ -146,6 +144,14 @@ int ArraySchemaTestFixture::create_dense_array(std::string array_name, int attri
   return tiledb_array_create(tiledb_ctx_, &array_schema_);
 }
 
+std::string path_name(const std::string& path) {
+  size_t found = path.find_last_of("/");
+  if (found > 0) {
+    found++;
+  }
+  return path.substr(found);
+}
+
 void ArraySchemaTestFixture::check_dense_array(std::string array_name) {
   int rc;
 
@@ -158,15 +164,17 @@ void ArraySchemaTestFixture::check_dense_array(std::string array_name) {
   REQUIRE(rc == TILEDB_OK);
 
   // For easy reference
-  int64_t* tile_extents_disk = 
-      static_cast<int64_t*>(array_schema_disk.tile_extents_);
-  int64_t* tile_extents = 
-      static_cast<int64_t*>(array_schema_.tile_extents_);
+  int64_t* domain_disk = static_cast<int64_t*>(array_schema_disk.domain_);
+  int64_t* domain = static_cast<int64_t*>(array_schema_.domain_);
+  int64_t* tile_extents_disk = static_cast<int64_t*>(array_schema_disk.tile_extents_);
+  int64_t* tile_extents = static_cast<int64_t*>(array_schema_.tile_extents_);
 
   // Get real array path
   std::string array_name_real = fs_.real_dir(array_name);
   CHECK_FALSE(array_name_real == "");
-  CHECK_THAT(array_name_real, EndsWith(array_name));
+
+  // Check the last segment of the path
+  CHECK(path_name(array_name_real) == path_name(array_name));
 
   // Tests
   //absolute path isn't relevant anymore
@@ -178,6 +186,12 @@ void ArraySchemaTestFixture::check_dense_array(std::string array_name) {
   CHECK(array_schema_disk.tile_order_ == array_schema_.tile_order_);
   CHECK(array_schema_disk.dense_ == array_schema_.dense_);
   CHECK_THAT(array_schema_disk.attributes_[0], Equals(array_schema_.attributes_[0]));
+  CHECK_THAT(array_schema_disk.dimensions_[0], Equals(array_schema_.dimensions_[0]));
+  CHECK_THAT(array_schema_disk.dimensions_[1], Equals(array_schema_.dimensions_[1]));
+  CHECK(domain_disk[0] == domain[0]);
+  CHECK(domain_disk[1] == domain[1]);
+  CHECK(domain_disk[2] == domain[2]);
+  CHECK(domain_disk[3] == domain[3]);
   CHECK(array_schema_disk.compression_[0] == array_schema_.compression_[0]);
   CHECK(array_schema_disk.compression_[1] == array_schema_.compression_[1]);
   CHECK(array_schema_disk.types_[0] == array_schema_.types_[0]);
@@ -330,5 +344,37 @@ TEST_CASE("Test array schema backward compatibility", "[compatibility]") {
   CHECK(array_schema.cell_order_ == 1);
   CHECK(array_schema.dim_num_ == 2);
   CHECK(array_schema.compression_[0] == 1);
+
+  CHECK(tiledb_array_free_schema(&array_schema) == TILEDB_OK);
+  CHECK(tiledb_ctx_finalize(tiledb_ctx) == TILEDB_OK);
+}
+
+TEST_CASE("Test array schema backward compatibility 2", "[compatibility_2]") {
+  TileDB_CTX* tiledb_ctx;
+  int rc = tiledb_ctx_init(&tiledb_ctx, NULL);
+  REQUIRE(rc == TILEDB_OK);
+
+  PosixFS fs;
+  std::string array_name = std::string(TILEDB_TEST_DIR)+"/inputs/compatibility_pre2_ws/my_workspace/sparse_arrays/my_array_B";
+  REQUIRE(fs.is_dir(array_name));
+
+  TileDB_ArraySchema array_schema;
+  rc = tiledb_array_load_schema(tiledb_ctx, array_name.c_str(), &array_schema);
+  REQUIRE(rc == TILEDB_OK);
+
+  CHECK(std::string(array_schema.array_name_).find(std::string("my_array_B")) != std::string::npos);
+  CHECK(array_schema.attribute_num_ == 3);
+  CHECK(array_schema.capacity_ == 2);
+  CHECK(array_schema.cell_order_ == 0);
+  CHECK(array_schema.dim_num_ == 2);
+  CHECK(array_schema.compression_[0] == TILEDB_GZIP);
+  CHECK(array_schema.compression_level_[1] == -1);
+  CHECK(array_schema.offsets_compression_[0] == 0);
+  CHECK(array_schema.offsets_compression_[1] == TILEDB_GZIP);
+  CHECK(array_schema.offsets_compression_[2] == 0);
+  CHECK(array_schema.offsets_compression_level_[1] == -1);
+
+  CHECK(tiledb_array_free_schema(&array_schema) == TILEDB_OK);
+  CHECK(tiledb_ctx_finalize(tiledb_ctx) == TILEDB_OK);
 }
 

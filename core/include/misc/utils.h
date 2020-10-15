@@ -222,6 +222,13 @@ bool is_gcs_path(const std::string& pathURL);
 bool is_hdfs_path(const std::string& pathURL);
 
 /**
+ * Checks if the given environment variable is set to true(case ignored) or "1"
+ * @param name environment variable name
+ * @return true if enviroment variable exists and is set to true or "1"
+ */
+bool is_env_set(const std::string& name);
+
+/**
  * Creates a new directory.
  *
  * @param fs The storage filesystem type in use. e.g. posix, hdfs, etc.

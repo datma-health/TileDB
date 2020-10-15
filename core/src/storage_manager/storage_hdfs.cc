@@ -101,8 +101,9 @@ hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
   }
   
   // Forces the builder to always create a new instance of the FileSystem.
-  // Cached instances of the builder should be fine.
-  // hdfsBuilderSetForceNewInstance(builder);
+  // TODO: Figure out if cached instances of the builder can be used at least per thread, but
+  //       use a new instance for now.
+  hdfsBuilderSetForceNewInstance(builder);
   
   hdfsBuilderSetNameNode(builder, name_node.c_str());
   if (!path_url.port().empty()) {

@@ -25,20 +25,8 @@
 # THE SOFTWARE.
 #
 # Finds the LZ4 library. This module defines:
-#   - LZ4_INCLUDE_DIR, directory containing headers
 #   - LZ4_LIBRARIES, the LZ4 library path
 #   - LZ4_FOUND, whether LZ4 has been found
-
-# Find header files  
-if(LZ4_SEARCH_HEADER_PATHS)
-  find_path( 
-      LZ4_INCLUDE_DIR lz4.h 
-      PATHS ${LZ4_SEARCH_HEADER_PATHS}   
-      NO_DEFAULT_PATH
-  )
-else()
-  find_path(LZ4_INCLUDE_DIR lz4.h)
-endif()
 
 # Find library
 if(LZ4_SEARCH_LIB_PATH)
@@ -51,10 +39,11 @@ else()
   find_library(LZ4_LIBRARIES NAMES lz4)
 endif()
 
-if(LZ4_INCLUDE_DIR AND LZ4_LIBRARIES)
+if(LZ4_LIBRARIES)
   message(STATUS "Found LZ4: ${LZ4_LIBRARIES}")
   set(LZ4_FOUND TRUE)
 else()
+  message(STATUS "Did not find LZ4: build from lz4 sources in the repository")
   set(LZ4_FOUND FALSE)
 endif()
 

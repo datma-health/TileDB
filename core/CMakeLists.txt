@@ -26,11 +26,18 @@
 #
 
 # Include core header directories
-file(GLOB TILEDB_CORE_INCLUDE_DIRS "include/*")
+file(GLOB TILEDB_CORE_INCLUDE_DIRS "include/*" 
+	"src/codec/external/lz4"
+	"src/codec/external/bitshuffle")
 include_directories(${TILEDB_CORE_INCLUDE_DIRS})
 
 # Gather the core source files
-file(GLOB_RECURSE TILEDB_CORE_SOURCES "src/*.cc")
+file(GLOB_RECURSE TILEDB_CORE_SOURCES "src/*.cc" "src/codec/external/bitshuffle/*.c")
+if(LZ4_FOUND)
+    Message(STATUS "Using LZ4 from ${LZ4_LIBRARIES}")
+else()
+    list(APPEND TILEDB_CORE_SOURCES "src/codec/external/lz4/lz4.c")
+endif()
 
 # Compile sources with PIC
 add_library(TILEDB_CORE_OBJECTS OBJECT ${TILEDB_CORE_SOURCES})

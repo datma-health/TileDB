@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018-2019 Omics Data Automation Inc. and Intel Corporation
+ * @copyright Copyright (c) 2020 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -87,13 +88,6 @@ class StorageFS {
   virtual int close_file(const std::string& filename);
 
   virtual bool locking_support();
-
-  void set_disable_file_locking(const bool val);
-
-  bool disable_file_locking();
- private:
-  bool disable_file_locking_ = false;
-  bool is_disable_file_locking_set = false;
 };
 
 #endif /* __STORAGE_FS_H__ */

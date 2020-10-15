@@ -5,11 +5,13 @@ env:
   matrix:
   global:
     - TILEDB_BUILD_DIR=$TRAVIS_BUILD_DIR/build
+    # Azure
     - secure: uNzSonKRBZyhQ5+O96XNBYEa/Br2PFde4/+C2pOp3LnJ/6QCTEb1QiPaf0Qf7esXVlsTncQHZ5L8is60zDcfXxJi5vjYNRWqZFKnCEQkgTHCwXBACcKXmIG+ZpYOJNbI1D0kky9j98SnAzU5nVvXXfYaR5Ras2f/EzihmLvRW1t8RCPa/6px2Am14ye5iWSstCtzxd/z9rzECwVry/rYj1ElWynEe16QH3KhPmrj7oLMznSluOcVeikBR7YXsP6r7ewjjNU1VpFd3dau6LpHutG9yPwQ7akWvnXm5mWRqBoWMP/B9HAro8bRrRwuvNkuAbc8m/SY6lfk3rkarQftlQQ92mig3mjQdodvftB2KMdgP43jITYG7PqwW6d3XIDhcJ3CCO7PX8tjuosVCVTMcKpXnh4Q4LeQtmrgfOzwnJvo7z/RF6gLFpWvi0jwjhP18wURbcT02FpFBKvrGJzqCZYXcU6V3l2OUwMYiz+bxLgRiwweEp3meJ5T8pHBYSadaDDBo79qk5OW4sxwjW2gDCB++y6fUdw8ukpYYEsE2Jvo35zGH/mZgTZWPKIwk7qPJ3xcRx+/L/2MQp4d6aGQGO3dQ6BVamMwPZCJRZkWGj/UPQGNV1e+4lqlBwAFVp0T618S7y0P59mLkYaPpS2vpF7xMfTasz1iAvf7oPIH9cI=
+    # Azure
     - secure: BPx7QqahgBo4h3tOP9hfQWV3YP9IDfmZzbDmzbhwZSr/098ukQu75sRbbWb7o8ZwNTTJAJPF9ykK/RzUMfDVUe3IazdLsR3M0G/KAUZZ4cSHlKYu+GNxO5wjQ3c5P7UWnmRpHRnJNC1GQy1fhA/GiUeKVbDV4HGF1cw4nTkeVG+AJcCrRiSOhzGc/9nCNlHCRGW03G6fOV+M+vK9ObTT6sQ2jv2z+ki+QZnYhxGOmFSEGEKSVnn0ZflpMh+DojgQXRVpVFOB/73Y1karg2sKPAmuEz0fPb8twrrQgjRotdprN9ClMz83a/Co8Pwx7mXKTKVO8+6dEu1aChHvFMksRzuVmznygFr+ROzYbRyYgoD7K/i//HioUIhrKpxD/3BSRE3El2dKHisd44cBVLk2K4FUtsGGxaLIg5CjmzNbJ6hAI0aQ85HW1WCdDzK+XMSVqQXmZ4VdYJFVyrBsvmRGybfzxkFhFCJa0rE2Mn8vQx+kCrJ7nx4NZ6Hx6UD1dTz4p6vkLvAGEMHgT1rE4cMywogjKmQfQoNrpQkQv2tIBUeREsIb3Zve2/IYEGKMcBDGm9z2sxXfzYI4oaXt4mRkJmgMZt8IeJPVr896O2rF/bEBLxlPGXgq3r5H4fP8neQZlLNsyXP/K9p2MOUBVPQtgIf269IUY+mDze0bgBB2fWE=
-    - secure: WdlUQwwK7P6k2oZI9Hup7AlWzQWGMjyUtUY3Hrb9PPK8pyNxxB4XFdZaydjkmZXjyXh1aRWGO9qg9YWdBJacGGn+sGE+vD42HjLCL3Op/NcJsw8/9yQB5sDDZJ5bhMhf6WQoyYerwKtDaqLxVv3TMcp27yPtGSFbfD79w1CuBYBAjJoPMHv4gIaCr0/R34xH9kfj1kTtEX8PbN+Vmd5UdPiAJUPaS16JIYkfXJ3nBX4q0wzlOurtjo0wmeRDGJK3cbe92REdp6ziKtJpfepZXki39LN7WMOaN4oPIY/dcRfkZhSeqzjOoGAiW+Ms/emF4UjLH+zF+1VbhKyTDiOVm7La/nlSsKwNXQ+jeK7GbpabKQaMg0v+kiS9AMubvEm+35R3kkU5fG7bbbwc3TS/sO2hqAeVa7GWELVCHBQl1ZF6uVVVNozubdN0GZ6yr8UxpwUQ6dVVoa8l+NEY6YWVyptL8My3jR0+5hTTi3pRrkZhwgN7PyHMz7yXGuToSMfAXxkcZrZUCZpwxieMsXrHnytFTcmXj0OEBwp8r7b4gYUdXcOQMF/oVnHCDnsl42/8OqJHWsM1IDNs7aGEB66154/k/R5xL/wS//v5KRI9e5wELMy8EbSFSjZG1XZZTVFG+jVSN3mJ1vK8lq+ZtpJSYb2tF/Fkdby2GpdBqMhC0rw=
-    - secure: ItgRVDqbC5zLwHotbDyRVqbB+KlFlJxTTn2X+4rIrVKzG5xB+wG7tjMjbzXnPcEvEoP1awClBMsCOxgqIPVwITznjlfAuA4gW0TEDfXs7lB+ZwXi/4/353Ik05iE62GLkXwDekkA4Q5lxCHwmDD7jBE4UERUL/W5RbFkBjIA68uEnHYTu6i82/GEbgteWY7OcYOyuGO7/UmMk56+PwmbjEFWFzM0My25WABf6mfe9zVomMd24EGXgKO4ATyrfrDApCYZwPZPM+SXBdGF4hX7Jjw5HC9J/acLjZJz2hpPceaw24cDhRJ2oOn5DanhWB9YLfzzdgHv0m9l1v4vOJZmB52dgcYAIV8l/oNennxCKTUx+j7YKGgxIY/iTW24UvLm/S5Bm0Hc/wwqJltt0ZE5voEKmXGE7s+kNPlxGS3GmOd/M1fsfMfEVAM31Y+nIGAq9TpUOYoZTbsWX2ty2Yzm3cQQN/+ya+m9AfCPv9wmR6xZ8+A2sXTMIEjUeY8ogKdhbEdbCFBWbsqHTgfKmAcIDQRqIxfaNdcnLW9d2vw0x0npW6uBdWEa8x2Gu3tCO2Q5qUBxENymwmtPspiHIS6aQeC9jCzXiEHqnwF6hedwMBY+6hWPgB81v/5EC3YZDGwj9Z6q5bW2KbHv3qeG1SFF1ksbCaTQuiFHpgJkNxQkBUs=
-    - secure: rA/r+bJNC+RXhcOrtkPwRJxRPAJED1X1z9ohRmQe3q34vFiZz1Mzk3hMYURFkfC1+MQYeJEUGzd0tUWj8WzicXtWr3I8hRGxRJmLEh41nFBwm4eswO2bAqtuLyc4/UpUzj64WSGDcV3AuSfRKBln4j+xLjxhTKYj35XuoSZFOIS4F4XZVIxuYuHv9EDyQvGDnqWIoNelJ5+t/yJtGDct1NqiC34gE1CMkQfuhL7lUJPWM4vDbGo5JWCADd9Wwk+S2/wmWf1jl8hqtuE3I+U5XTQdTDg+QbnLrNFYzLiPbMD2zlGK8W8LgmZE3dvNsr8unl8ZXIEMdcWCCtYq8+2e1xcAPcndEzbDXT3xd399IHs3S5JIl7PWCvi1H2Q5NhSVUBNBcVzOcjIM1boACiMFl4gsF6J8bxeWTAr94WnB2mQ4IWD6bgrxuK1z9ngzwjahP+aDZwRFZibSH/lZ1g6OQXSz1fu8MX3H5bceIfAWwMYTUrYlOVxTQuegQfnh5MBfbPNUXCxD1vAHsmvUspz62FOODsmw8yak8m5eFFeTC/Go3mXz4FWEDQ7L8IJAgDScdkM/1ILClYrw96FLHk4BOCCFztgvqkeMF4VpV3kkNRznTXpgBnR8KgJfVJNrqq5i94Y4a0Myyq5e8fUihiez8DyAUWtCfHNNSNGetx3SxEU=
+    # GS_BUCKET
+    - secure: BOdnJjq44rkmahGjcsHIE6HDsdR0U3d7DzBN3CDTr8gsZvsaOyumFN1XfdusAWd00JV40CxPXGiDbx0zGNm1X3AtZS1t1oSLCiCnQZPBvXIGqQpmQtqUHgYSqzCnzj4YyN7zb//IJq//S9kHtUOa5vCvI/xWVYsSARDqPkPDKIiDFjpxg+0EA/wItBjbxiYwpkh9G/vRxCe8KHi+LocPIIeHgr5MDBk+kYM343GXoR1yxgWRNJOrfK9w1gfCRTduq2J8ESv9DO/qr6GHSgVN099Sea5CRfu19DlJSMWbw8DVcZEkmMwtSnYm4ZgpcB+Mhcy3ys7Hqcfax/BfzB56xjtTTRSUxUdOjpmfH2p93M+Qpp7KAaT36DDdrjzPHp+iWhjNxEfUN7OFOsCkCkbO7O4mWjVghLAIZzgVAm2R+Ews4Uy4FY9MzUZFKRNkGMFsPnat7h45YvWBF3VTNbTtC+152CuSMvy7NCcvk4RE8pyvTSoTBruNh6ovj8fWWKlWzJokfNJuGkwy7zWr0FAqQe+3AE6LNVK0ZOIyZEfmBX/EVkxpGTp4u7IZLd35ci03p4AfVt9Bts0bZGIKYNKyJhT8JNVeuq+gNqB2VGrbp0Z87rDe1NA7zTWaE2hIZ4cxvS7zM+lJmq7iSLCGUuMqXq15PtspTLqGmkqNm86EKWQ=
+
 matrix:
   include:
     - name: "Basic build"
@@ -24,9 +26,9 @@ matrix:
       os: linux
       env: INSTALL_TYPE=hdfs
 
-#    - name: "GCS support"
-#      os: linux
-#      env: INSTALL_TYPE=gcs
+    - name: "GCS support"
+      os: linux
+      env: INSTALL_TYPE=gcs
 
     - name: "Azure support"
       os: linux
@@ -37,14 +39,13 @@ matrix:
       env: INSTALL_TYPE=basic
 
 before_install:
-    - pushd $TRAVIS_BUILD_DIR/.travis && openssl aes-256-cbc -K $encrypted_8ed00c38c616_key -iv $encrypted_8ed00c38c616_iv -in r.tar.enc -out r.tar -d && tar xf r.tar && popd;
+    - pushd $TRAVIS_BUILD_DIR/.travis && openssl aes-256-cbc -K $encrypted_f493007ff7ad_key -iv $encrypted_f493007ff7ad_iv -in r.tar.enc -out r.tar -d && tar xf r.tar && popd;
 
 install:
     # Install prerequisites
     - if [[ $TRAVIS_OS_NAME == linux ]]; then
-        sudo apt-get -y install cmake3 lcov mpich;
+        sudo apt-get -y install cmake lcov mpich;
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
-        which cmake;
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
         brew install cmake mpich;
         brew install lcov;
@@ -64,9 +65,9 @@ install:
     - cd $TILEDB_BUILD_DIR
 
     - echo "Invoking cmake"
-    - echo "$CMAKE -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 .."
+    - echo "cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC .."
 
-    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DENABLE_LZ4=$ENABLE_LZ4 ..
+    - cmake -DCMAKE_BUILD_TYPE=Coverage -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC ..
     - make -j 4
 
 before_script:
@@ -76,7 +77,7 @@ script:
     - if [[ $INSTALL_TYPE != basic ]]; then
         make check && $TRAVIS_BUILD_DIR/.travis/scripts/run_dfs_tests.sh;
       else
-        make tests -j 4;
+        TILEDB_BENCHMARK=1 make tests -j 4;
       fi
 
 after_success:
@@ -84,7 +85,7 @@ after_success:
     - find deps -name *.gcda -type f -delete
     - if [[ $DEBUG_LCOV == true ]]; then
         lcov --directory core --capture --output-file coverage.info;
-        lcov --remove coverage.info '/opt*' '*/usr/*' -o coverage.info;
+        lcov --remove coverage.info '/opt*' '*/usr/*' */external/* -o coverage.info;
         lcov --list coverage.info;
       fi
     # Uploading report to CodeCov

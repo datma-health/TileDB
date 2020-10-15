@@ -1,3 +1,20 @@
 ignore:
   - "examples/"
   - "test/"
+  
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 5%
+        branches: null
+
+    patch:
+      default:
+        target: auto
+        branches: null
+
+    changes:
+      default:
+        branches: null
