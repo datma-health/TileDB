@@ -13,6 +13,8 @@ tiledb_utils_tests() {
 if [[ $INSTALL_TYPE != basic ]]; then
 	cd $TILEDB_BUILD_DIR && make examples && cd examples
 	if [[ $INSTALL_TYPE == hdfs ]]; then
+    echo "JAVA_HOME=$JAVA_HOME"
+    java -version
     tiledb_utils_tests "hdfs://localhost:9000/travis_unit_test" &&
 		time $TRAVIS_BUILD_DIR/examples/run_examples.sh "hdfs://localhost:9000/travis_test" 
 	elif [[ $INSTALL_TYPE == gcs ]]; then
