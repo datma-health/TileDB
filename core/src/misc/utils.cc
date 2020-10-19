@@ -227,13 +227,21 @@ int cmp_row_order(
 }
 
 bool is_supported_cloud_path(const std::string& pathURL) {
-  return is_hdfs_path(pathURL) || is_gcs_path(pathURL) || is_azure_blob_storage_path(pathURL);
+  return is_hdfs_path(pathURL) || is_gcs_path(pathURL) || is_azure_path(pathURL) || is_azure_blob_storage_path(pathURL);
 }
 
-bool is_azure_blob_storage_path(const std::string& pathURL) {
+bool is_azure_path(const std::string& pathURL) {
   if (!pathURL.empty() && (starts_with(pathURL, "wasbs:") || starts_with(pathURL, "wasb:")
                            || starts_with(pathURL, "abfss:") || starts_with(pathURL, "abfs")
                            || starts_with(pathURL, "adl:"))) {
+    return true;
+  } else {
+    return false;
+ }
+}
+
+bool is_azure_blob_storage_path(const std::string& pathURL) {
+  if (!pathURL.empty() && (starts_with(pathURL, "az:"))) {
     return true;
   } else {
     return false;

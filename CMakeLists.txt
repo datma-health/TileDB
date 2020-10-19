@@ -5,7 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
-# Copyright (c) 2018-2019 Omics Data Automation, Inc.
+# Copyright (c) 2018-2020 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 #
 
 project(TileDB)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.6)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 # Update git submodules

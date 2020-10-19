@@ -177,7 +177,11 @@ static std::string relative_dir(std::string dir, const char *parent_dir) {
         path = path_url.path();
       }
       if (dir.find(path) != std::string::npos && dir.size() > path.size()) {
-        return dir.substr(path.size()+1);
+        if (path[path.size()-1] == '/') {
+          return dir.substr(path.size());
+        } else {
+          return dir.substr(path.size()+1);
+        }
       }
     }
   }

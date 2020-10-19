@@ -82,13 +82,11 @@ int tiledb_ctx_init(
   if (tiledb_config && tiledb_config->home_) {
     TRACE_FN_ARG("Home=" << tiledb_config->home_);
     std::string home = std::string(tiledb_config->home_, strlen(tiledb_config->home_));
-    if (TileDBUtils::is_cloud_path(home)) {
-      if (!is_hdfs_path(home) && !is_gcs_path(home) &&!is_azure_blob_storage_path(home)) {
-	std::string errmsg = "No TileDB support for URL=" + home;
-	PRINT_ERROR(errmsg);
-	strcpy(tiledb_errmsg, errmsg.c_str());
-	return TILEDB_ERR;
-      }
+    if (TileDBUtils::is_cloud_path(home) && !is_supported_cloud_path(home)) {
+      std::string errmsg = "No TileDB support for URL=" + home;
+      PRINT_ERROR(errmsg);
+      strcpy(tiledb_errmsg, errmsg.c_str());
+      return TILEDB_ERR;
     }
   }
 

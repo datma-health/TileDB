@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,11 +36,14 @@
 
 #include "storage_fs.h"
 
+#include "base64.h"
 #include "blob/blob_client.h"
 #include "storage_account.h"
 #include "storage_credential.h"
 #include "tiledb_constants.h"
 
+#include <assert.h>
+#include <unordered_map>
 #include <streambuf>
 
 using namespace azure::storage_lite;
@@ -74,6 +77,8 @@ class AzureBlob : public StorageFS {
     
   int sync_path(const std::string& path);
 
+  int close_file(const std::string& filename);
+
   bool locking_support();
 
  protected:
@@ -84,6 +89,11 @@ class AzureBlob : public StorageFS {
   std::string account_name;
   std::string container_name;
   std::string working_dir;
+
+  std::mutex write_map_mtx_;
+  std::unordered_map<std::string, std::vector<put_block_list_request_base::block_item>> write_map_;
+
+  std::vector<std::pair<std::string, std::string>> empty_metadata;
 
  private:
   struct membuf: std::streambuf {
@@ -131,7 +141,40 @@ class AzureBlob : public StorageFS {
   };
 
   std::string get_path(const std::string& path);
-  int write_to_file_kernel(const std::string& filename, const void *buffer, size_t buffer_size);
+
+  int commit_file(const std::string& filename);
+
+  std::vector<std::string> generate_block_ids(const std::string& path, int num_blocks) {
+    std::vector<std::string> block_ids;
+    block_ids.reserve(num_blocks);
+
+    int existing_num_blocks = 0;
+    const std::lock_guard<std::mutex> lock(write_map_mtx_);
+    auto search = write_map_.find(path);
+    if (search == write_map_.end()) {
+      write_map_.insert({path, std::vector<put_block_list_request_base::block_item>{}});
+      search = write_map_.find(path);
+      assert (search != write_map_.end());
+    } else {
+      existing_num_blocks = search->second.size();
+    }
+
+    for (int i = existing_num_blocks; i < existing_num_blocks+num_blocks; i++) {
+      std::string block_id = std::to_string(i);
+      block_id = std::string(12 - block_id.length(), '-') + block_id;
+      block_id = to_base64(reinterpret_cast<const unsigned char*>(block_id.data()), block_id.length());
+      auto block = put_block_list_request_base::block_item{block_id, put_block_list_request_base::block_type::uncommitted};
+      block_ids.emplace_back(block_id);
+      search->second.push_back(std::move(block));
+    }
+
+    return block_ids;
+  }
+
+  std::future<storage_outcome<void>> upload_block_blob(const std::string &blob, uint64_t block_size, int num_blocks,
+                                                       std::vector<std::string> block_list,
+                                                       const char* buffer, uint64_t bufferlen,
+                                                       uint parallelism=1);
   
 };
 #endif /* __STORAGE_AZURE_BLOB_H__ */

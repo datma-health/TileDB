@@ -108,6 +108,10 @@ class TempDir {
   }
 };
 
+const std::string get_test_dir() {
+  return g_test_dir;
+}
+
 int main( int argc, char* argv[] )
 {
   Catch::Session session; // There must be exactly one instance
