@@ -191,11 +191,6 @@ bool AzureBlob::is_dir(const std::string& dir) {
     std::string path=slashify(get_path(dir));
     response = bc->list_blobs_segmented(container_name, "/", continuation_token, path);
     if (response.blobs.size() > 0) {
-      for (auto i=0u; i<response.blobs.size(); i++) {
-        if (starts_with(response.blobs[i].name, path)) {
-          return true;
-        }
-      }
       return true;
     }
     continuation_token = response.next_marker;
