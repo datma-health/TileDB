@@ -27,7 +27,6 @@ if [[ $INSTALL_TYPE != basic ]]; then
     echo $AZURE_STORAGE_ACCOUNT
     echo "wasbs scheme utils test" && tiledb_utils_tests "wasbs://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_unit_test" &&
     echo "az scheme utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_azure_blob_test" &&
-    echo "az storage test" &&  $TILEDB_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_azure_blob_storage_test" &&
     echo "az scheme examples" && time $TRAVIS_BUILD_DIR/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_test"
 #    echo "wasbs scheme examples" && time $TRAVIS_BUILD_DIR/examples/run_examples.sh "wasbs://$AZURE_CONTAINER_NAME@$AZURE_ACCOUNT_NAME.blob.core.windows.net/travis_test"
   fi
