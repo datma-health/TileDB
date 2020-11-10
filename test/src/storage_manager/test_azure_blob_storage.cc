@@ -251,7 +251,8 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
   }
   char *travis_build = getenv("TRAVIS_BUILD_DIR");
   if (travis_build && strlen(travis_build) > 0) {
-    INFO("Skipping the test of AzureBlob parallel operations for now as it timing out");
+    std::cerr << "Skipping the test of AzureBlob parallel operations on Travis for now as it timing out\n";
+    return;
   }
   std::string test_dir("parallel");
   REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
