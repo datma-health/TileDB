@@ -241,7 +241,7 @@ bool is_azure_path(const std::string& pathURL) {
 }
 
 bool is_azure_blob_storage_path(const std::string& pathURL) {
-  if (!pathURL.empty() && (starts_with(pathURL, "az:"))) {
+  if (!pathURL.empty() && starts_with(pathURL, "az:")) {
     return true;
   } else {
     return false;

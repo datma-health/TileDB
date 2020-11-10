@@ -72,16 +72,21 @@ static std::string get_account_key(const std::string& account_name) {
   return key;
 }
 
-static std::string get_access_token() {
-  // Invoke `az account get-access-token --resource https://storage.azure.com/ -o tsv --query accessToken`
-  std::array<char, 2048> buffer;
+static std::string get_access_token(const std::string& account_name, const std::string& path) {
+  // Invoke `az account get-access-token --resource https://<account>.blob.core.windows.net -o tsv --query accessToken`
+  // Can use `az account get-access-token --resource https://storage.azure.com/ -o tsv --query accessToken` too
   std::string token;
-  const char *cmd = "az account get-access-token --resource https://storage.azure.com/ -o tsv --query accessToken";
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+  std::string resource_url = "https://" + account_name + ".blob.core.windows.net";
+  std::string command =  "az account get-access-token --resource " + resource_url + " -o tsv --query accessToken";
+  std::array<char, 2048> buffer;
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.data(), "r"), pclose);
   if (pipe) {
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
       token += buffer.data();
     }
+  } else {
+    token = "";
+    AZ_BLOB_ERROR("Could not get access-token for account " + account_name, path);
   }
   return token;
 }
@@ -117,7 +122,6 @@ std::string AzureBlob::get_path(const std::string& path) {
   if (pathname[0] == '/') {
     return pathname.substr(1);
   }
-
   if (pathname.empty()) {
     return working_dir;
   } else if (starts_with(pathname, working_dir)) {
@@ -128,19 +132,17 @@ std::string AzureBlob::get_path(const std::string& path) {
   }
 }
 
-// TODO: REMOVE: CMD: ./test_tiledb_utils --test-dir wasbs://build@oda.blob.core.windows.net/nalini_test
-// TODO: Add robust error checking
 AzureBlob::AzureBlob(const std::string& home) {
   azure_url path_url(home);
 
-  // wasbs://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
+  // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
   // e.g. wasbs://test@mytest.blob.core.windows.net/ws
   if (path_url.protocol().compare("az") != 0) {
-    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports wasbs:// and wasb:// URL protocols");
+    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// URL protocols");
   }
 
   if (path_url.account().size() == 0 || path_url.container().size() == 0) {
-    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob URL does not seem to have either an account or a container");
+    throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URL does not seem to have either an account or a container");
   }
 
   std::shared_ptr<storage_credential> cred = nullptr;
@@ -149,20 +151,24 @@ AzureBlob::AzureBlob(const std::string& home) {
   if (azure_account_key.size() > 0) {
     cred = std::make_shared<shared_key_credential>(azure_account, azure_account_key);
   } else {
-    std::string token = get_access_token();
+    std::string token = get_access_token(azure_account, home);
     if (token.size() > 0) {
       cred = std::make_shared<token_credential>(token);
     }
   }
   
   if (cred == nullptr) {
-    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Could not get credentials for azure storage account=" + azure_account);
+    throw std::system_error(EIO, std::generic_category(), "Could not get credentials for azure storage account=" + azure_account + ". Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
   }
 
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */ true);
   bC = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
   bc_wrapper = std::make_shared<blob_client_wrapper>(bC);
   bc = reinterpret_cast<blob_client_wrapper *>(bc_wrapper.get());
+
+  if (!bc->container_exists(path_url.container())) {
+    throw std::system_error(EIO, std::generic_category(), "Azure Blob FS only supports already existing containers. Create container from either the az CLI or the storage portal before restarting operation");
+  }
 
   account_name = path_url.account();
   container_name = path_url.container();
@@ -249,26 +255,22 @@ int AzureBlob::delete_dir(const std::string& dir) {
     return TILEDB_FS_ERR;
   }
 
-  auto response = bc->list_blobs_segmented(container_name, "/", "", slashify(get_path(dir)), INT_MAX);
-  if (!response.next_marker.empty()) {
-    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TBD: No support for continuation tokens");
-  }
-  if (response.blobs.size() > 0) {
+  int rc = TILEDB_FS_OK;
+  std::string continuation_token = "";
+  auto response = bc->list_blobs_segmented(container_name, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
+  do {
     for (auto i=0u; i<response.blobs.size(); i++) {
       if (response.blobs[i].is_directory) {
         delete_dir(response.blobs[i].name);
       } else {
         bc->delete_blob(container_name, response.blobs[i].name);
-        if (errno) {
-          AZ_BLOB_ERROR("Could not delete file", response.blobs[i].name);
-        } 
         if (bc->blob_exists(container_name, response.blobs[i].name)) {
           AZ_BLOB_ERROR("File still exists after deletion", response.blobs[i].name);
         }
       }
     }
-  }
-  return TILEDB_FS_OK;
+  } while (!continuation_token.empty());
+  return rc;
 }
 
 std::vector<std::string> AzureBlob::get_dirs(const std::string& dir) {
@@ -335,7 +337,6 @@ size_t AzureBlob::file_size(const std::string& filename) {
 
 #define GRAIN_SIZE (4*1024*1024)
 
-// TODO: Implement reading in chunks of MAX_BYTES like in write_to_file(), but asynchronously.
 int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
   if (!is_file(filename)) {
     AZ_BLOB_ERROR("File does not exist", filename);
