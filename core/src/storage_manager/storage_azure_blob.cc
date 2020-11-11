@@ -191,17 +191,9 @@ bool AzureBlob::is_dir(const std::string& dir) {
   if (dir.empty() || get_path(dir).empty() || is_file(slashify(dir)+MARKER)) {
     return true;
   }
-  std::string continuation_token = "";
-  list_blobs_segmented_response response;
-  do {
-    std::string path=slashify(get_path(dir));
-    response = bc->list_blobs_segmented(container_name, "/", continuation_token, path);
-    if (response.blobs.size() > 0) {
-      return true;
-    }
-    continuation_token = response.next_marker;
-  } while (!continuation_token.empty());
-  return false;
+  std::string path=slashify(get_path(dir));
+  list_blobs_segmented_response response = bc->list_blobs_segmented(container_name, "/", "", path, 1);
+  return response.blobs.size() > 0;
 }
 
 bool AzureBlob::is_file(const std::string& file) {
