@@ -222,7 +222,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
   }
   char *travis_build = getenv("TRAVIS_BUILD_DIR");
   if (travis_build && strlen(travis_build) > 0) {
-    std::cerr << "Skipping the test of AzureBlob parallel operations on Travis for now as it timing out\n";
+    std::cerr << "Skipping the test of AzureBlob read/write large files on Travis for now as it timing out\n";
     return;
   }
   std::string test_dir("read_write_large");
