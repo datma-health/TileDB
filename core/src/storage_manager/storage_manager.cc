@@ -33,6 +33,7 @@
 
 #include "storage_manager.h"
 
+#include "url.h"
 #include "utils.h"
 #include "storage_fs.h"
 
@@ -163,6 +164,30 @@ static std::vector<std::string> list_workspaces(StorageFS *fs, const char *paren
   return workspace_dirs;
 }
 
+static std::string relative_dir(std::string dir, const char *parent_dir) {
+  if (dir.find(parent_dir) != std::string::npos && dir.size() > strlen(parent_dir)) {
+    return dir.substr(strlen(parent_dir)+1);
+  } else if (strstr(parent_dir, "://")) {
+    url path_url(parent_dir);
+    std::string path;
+    if (path_url.path().size() > 1) {
+      if (path_url.path()[0] == '/') {
+        path = path_url.path().substr(1);
+      } else {
+        path = path_url.path();
+      }
+      if (dir.find(path) != std::string::npos && dir.size() > path.size()) {
+        if (path[path.size()-1] == '/') {
+          return dir.substr(path.size());
+        } else {
+          return dir.substr(path.size()+1);
+        }
+      }
+    }
+  }
+  return dir;
+}
+
 int StorageManager::ls_workspaces(
     const char *parent_dir,
     char** workspaces,
@@ -178,7 +203,7 @@ int StorageManager::ls_workspaces(
 
   workspace_num = 0;
   for (auto const dir: workspace_dirs) {
-    strncpy(workspaces[workspace_num++], dir.substr(strlen(parent_dir)+1).c_str(), TILEDB_NAME_MAX_LEN);
+    strncpy(workspaces[workspace_num++], relative_dir(dir, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
   }
 
   // Success
@@ -1073,7 +1098,7 @@ int StorageManager::ls(
     }
     if (dir_type >= 0) {
       if (dir_i < dir_num) {
-	strncpy(dirs[dir_i], dir.substr(strlen(parent_dir)+1).c_str(), TILEDB_NAME_MAX_LEN);
+	strncpy(dirs[dir_i], relative_dir(dir, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
 	dir_types[dir_i++] = dir_type;
       } else {
 	std::string errmsg = 
