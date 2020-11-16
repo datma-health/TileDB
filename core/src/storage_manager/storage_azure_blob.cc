@@ -174,6 +174,10 @@ AzureBlob::AzureBlob(const std::string& home) {
   container_name = path_url.container();
 
   working_dir = get_path(path_url.path());
+
+  // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
+  download_buffer_size_ = constants::default_block_size; // 8M
+  upload_buffer_size_ = constants::max_block_size; // 100M
 }
 
 std::string AzureBlob::current_dir() {

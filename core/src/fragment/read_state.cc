@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,9 @@
  *
  * This file implements the ReadState class.
  */
-#include "utils.h"
+
 #include "read_state.h"
+#include "utils.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -1227,8 +1228,8 @@ int ReadState::read_segment(int attribute_num, bool is_var, off_t offset, void *
   // Construct the attribute file name
   std::string filename = construct_filename(attribute_num, is_var);
 
-  // Experimental buffered reading to help with cloud performance
-  /*  if (is_hdfs_path(filename)) { 
+  // Buffered reading to help with distributed filesystem and cloud performance
+  if (fs->get_download_buffer_size() > 0) {
     Buffer *file_buffer;
     if (is_var) {
       assert((attribute_num < attribute_num_) && "Coords attribute cannot be variable");
@@ -1254,7 +1255,6 @@ int ReadState::read_segment(int attribute_num, bool is_var, off_t offset, void *
       }
     }
   }
-  */
   
   // Read segment directly
   int read_method = array_->config()->read_method();

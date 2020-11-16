@@ -81,6 +81,13 @@ public:
   void *get_buffer();
 
   /**
+   * Sets the buffer to the given buffer. In this case, it is a read-only buffer.
+   * @param buffer The buffer which contains the data.
+   * @param size The size of the data in the buffer.
+   */
+  void set_buffer(void *bytes, int64_t size);
+
+  /**
    * Get the size of the filled buffer size.
    */
   int64_t get_buffer_size();
@@ -109,17 +116,9 @@ public:
   int append_buffer(const void *bytes, int64_t size);
 
   /**
-   * Frees the allocated cached buffer and reinitializes all associated varaibles.
+   * Frees the allocated cached buffer and reinitializes all associated variables.
    */
   void free_buffer();
-
-protected:
-  /** 
-   * Sets the buffer to the given buffer. In this case, it is a read-only buffer.
-   * @param buffer The buffer which contains the data.
-   * @param size The size of the data in the buffer.
-   */
-  void set_buffer(void *bytes, int64_t size);
 
 private:
   void *buffer = NULL;

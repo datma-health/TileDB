@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -490,9 +491,8 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
   // Construct the attribute file name
   std::string filename = construct_filename(attribute_id, is_var);
 
-  // Experimental buffered writes to cloud.
-  // If file does not exist, use buffers and persist the buffer to the file during finalization. Otherwise, write to file directly.
-  /*  if (!is_file(fs_, filename) && is_hdfs_path(filename)) {
+  // Use buffers when desired, otherwise rely on HDFS or the Posix Filesystem to handle buffering
+  if (fs_->get_upload_buffer_size() > 0) {
     Buffer *file_buffer;
     if (is_var) {
       assert((attribute_id < attribute_num_) && "Coords attribute cannot be variable");
@@ -507,7 +507,7 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
       file_buffer = file_buffer_[attribute_id];
     }
   
-    // Write to file buffers if possible
+    // Buffered writing to help with distributed filesystem and cloud performance
     if (file_buffer != NULL) {
       if (file_buffer->append_buffer(segment, length) == TILEDB_BF_ERR) {
         file_buffer->free_buffer();
@@ -518,7 +518,7 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
         return TILEDB_WS_OK;
       }
     }
-    } */
+  }
 
   // Write_segment directly
   int rc = TILEDB_WS_OK;
