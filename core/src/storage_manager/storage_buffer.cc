@@ -32,9 +32,10 @@
 
 #include "storage_buffer.h"
 
-#include <algorithm>
+#include <assert.h>
 #include <iostream>
 #include <string>
+#include <string.h>
 
 #ifdef TILEDB_VERBOSE
 #  define PRINT_ERROR(x) std::cerr << TILEDB_BF_ERRMSG << x << ".\n" 
@@ -42,7 +43,7 @@
 #  define PRINT_ERROR(x) do { } while(0) 
 #endif
 
-int StorageBuffer::read_buffer(int64_t offset, void *bytes, int64_t size) {
+int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
     if (bytes == NULL) {
     std::string errmsg = "Arguments not specified correctly";
     PRINT_ERROR(errmsg);
@@ -87,7 +88,7 @@ int StorageBuffer::read_buffer(int64_t offset, void *bytes, int64_t size) {
   for (auto i=offset/chunk_size; i<=(offset+size)/chunk_size; i++) {
     assert(i < blocks_read_.size());
     if (!blocks_read_[i]) {
-      fs_->read_from_file(filename_, i*chunk_size, reinterpret_cast<char *>(buffer)+i*chunk_size, i==(num_blocks_-1)?filesize%chunk_size:chunk_size);
+      fs_->read_from_file(filename_, i*chunk_size, (char *)buffer+i*chunk_size, i==(num_blocks_-1)?filesize%chunk_size:chunk_size);
       blocks_read_[i] = true;
     }
   }
@@ -101,7 +102,7 @@ int StorageBuffer::read_buffer(int64_t offset, void *bytes, int64_t size) {
 }
 
 #define CHUNK 1024
-int StorageBuffer::append_buffer(const void *bytes, int64_t size) {  
+int StorageBuffer::append_buffer(const void *bytes, size_t size) {
   if (read_only) {
     std::string errmsg = "Cannot append buffer to read-only buffers";
     PRINT_ERROR(errmsg);

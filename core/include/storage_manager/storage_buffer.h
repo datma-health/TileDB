@@ -48,9 +48,9 @@ class StorageBuffer : public Buffer {
    * @param bytes The buffer into which the data will be written.
    * @param length The size of the data to be read from the cached buffer.
    */
-  int read_buffer(int64_t offset, void *bytes, int64_t size);
+  int read_buffer(off_t offset, void *bytes, size_t size);
 
-  int append_buffer(const void *bytes, int64_t size);
+  int append_buffer(const void *bytes, size_t size);
 
   int finalize();
   
@@ -59,6 +59,6 @@ class StorageBuffer : public Buffer {
   
   StorageFS *fs_ = NULL;
   std::string filename_;
-  int num_blocks_ = 0;
+  uint32_t num_blocks_ = 0;
   std::vector<bool> blocks_read_;
 };

@@ -54,7 +54,7 @@ std::string tiledb_bf_errmsg = "";
 Buffer::Buffer() {
 }
 
-Buffer::Buffer(void *bytes, int64_t size) {
+Buffer::Buffer(void *bytes, size_t size) {
   set_buffer(bytes, size);
 }
 
@@ -70,7 +70,7 @@ int64_t Buffer::get_buffer_size() {
   return buffer_size;
 }
 
-void Buffer::set_buffer(void *bytes, int64_t size) {
+void Buffer::set_buffer(void *bytes, size_t size) {
   this->buffer = bytes;
   this->buffer_size = size;
   this->allocated_buffer_size = size;
@@ -78,7 +78,7 @@ void Buffer::set_buffer(void *bytes, int64_t size) {
   this->read_only = true;
 }
 
-int Buffer::read_buffer(void *bytes, int64_t size) {
+int Buffer::read_buffer(void *bytes, size_t size) {
   if (bytes == NULL) {
     std::string errmsg = "Arguments not specified correctly";
     PRINT_ERROR(errmsg);
@@ -113,7 +113,7 @@ int Buffer::read_buffer(void *bytes, int64_t size) {
   return TILEDB_BF_OK;
 }
 
-int Buffer::read_buffer(int64_t offset, void *bytes, int64_t size) {
+int Buffer::read_buffer(off_t offset, void *bytes, size_t size) {
   if (bytes == NULL) {
     std::string errmsg = "Arguments not specified correctly";
     PRINT_ERROR(errmsg);
@@ -148,7 +148,7 @@ int Buffer::read_buffer(int64_t offset, void *bytes, int64_t size) {
 }
 
 #define CHUNK 1024
-int Buffer::append_buffer(const void *bytes, int64_t size) {
+int Buffer::append_buffer(const void *bytes, size_t size) {
   if (read_only) {
     std::string errmsg = "Cannot append buffer to read-only buffers";
     PRINT_ERROR(errmsg);
