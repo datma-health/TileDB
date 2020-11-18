@@ -120,7 +120,7 @@ public:
    */
   void free_buffer();
 
-private:
+protected:
   void *buffer = NULL;
   int64_t buffer_size = 0;
   int64_t buffer_offset = 0;

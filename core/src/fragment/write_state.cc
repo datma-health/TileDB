@@ -32,6 +32,7 @@
  */
 
 #include "comparators.h"
+#include "storage_buffer.h"
 #include "tiledb_constants.h"
 #include "utils.h"
 #include "write_state.h"
@@ -435,38 +436,25 @@ std::string WriteState::construct_filename(int attribute_id, bool is_var) {
   return filename;
 }
 
-int write_file(StorageFS *fs, std::string filename, void *buffer, int64_t size) {
-  if (write_to_file(fs, filename, buffer, size) == TILEDB_UT_ERR) {
-    std::string errmsg = "Cannot write buffer to file " + filename;
-    PRINT_ERROR(errmsg);
-    return TILEDB_WS_ERR;
-  }
-  return TILEDB_WS_OK;
-}
-
 int WriteState::write_file_buffers() {
   int rc = TILEDB_WS_OK;
   for(int i=0; i<attribute_num_+1; ++i) {
-    std::string filename = construct_filename(i, false);
     if (file_buffer_[i] != NULL) {
-      if (!rc) {
-        rc = write_file(fs_, filename, file_buffer_[i]->get_buffer(), file_buffer_[i]->get_buffer_size());
-      }
+      rc = file_buffer_[i]->finalize() || rc;
       delete file_buffer_[i];
       file_buffer_[i] = NULL;
     }
-    close_file(fs_, filename);
-
-    std::string filename_var = construct_filename(i, true);
     if (file_var_buffer_[i] != NULL) {
-      if (!rc) {
-        rc = write_file(fs_, filename_var, file_var_buffer_[i]->get_buffer(), file_var_buffer_[i]->get_buffer_size());
-      }
+      rc = file_var_buffer_[i]->finalize() || rc;
       delete file_var_buffer_[i];
       file_var_buffer_[i] = NULL;
-      continue;
     }
-    close_file(fs_, filename_var);
+    if (rc) {
+      std::string errmsg = "Could not finalize files from storage buffers";
+      PRINT_ERROR(errmsg);
+      tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
+      return TILEDB_WS_ERR;
+    }
     
     // For variable length attributes, ensure an empty file exists even if there
     // are no valid values for querying.
@@ -493,16 +481,16 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
 
   // Use buffers when desired, otherwise rely on HDFS or the Posix Filesystem to handle buffering
   if (fs_->get_upload_buffer_size() > 0) {
-    Buffer *file_buffer;
+    StorageBuffer *file_buffer;
     if (is_var) {
       assert((attribute_id < attribute_num_) && "Coords attribute cannot be variable");
       if (file_var_buffer_[attribute_id] == NULL) {
-        file_var_buffer_[attribute_id]= new Buffer();
+        file_var_buffer_[attribute_id]= new StorageBuffer(fs_, filename);
       }
       file_buffer = file_var_buffer_[attribute_id];
     } else {
       if (file_buffer_[attribute_id] == NULL) {
-        file_buffer_[attribute_id] = new Buffer();
+        file_buffer_[attribute_id] = new StorageBuffer(fs_, filename);
       }
       file_buffer = file_buffer_[attribute_id];
     }
