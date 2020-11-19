@@ -37,9 +37,10 @@
 
 class StorageBuffer : public Buffer {
  public:
-  StorageBuffer(StorageFS *fs, const std::string& filename) {
+  StorageBuffer(StorageFS *fs, const std::string& filename, bool is_read=false) {
     fs_ = fs;
     filename_ = filename;
+    read_only = is_read;
   }
 
   /**
