@@ -88,6 +88,28 @@ class StorageFS {
   virtual int close_file(const std::string& filename);
 
   virtual bool locking_support();
+
+  size_t get_download_buffer_size() {
+    auto env_var = getenv("TILEDB_DOWNLOAD_BUFFER_SIZE");
+    if (env_var) {
+      return std::stoull(env_var);
+    } else {
+      return download_buffer_size_;
+    }
+  }
+  
+  size_t get_upload_buffer_size() {
+    auto env_var = getenv("TILEDB_UPLOAD_BUFFER_SIZE");
+    if (env_var) {
+      return std::stoull(env_var);
+    } else {
+      return upload_buffer_size_;
+    }
+  }
+
+ protected:
+  size_t download_buffer_size_ = 0;
+  size_t upload_buffer_size_ = 0;
 };
 
 #endif /* __STORAGE_FS_H__ */

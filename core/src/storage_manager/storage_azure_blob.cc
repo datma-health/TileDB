@@ -174,6 +174,10 @@ AzureBlob::AzureBlob(const std::string& home) {
   container_name = path_url.container();
 
   working_dir = get_path(path_url.path());
+
+  // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
+  download_buffer_size_ = constants::default_block_size; // 8M
+  upload_buffer_size_ = constants::max_block_size; // 100M
 }
 
 std::string AzureBlob::current_dir() {
@@ -336,10 +340,11 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   }
   std::string path = get_path(filename);
   auto bclient = reinterpret_cast<blob_client *>(bC.get());
-  auto size = file_size(filename);
-  if (size >= (length + offset)) {
+  auto filesize = file_size(filename);
+  if (filesize >= (length + offset)) {
     storage_outcome<void> read_result;
-    if (size < GRAIN_SIZE) {
+    // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
+    if (filesize < GRAIN_SIZE) {
       omemstream os_buf(buffer, length);
       read_result = bclient->download_blob_to_stream(container_name, path, offset, length, os_buf).get();
     } else {
@@ -357,7 +362,7 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   }
 }
 
-// This method is based on upload_block_blob_from_buffer from the SDK except for the put_block_list stage which happens in the commit_path() now
+// This method is based on upload_block_blob_from_buffer from the SDK except for the put_block_list stage which happens in commit_path() now
 std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::string &blob, uint64_t block_size, int num_blocks, std::vector<std::string> block_ids,
                                                                 const char* buffer, uint64_t bufferlen, uint parallelism) {
   auto bclient = reinterpret_cast<blob_client *>(bC.get());

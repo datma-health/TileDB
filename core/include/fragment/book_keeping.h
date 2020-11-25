@@ -70,7 +70,7 @@ extern std::string tiledb_bk_errmsg;
 
 
 /** Stores the book-keeping structures of a fragment. */
-class BookKeeping : public Buffer {
+class BookKeeping {
  public:
   /* ********************************* */
   /*     CONSTRUCTORS & DESTRUCTORS    */
@@ -236,6 +236,9 @@ class BookKeeping : public Buffer {
   /* ********************************* */
   /*         PRIVATE ATTRIBUTES        */
   /* ********************************* */
+
+  // Buffer backing the book_keeping contents
+  Buffer buffer_;
 
   /** The array schema */
   const ArraySchema* array_schema_;

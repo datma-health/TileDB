@@ -37,6 +37,7 @@
 #include "book_keeping.h"
 #include "codec.h"
 #include "fragment.h"
+#include "storage_buffer.h"
 #include <vector>
 
 
@@ -413,8 +414,8 @@ class ReadState {
   size_t coords_size_;
 
   /** Internal buffers associated with the attribute files */
-  std::vector<Buffer *> file_buffer_;
-  std::vector<Buffer *> file_var_buffer_;
+  std::vector<StorageBuffer *> file_buffer_;
+  std::vector<StorageBuffer *> file_var_buffer_;
   
   /** Compression per attribute */
   std::vector<Codec *> codec_;
