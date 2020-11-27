@@ -1,5 +1,5 @@
 sudo: required
-dist: trusty
+dist: xenial
 
 env:
   matrix:
@@ -16,30 +16,38 @@ matrix:
   include:
     - name: "Basic build"
       os: linux
+      dist: xenial
       env: INSTALL_TYPE=basic
 
     - name: "Basic build - all codec"
       os: linux
+      dist: xenial
       env: INSTALL_TYPE=basic INSTALL_CODEC=true
 
     - name: "HDFS support"
       os: linux
+      dist: xenial
       env: INSTALL_TYPE=hdfs
 
     - name: "GCS support"
       os: linux
+      dist: xenial
       env: INSTALL_TYPE=gcs
 
     - name: "Azure support"
       os: linux
+      dist: xenial
       env: INSTALL_TYPE=azure
 
     - name: "Basic build - OSX"
       os: osx
+      osx_image: xcode9.3
       env: INSTALL_TYPE=basic
+      cache:
+          directories: $HOME/Library/Caches/Homebrew
 
 before_install:
-    - pushd $TRAVIS_BUILD_DIR/.travis && openssl aes-256-cbc -K $encrypted_f493007ff7ad_key -iv $encrypted_f493007ff7ad_iv -in r.tar.enc -out r.tar -d && tar xf r.tar && popd;
+    - pushd $TRAVIS_BUILD_DIR/.travis && openssl aes-256-cbc -K $encrypted_b8311a874f1e_key -iv $encrypted_b8311a874f1e_iv -in r.tar.enc -out r.tar -d && tar xf r.tar && popd;
 
 install:
     # Install prerequisites
@@ -47,7 +55,7 @@ install:
         sudo apt-get -y install cmake lcov mpich;
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev;
       elif [[ $TRAVIS_OS_NAME == osx ]]; then
-        brew install cmake mpich;
+        brew install cmake;
         brew install lcov;
         brew install openssl ossp-uuid;
         export OPENSSL_ROOT_DIR=/usr/local/opt/openssl;
