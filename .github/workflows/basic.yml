@@ -1,0 +1,64 @@
+name: Basic workflow to build and test TileDB
+
+on: [push, pull_request]
+
+env:
+  # CMAKE_BUILD_TYPE
+  BUILD_TYPE: Coverage
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-10.15]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      shell: bash
+      run: mkdir -p ${{runner.workspace}}/build
+
+    - name: Install Prereqs and Configure CMake - Ubuntu
+      if: startsWith(matrix.os,'ubuntu')
+      shell: bash
+      run: |
+        sudo apt-get -y install cmake lcov
+        sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
+        pushd ${{runner.workspace}}/build && cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE && popd
+        
+    - name: Install Prereqs and Configure CMake - MacOS
+      if: startsWith(matrix.os, 'macOS')
+      shell: bash
+      run: |
+        brew list cmake &>/dev/null || brew install cmake
+        brew list lcov &>/dev/null || brew install lcov
+        brew list openssl &>/dev/null || brew install openssl
+        brew list ossp-uuid &>/dev/null || brew install ossp-uuid
+        pushd ${{runner.workspace}}/build && cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE && popd
+      env:
+        OPENSSL_ROOT_DIR: /usr/local/opt/openssl
+
+    - name: Build and Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        lcov --directory . --zerocounters
+        make -j4
+        TILEDB_BENCHMARK=1 make tests -j 4
+
+    - name: Prepare Report for CodeCov
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        lcov --directory core --capture --output-file coverage.info
+        lcov --remove coverage.info '/opt*' '*/usr/*' '*/deps/*' -o coverage.info
+              
+    - name: Upload Report to CodeCov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ${{runner.workspace}}/build/coverage.info
+
+        
