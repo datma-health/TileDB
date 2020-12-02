@@ -189,6 +189,9 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS read/write file", "[read-writ
 }
 
 TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS large read/write file", "[read-write-large]") {
+  if (!is_env_set("TILEDB_TEST_POSIXFS_LARGE")) {
+    return;
+  }
   test_dir += "read_write_large";
   size_t size = ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*4;
   void *buffer = malloc(size);
@@ -223,7 +226,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
     std::string filename = test_dir+"/foo"+std::to_string(i);
 
     for (auto j=0; j<2; j++) {
-      size_t size = TILEDB_UT_MAX_WRITE_COUNT;
+      size_t size = 2048;
       void *buffer = malloc(size);
       if (buffer) {
 	memset(buffer, 'X', size);
@@ -244,7 +247,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"new/foo"+std::to_string(i);
       CHECK(fs.is_file(filename));
-      CHECK(fs.file_size(filename) == ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*2);
+      CHECK(fs.file_size(filename) == 2048*2);
     }
   }
 
