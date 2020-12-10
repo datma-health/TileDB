@@ -3,14 +3,25 @@ name: Basic workflow to build and test TileDB
 on: [push, pull_request]
 
 env:
-  # CMAKE_BUILD_TYPE
-  BUILD_TYPE: Coverage
+  CMAKE_BUILD_TYPE: Coverage
+  CMAKE_BUILD_DIR: ${{github.workspace}}/build
+  HADOOP_VER: 3.2.1
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-10.15]
+        os: [ubuntu-18.04, macOS-10.15]
+        type: [basic, basic-codec, hdfs, gcs, azure]
+        exclude:
+          - os: macos-10.15
+            type: basic-codec
+          - os: macos-10.15
+            type: hdfs
+          - os: macos-10.15
+            type: gcs
+          - os: macos-10.15
+            type: azure
 
     runs-on: ${{ matrix.os }}
 
@@ -19,46 +30,63 @@ jobs:
 
     - name: Create Build Environment
       shell: bash
-      run: mkdir -p ${{runner.workspace}}/build
+      run: |
+        mkdir -p $CMAKE_BUILD_DIR
 
     - name: Install Prereqs and Configure CMake - Ubuntu
       if: startsWith(matrix.os,'ubuntu')
       shell: bash
+      working-directory: ${{env.CMAKE_BUILD_DIR}}
       run: |
         sudo apt-get -y install cmake lcov
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
-        pushd ${{runner.workspace}}/build && cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE && popd
-        
+        export ENABLE_ZSTD=0
+        export ENABLE_BLOSC=0
+        if [[ ${{matrix.type}} == "basic-codec" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/install_supported_codec.sh
+        fi
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
+               -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC
+
     - name: Install Prereqs and Configure CMake - MacOS
       if: startsWith(matrix.os, 'macOS')
       shell: bash
+      working-directory: ${{env.CMAKE_BUILD_DIR}}
       run: |
         brew list cmake &>/dev/null || brew install cmake
         brew list lcov &>/dev/null || brew install lcov
         brew list openssl &>/dev/null || brew install openssl
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
-        pushd ${{runner.workspace}}/build && cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE && popd
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE
       env:
         OPENSSL_ROOT_DIR: /usr/local/opt/openssl
 
     - name: Build and Test
-      working-directory: ${{runner.workspace}}/build
+      if: startsWith(matrix.type, 'basic')
       shell: bash
+      working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
-        lcov --directory . --zerocounters
         make -j4
         TILEDB_BENCHMARK=1 make tests -j 4
 
-    - name: Prepare Report for CodeCov
-      working-directory: ${{runner.workspace}}/build
+    - name: Cache Distributed FileSystems
+      if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure'
+      uses: actions/cache@v2
+      with:
+        path: ~/hadoop-${{env.HADOOP_VER}}
+        key: dfs-${{env.HADOOP_VER}}-v1
+
+    - name: Build and Test - Distributed FileSystems
+      if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure'
       shell: bash
+      working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
-        lcov --directory core --capture --output-file coverage.info
-        lcov --remove coverage.info '/opt*' '*/usr/*' '*/deps/*' -o coverage.info
-              
+        source $GITHUB_WORKSPACE/.github/scripts/install_hadoop.sh
+        source $GITHUB_WORKSPACE/.github/scripts/run_dfs_tests.sh
+      env:
+        INSTALL_DIR: ${{runner.workspace}}
+        INSTALL_TYPE: ${{matrix.type}}
+        R_TAR: ${{secrets.R_TAR}}
+
     - name: Upload Report to CodeCov
       uses: codecov/codecov-action@v1
-      with:
-        file: ${{runner.workspace}}/build/coverage.info
-
-        
