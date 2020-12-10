@@ -38,6 +38,7 @@ jobs:
       shell: bash
       working-directory: ${{env.CMAKE_BUILD_DIR}}
       run: |
+        sudo apt-get update
         sudo apt-get -y install cmake lcov
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         export ENABLE_ZSTD=0
