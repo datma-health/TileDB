@@ -58,31 +58,31 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
     return TILEDB_BF_ERR;  
   }
 
-  if (buffer == NULL) {
+  if (buffer_ == NULL) {
     num_blocks_ = filesize/chunk_size+1;
     blocks_read_.resize(num_blocks_);
     std::fill(blocks_read_.begin(), blocks_read_.end(), false);
   }
 
-  if (buffer == NULL || !(offset>=buffer_offset && size<=buffer_size)) {
-    buffer_offset = offset - offset%chunk_size;
-    buffer_size = ((buffer_offset%chunk_size+size)/chunk_size+1)*chunk_size;
+  if (buffer_ == NULL || !(offset>=buffer_offset_ && size<=buffer_size_)) {
+    buffer_offset_ = offset - offset%chunk_size;
+    buffer_size_ = ((buffer_offset_%chunk_size+size)/chunk_size+1)*chunk_size;
     // Factor in last chunk
-    if (buffer_offset+buffer_size > filesize) {
-      buffer_size = filesize-buffer_offset;
+    if (buffer_offset_+buffer_size_ > filesize) {
+      buffer_size_ = filesize-buffer_offset_;
     }
-    if (buffer_size > allocated_buffer_size) {
-      buffer = realloc(buffer, buffer_size);
-      if (buffer == NULL) {
+    if (buffer_size_ > allocated_buffer_size_) {
+      buffer_ = realloc(buffer_, buffer_size_);
+      if (buffer_ == NULL) {
 	std::string errmsg = "Cannot read to buffer; Mem allocation error";
 	PRINT_ERROR(errmsg);
 	tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
 	return TILEDB_BF_ERR;
       }
-      allocated_buffer_size = buffer_size;
+      allocated_buffer_size_ = buffer_size_;
     }
     
-    if (fs_->read_from_file(filename_, buffer_offset, (char *)buffer, buffer_size)) {
+    if (fs_->read_from_file(filename_, buffer_offset_, (char *)buffer_, buffer_size_)) {
       free_buffer();
       std::string errmsg = "Cannot read to buffer; Mem allocation error";
       PRINT_ERROR(errmsg);
@@ -91,10 +91,10 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
     }
   }
   
-  assert(offset >= buffer_offset);
-  assert(size <= buffer_size);
+  assert(offset >= buffer_offset_);
+  assert(size <= buffer_size_);
   
-  void *pmem = memcpy(bytes, (char *)buffer+offset-buffer_offset, size);
+  void *pmem = memcpy(bytes, (char *)buffer_+offset-buffer_offset_, size);
   assert(pmem == bytes);
 
   return TILEDB_BF_OK;
@@ -102,7 +102,7 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
 
 #define CHUNK 1024
 int StorageBuffer::append_buffer(const void *bytes, size_t size) {
-  if (read_only) {
+  if (read_only_) {
     std::string errmsg = "Cannot append buffer to read-only buffers";
     PRINT_ERROR(errmsg);
     tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
@@ -116,38 +116,38 @@ int StorageBuffer::append_buffer(const void *bytes, size_t size) {
 
   size_t chunk_size = fs_->get_upload_buffer_size();
 
-  if (buffer_size >= chunk_size) {
-    assert(buffer != NULL);
+  if (buffer_size_ >= chunk_size) {
+    assert(buffer_ != NULL);
     int rc = write_buffer();
     if (rc) {
       return rc;
     }
   }
   
-  if (buffer == NULL || buffer_size+size > allocated_buffer_size) {
-    size_t alloc_size = allocated_buffer_size + ((size/CHUNK)+1)*CHUNK;
-    buffer = realloc(buffer, alloc_size);
-    if (buffer == NULL) {
+  if (buffer_ == NULL || buffer_size_+size > allocated_buffer_size_) {
+    size_t alloc_size = allocated_buffer_size_ + ((size/CHUNK)+1)*CHUNK;
+    buffer_ = realloc(buffer_, alloc_size);
+    if (buffer_ == NULL) {
       free_buffer();
       std::string errmsg = "Cannot write to buffer; Mem allocation error";
       PRINT_ERROR(errmsg);
       tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
       return TILEDB_BF_ERR;
     }
-    allocated_buffer_size = alloc_size;
+    allocated_buffer_size_ = alloc_size;
   }
 
-  void *pmem = memcpy((char *)buffer+buffer_size, bytes, size);
-  assert(pmem == (char *)buffer+buffer_size);
+  void *pmem = memcpy((char *)buffer_+buffer_size_, bytes, size);
+  assert(pmem == (char *)buffer_+buffer_size_);
   
-  buffer_size += size;
+  buffer_size_ += size;
 
   return TILEDB_BF_OK;
 }
 
 int StorageBuffer::write_buffer() {
-  if (buffer_size > 0) {
-    if (fs_->write_to_file(filename_, buffer, buffer_size)) {
+  if (buffer_size_ > 0) {
+    if (fs_->write_to_file(filename_, buffer_, buffer_size_)) {
       free_buffer();
       std::string errmsg = "Cannot write bytes for file=" + filename_;
       PRINT_ERROR(errmsg);
@@ -155,13 +155,13 @@ int StorageBuffer::write_buffer() {
       return TILEDB_BF_ERR;
     }
   }
-  buffer_size = 0;
+  buffer_size_ = 0;
   return TILEDB_BF_OK;
 }
 
 int StorageBuffer::finalize() {
   int rc = TILEDB_BF_OK;
-  if (!read_only) {
+  if (!read_only_) {
     rc =  write_buffer();
     fs_->close_file(filename_);
   }

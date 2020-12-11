@@ -63,19 +63,19 @@ Buffer::~Buffer() {
 }
 
 void *Buffer::get_buffer() {
-  return this->buffer;
+  return buffer_;
 }
 
 int64_t Buffer::get_buffer_size() {
-  return buffer_size;
+  return buffer_size_;
 }
 
 void Buffer::set_buffer(void *bytes, size_t size) {
-  this->buffer = bytes;
-  this->buffer_size = size;
-  this->allocated_buffer_size = size;
-  this->buffer_offset = 0;
-  this->read_only = true;
+  buffer_ = bytes;
+  buffer_size_ = size;
+  allocated_buffer_size_ = size;
+  buffer_offset_ = 0;
+  read_only_ = true;
 }
 
 int Buffer::read_buffer(void *bytes, size_t size) {
@@ -86,7 +86,7 @@ int Buffer::read_buffer(void *bytes, size_t size) {
     return TILEDB_BF_ERR;
   }
 
-  if (buffer == NULL) {
+  if (buffer_ == NULL) {
     std::string errmsg = "Buffer is null, may not have been initalized correctly";
     PRINT_ERROR(errmsg);
     tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
@@ -97,7 +97,7 @@ int Buffer::read_buffer(void *bytes, size_t size) {
     return TILEDB_BF_OK;
   }
   
-  if (buffer_offset + size > buffer_size) {
+  if (buffer_offset_ + size > buffer_size_) {
     free_buffer();
     std::string errmsg = "Cannot read from buffer; End of buffer reached";
     PRINT_ERROR(errmsg);
@@ -105,10 +105,10 @@ int Buffer::read_buffer(void *bytes, size_t size) {
     return TILEDB_BF_ERR;  
   }
 
-  void *pmem = memcpy(bytes, (char *)buffer+buffer_offset, size);
+  void *pmem = memcpy(bytes, (char *)buffer_+buffer_offset_, size);
   assert(pmem == bytes);
 
-  buffer_offset += size;
+  buffer_offset_ += size;
   
   return TILEDB_BF_OK;
 }
@@ -121,7 +121,7 @@ int Buffer::read_buffer(off_t offset, void *bytes, size_t size) {
     return TILEDB_BF_ERR;
   }
 
-  if (buffer == NULL) {
+  if (buffer_ == NULL) {
     std::string errmsg = "Buffer is null, may not have been initalized correctly";
     PRINT_ERROR(errmsg);
     tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
@@ -132,24 +132,24 @@ int Buffer::read_buffer(off_t offset, void *bytes, size_t size) {
     return TILEDB_BF_OK;
   }
   
-  if (offset + size > buffer_size) {
+  if (offset + size > buffer_size_) {
     std::string errmsg = "Cannot read from buffer; End of buffer reached";
     PRINT_ERROR(errmsg);
     tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
     return TILEDB_BF_ERR;  
   }
 
-  void *pmem = memcpy(bytes, (char *)buffer+offset, size);
+  void *pmem = memcpy(bytes, (char *)buffer_+offset, size);
   assert(pmem == bytes);
 
-  buffer_offset = offset + size;
+  buffer_offset_ = offset + size;
   
   return TILEDB_BF_OK;
 }
 
 #define CHUNK 1024
 int Buffer::append_buffer(const void *bytes, size_t size) {
-  if (read_only) {
+  if (read_only_) {
     std::string errmsg = "Cannot append buffer to read-only buffers";
     PRINT_ERROR(errmsg);
     tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
@@ -167,10 +167,10 @@ int Buffer::append_buffer(const void *bytes, size_t size) {
     return TILEDB_BF_OK;
   }
   
-  if (buffer == NULL || buffer_size+size > allocated_buffer_size) {
-    int64_t alloc_size = allocated_buffer_size + ((size/CHUNK)+1)*CHUNK;
-    buffer = realloc(buffer, alloc_size);
-    if (buffer == NULL) {
+  if (buffer_ == NULL || buffer_size_+size > allocated_buffer_size_) {
+    int64_t alloc_size = allocated_buffer_size_ + ((size/CHUNK)+1)*CHUNK;
+    buffer_ = realloc(buffer_, alloc_size);
+    if (buffer_ == NULL) {
       free_buffer();
       std::string errmsg =
           "Cannot write to buffer; Mem allocation error";
@@ -179,22 +179,22 @@ int Buffer::append_buffer(const void *bytes, size_t size) {
       return TILEDB_BF_ERR;
     }
 
-    allocated_buffer_size = alloc_size;
+    allocated_buffer_size_ = alloc_size;
   }
 
-  void *pmem = memcpy((char *)buffer+buffer_size, bytes, size);
-  assert(pmem == (char *)buffer+buffer_size);
+  void *pmem = memcpy((char *)buffer_+buffer_size_, bytes, size);
+  assert(pmem == (char *)buffer_+buffer_size_);
   
-  buffer_size += size;
+  buffer_size_ += size;
 
   return TILEDB_BF_OK;
 }
 
 void Buffer::free_buffer() {
-  free(buffer);
-  buffer = NULL;
-  buffer_offset = 0;
-  buffer_size = 0;
-  allocated_buffer_size = 0;
+  free(buffer_);
+  buffer_ = NULL;
+  buffer_offset_ = 0;
+  buffer_size_ = 0;
+  allocated_buffer_size_ = 0;
 }
 

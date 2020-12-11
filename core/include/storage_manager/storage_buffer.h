@@ -40,7 +40,7 @@ class StorageBuffer : public Buffer {
   StorageBuffer(StorageFS *fs, const std::string& filename, bool is_read=false) {
     fs_ = fs;
     filename_ = filename;
-    read_only = is_read;
+    read_only_ = is_read;
   }
 
   /**

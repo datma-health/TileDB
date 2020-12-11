@@ -121,11 +121,11 @@ public:
   void free_buffer();
 
 protected:
-  void *buffer = NULL;
-  size_t buffer_size = 0;
-  off_t buffer_offset = 0;
-  size_t allocated_buffer_size = 0;
-  bool read_only = false;
+  void *buffer_ = NULL;
+  size_t buffer_size_ = 0;
+  off_t buffer_offset_ = 0;
+  size_t allocated_buffer_size_ = 0;
+  bool read_only_ = false;
 };
 
 #endif
