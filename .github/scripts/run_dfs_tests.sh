@@ -18,13 +18,10 @@ if [[ $INSTALL_TYPE == hdfs ]]; then
   tiledb_utils_tests "hdfs://localhost:9000/github_unit_test" &&
     time $GITHUB_WORKSPACE/examples/run_examples.sh "hdfs://localhost:9000/github_test"
 elif [[ $INSTALL_TYPE == gcs ]]; then
-  echo "Listing $GS_BUCKET"; hdfs dfs -ls gs://$GS_BUCKET/; echo "Listing $GS_BUCKET DONE"
   tiledb_utils_tests "gs://$GS_BUCKET/github_unit_test" &&
     time  $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/github_test"
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
-  echo AZURE_STORAGE_ACCOUNT=$AZURE_STORAGE_ACCOUNT
-  echo AZURE_STORAGE_KEY=$AZURE_STORAGE_KEY
   #echo "Listing Azure Container $AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT";hdfs dfs -ls wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/; echo "Listing Azure DONE"
   #echo "wasbs schema utils test" && tiledb_utils_tests "wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_unit_test" &&
     echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_azure_blob_test" &&
