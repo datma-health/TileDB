@@ -1613,7 +1613,10 @@ int StorageManager::consolidation_filelock_lock(
   if (!fs_->is_file(filename)) {
     if (consolidation_filelock_create(array_name_real)) {
       std::string errmsg =
-        "Cannot lock consolidation filelock; Cannot create consolidation lock file "+filename;
+        std::string("Cannot lock consolidation filelock; consolidation lock file doesn't exist and ")
+        + " cannot create consolidation lock file "+filename;
+      PRINT_ERROR(errmsg);
+      tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
       return TILEDB_SM_ERR;
     }
   }
