@@ -35,7 +35,7 @@
 
 #include "storage_hdfs.h"
 
-#include "url.h"
+#include "uri.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -91,7 +91,7 @@ void maximize_rlimits() {
   get_rlimits(&limits);
 }
 
-hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
+hdfsFS hdfs_connect(uri path_uri, const std::string& name_node) {
   hdfsFS hdfs_handle = NULL;
 
   struct hdfsBuilder *builder = hdfsNewBuilder();
@@ -106,12 +106,12 @@ hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
   hdfsBuilderSetForceNewInstance(builder);
   
   hdfsBuilderSetNameNode(builder, name_node.c_str());
-  if (!path_url.port().empty()) {
-    hdfsBuilderSetNameNodePort(builder, path_url.nport());
+  if (!path_uri.port().empty()) {
+    hdfsBuilderSetNameNodePort(builder, path_uri.nport());
   }
   
-  if (path_url.protocol().compare("gs") == 0) {
-    hdfs_handle = gcs_connect(builder, path_url.path());
+  if (path_uri.protocol().compare("gs") == 0) {
+    hdfs_handle = gcs_connect(builder, path_uri.path());
   } else {
     hdfs_handle = hdfsBuilderConnect(builder);
   }
@@ -120,32 +120,32 @@ hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
 }
 
 HDFS::HDFS(const std::string& home) {
-  url path_url(home);
+  uri path_uri(home);
   std::string name_node;
 
-  if (path_url.host().empty()) {
-    if (!path_url.port().empty()) {
+  if (path_uri.host().empty()) {
+    if (!path_uri.port().empty()) {
       PRINT_ERROR(std::string("home=") + home + " not supported. hdfs host and port have to be both empty");
-      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URL not supported: hdfs host and port have to be both empty");
+      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URI not supported: hdfs host and port have to be both empty");
     }
     name_node.assign("default");
-  } else if (path_url.protocol().compare("hdfs") != 0) { // s3/gs protocols
-    name_node.assign(path_url.protocol() + "://" + path_url.host());
+  } else if (path_uri.protocol().compare("hdfs") != 0) { // s3/gs protocols
+    name_node.assign(path_uri.protocol() + "://" + path_uri.host());
   } else {
-    if (path_url.port().empty()) {
+    if (path_uri.port().empty()) {
       PRINT_ERROR(std::string("home=") + home + " not supported. hdfs host and port have to be specified together");
-      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URL not supported: hdfs host and port have to be specified together");
+      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URI not supported: hdfs host and port have to be specified together");
     }
-    name_node.assign(path_url.host());
+    name_node.assign(path_uri.host());
   }
 
-  hdfs_handle_ = hdfs_connect(path_url, name_node);
+  hdfs_handle_ = hdfs_connect(path_uri, name_node);
   if (!hdfs_handle_) {
     PRINT_ERROR("Error getting hdfs connection");
     throw std::system_error(ECONNREFUSED, std::generic_category(), "Error getting hdfs connection");
   }
 
-  if (hdfsSetWorkingDirectory(hdfs_handle_, ((path_url.path().empty())?(home+"/"):home).c_str())) {
+  if (hdfsSetWorkingDirectory(hdfs_handle_, ((path_uri.path().empty())?(home+"/"):home).c_str())) {
     PRINT_ERROR(std::string("Error setting up hdfs working directory ") + home);
     throw std::system_error(ENOENT, std::generic_category(), "Error setting up hdfs working directory");
   }

@@ -33,7 +33,7 @@
 
 #include "storage_manager.h"
 
-#include "url.h"
+#include "uri.h"
 #include "utils.h"
 #include "storage_fs.h"
 
@@ -168,13 +168,13 @@ static std::string relative_dir(std::string dir, const char *parent_dir) {
   if (dir.find(parent_dir) != std::string::npos && dir.size() > strlen(parent_dir)) {
     return dir.substr(strlen(parent_dir)+1);
   } else if (strstr(parent_dir, "://")) {
-    url path_url(parent_dir);
+    uri path_uri(parent_dir);
     std::string path;
-    if (path_url.path().size() > 1) {
-      if (path_url.path()[0] == '/') {
-        path = path_url.path().substr(1);
+    if (path_uri.path().size() > 1) {
+      if (path_uri.path()[0] == '/') {
+        path = path_uri.path().substr(1);
       } else {
-        path = path_url.path();
+        path = path_uri.path();
       }
       if (dir.find(path) != std::string::npos && dir.size() > path.size()) {
         if (path[path.size()-1] == '/') {

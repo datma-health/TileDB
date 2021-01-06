@@ -600,7 +600,7 @@ TEST_CASE("Test empty value concept", "[empty_cell_val]") {
 
 }
 
-TEST_CASE("Test storage URLs", "[storage_urls]") {
+TEST_CASE("Test storage URIs", "[storage_uris]") {
   CHECK(!is_supported_cloud_path("gibberish://ddd/d"));
 
   CHECK(is_supported_cloud_path("hdfs://ddd/d"));

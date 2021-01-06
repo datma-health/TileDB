@@ -32,7 +32,7 @@
 
 #include "catch.h"
 #include "storage_azure_blob.h"
-#include "url.h"
+#include "uri.h"
 #include "utils.h"
 
 #include <fcntl.h>
@@ -99,8 +99,8 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob real_dir", "[real_dir]") 
   CHECK(azure_blob->real_dir("xxx").compare(azure_blob->current_dir()+"/xxx") == 0);
   CHECK(azure_blob->real_dir("xxx/yyy").compare(azure_blob->current_dir()+"/xxx/yyy") == 0);
   CHECK(azure_blob->real_dir("/xxx/yyy").compare("xxx/yyy") == 0);
-  azure_url test_url(get_test_dir());
-  CHECK(azure_blob->real_dir(get_test_dir()).compare(test_url.path().substr(1)) == 0);
+  azure_uri test_uri(get_test_dir());
+  CHECK(azure_blob->real_dir(get_test_dir()).compare(test_uri.path().substr(1)) == 0);
   CHECK_THROWS(azure_blob->real_dir("xxx://yyy"));
 }
 
