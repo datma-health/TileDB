@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018-2019 Omics Data Automation Inc. and Intel Corporation
- * @copyright Copyright (c) 2020 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2020-2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,8 @@
 
 #ifndef __STORAGE_FS_H__
 #define  __STORAGE_FS_H__
+
+#include "uri.h"
 
 #include <string>
 #include <vector>
@@ -104,6 +106,24 @@ class StorageFS {
       return std::stoull(env_var);
     } else {
       return upload_buffer_size_;
+    }
+  }
+
+  std::string slashify(const std::string& path) const {
+    if (path.empty()) {
+      return "/";
+    } else if (path.back() != '/') {
+      return path + '/';
+    } else {
+      return path;
+    }
+  }
+
+  std::string unslashify(const std::string& path) const {
+    if (!path.empty() && path.back() == '/') {
+      return path.substr(0, path.size()-1);
+    } else {
+      return path;
     }
   }
 

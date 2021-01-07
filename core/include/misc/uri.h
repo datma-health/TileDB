@@ -1,11 +1,12 @@
 /**
- * @file   url.h
+ * @file   uri.h
  *
  * @section LICENSE
  *
  * The MIT License
  *
  * @copyright Copyright (c) 2018 University of California, Los Angeles and Intel Corporation
+ * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +28,15 @@
  *
  * @section DESCRIPTION
  *  
- * URL Parsing Header File
+ * URI Parsing Header File
  */
 
-#ifndef URL_HH_
-#define URL_HH_    
+#ifndef URI_HH_
+#define URI_HH_    
 #include <string>
 
-struct url {
-  url(const std::string& url_s);
+struct uri {
+  uri(const std::string& uri_s);
 
   // Accessors
   std::string protocol();
@@ -46,7 +47,7 @@ struct url {
   std::string query();
 
  private:
-  void parse(const std::string& url_s);
+  void parse(const std::string& uri_s);
 
  private:
   std::string protocol_;
@@ -57,8 +58,8 @@ struct url {
   std::string query_;
 };
 
-struct azure_url : url {
-  azure_url(const std::string& url_s);
+struct azure_uri : uri {
+  azure_uri(const std::string& uri_s);
   std::string account();
   std::string container();
 
@@ -67,4 +68,4 @@ struct azure_url : url {
   std::string container_;
 };
 
-#endif /* URL_HH_ */
+#endif /* URI_HH_ */

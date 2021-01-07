@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 #include "storage_azure_blob.h"
 
 #include "error.h"
-#include "url.h"
+#include "uri.h"
 #include "utils.h"
 
 #include <algorithm>
@@ -76,8 +76,8 @@ static std::string get_access_token(const std::string& account_name, const std::
   // Invoke `az account get-access-token --resource https://<account>.blob.core.windows.net -o tsv --query accessToken`
   // Can use `az account get-access-token --resource https://storage.azure.com/ -o tsv --query accessToken` too
   std::string token;
-  std::string resource_url = "https://" + account_name + ".blob.core.windows.net";
-  std::string command =  "az account get-access-token --resource " + resource_url + " -o tsv --query accessToken";
+  std::string resource_uri = "https://" + account_name + ".blob.core.windows.net";
+  std::string command =  "az account get-access-token --resource " + resource_uri + " -o tsv --query accessToken";
   std::array<char, 2048> buffer;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.data(), "r"), pclose);
   if (pipe) {
@@ -91,29 +91,11 @@ static std::string get_access_token(const std::string& account_name, const std::
   return token;
 }
 
-static std::string slashify(const std::string& path) {
-  if (path.empty()) {
-    return "/";
-  } else if (path.back() != '/') {
-    return path + '/';
-  } else {
-    return path;
-  }
-}
-
-static std::string unslashify(const std::string& path) {
-  if (!path.empty() && path.back() == '/') {
-    return path.substr(0, path.size()-1);
-  } else {
-    return path;
-  }
-}
-
 std::string AzureBlob::get_path(const std::string& path) {
   std::string pathname(path);
   if (path.find("://") != std::string::npos) {
-    azure_url url_path(path);
-    pathname = url_path.path();
+    azure_uri uri_path(path);
+    pathname = uri_path.path();
      // This is the container
     if (pathname.empty()) {
       return "";
@@ -133,20 +115,20 @@ std::string AzureBlob::get_path(const std::string& path) {
 }
 
 AzureBlob::AzureBlob(const std::string& home) {
-  azure_url path_url(home);
+  azure_uri path_uri(home);
 
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
   // e.g. wasbs://test@mytest.blob.core.windows.net/ws
-  if (path_url.protocol().compare("az") != 0) {
-    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// URL protocols");
+  if (path_uri.protocol().compare("az") != 0) {
+    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// URI protocols");
   }
 
-  if (path_url.account().size() == 0 || path_url.container().size() == 0) {
-    throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URL does not seem to have either an account or a container");
+  if (path_uri.account().size() == 0 || path_uri.container().size() == 0) {
+    throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI does not seem to have either an account or a container");
   }
 
   std::shared_ptr<storage_credential> cred = nullptr;
-  std::string azure_account = path_url.account();  
+  std::string azure_account = path_uri.account();  
   std::string azure_account_key = get_account_key(azure_account);
   if (azure_account_key.size() > 0) {
     cred = std::make_shared<shared_key_credential>(azure_account, azure_account_key);
@@ -166,14 +148,14 @@ AzureBlob::AzureBlob(const std::string& home) {
   bc_wrapper = std::make_shared<blob_client_wrapper>(bC);
   bc = reinterpret_cast<blob_client_wrapper *>(bc_wrapper.get());
 
-  if (!bc->container_exists(path_url.container())) {
+  if (!bc->container_exists(path_uri.container())) {
     throw std::system_error(EIO, std::generic_category(), "Azure Blob FS only supports already existing containers. Create container from either the az CLI or the storage portal before restarting operation");
   }
 
-  account_name = path_url.account();
-  container_name = path_url.container();
+  account_name = path_uri.account();
+  container_name = path_uri.container();
 
-  working_dir = get_path(path_url.path());
+  working_dir = get_path(path_uri.path());
 
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
@@ -206,12 +188,12 @@ bool AzureBlob::is_file(const std::string& file) {
 
 std::string AzureBlob::real_dir(const std::string& dir) {
   if (dir.find("://") != std::string::npos) {
-    azure_url path_url(dir);
-    if (path_url.account().compare(account_name) || path_url.container().compare(container_name)) {
-      throw std::runtime_error("Credentialed account during instantiation does not match the url passed to real_dir. Aborting");
+    azure_uri path_uri(dir);
+    if (path_uri.account().compare(account_name) || path_uri.container().compare(container_name)) {
+      throw std::runtime_error("Credentialed account during instantiation does not match the uri passed to real_dir. Aborting");
     }
     // This is absolute path, so return the entire path
-    return get_path(path_url.path());
+    return get_path(path_uri.path());
   }
   return get_path(dir);
 }
@@ -226,8 +208,8 @@ int AzureBlob::create_dir(const std::string& dir) {
   }
   std::string slashified_dir = slashify(dir);
   if (slashified_dir.find("://") != std::string::npos) {
-    azure_url dir_url(slashified_dir);
-    if (dir_url.path().empty()) {
+    azure_uri dir_uri(slashified_dir);
+    if (dir_uri.path().empty()) {
       // This is the container and assuming it is already created for now
       return TILEDB_FS_OK;
     }
