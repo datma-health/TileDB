@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -89,24 +89,6 @@ static std::string get_access_token(const std::string& account_name, const std::
     AZ_BLOB_ERROR("Could not get access-token for account " + account_name, path);
   }
   return token;
-}
-
-static std::string slashify(const std::string& path) {
-  if (path.empty()) {
-    return "/";
-  } else if (path.back() != '/') {
-    return path + '/';
-  } else {
-    return path;
-  }
-}
-
-static std::string unslashify(const std::string& path) {
-  if (!path.empty() && path.back() == '/') {
-    return path.substr(0, path.size()-1);
-  } else {
-    return path;
-  }
 }
 
 std::string AzureBlob::get_path(const std::string& path) {
