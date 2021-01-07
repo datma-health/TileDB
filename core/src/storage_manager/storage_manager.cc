@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1535,27 +1535,6 @@ int StorageManager::config_set(StorageManagerConfig* config) {
   // Store config locally
   config_ = config;
   fs_ = config_->get_filesystem();
-
-  // Set the TileDB home directory
-  tiledb_home_ = config->home();
-  if(tiledb_home_ == "") {
-    auto env_home_ptr = getenv("HOME");
-    tiledb_home_ = env_home_ptr ? env_home_ptr : "";
-    if(tiledb_home_ == "") {
-      char cwd[1024];
-      if(getcwd(cwd, sizeof(cwd)) != NULL) {
-        tiledb_home_ = cwd;
-      } else {
-        std::string errmsg = "Cannot set TileDB home directory";
-        PRINT_ERROR(errmsg);
-        tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
-        return TILEDB_SM_ERR;
-      }
-    }
-    tiledb_home_ += "/.tiledb";
-  }
-
-  tiledb_home_ = real_dir(fs_, tiledb_home_);
 
   // Success
   return TILEDB_SM_OK;
