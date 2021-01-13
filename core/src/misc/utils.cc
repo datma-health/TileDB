@@ -257,7 +257,7 @@ bool is_gcs_path(const std::string& pathURL) {
 }
 
 bool is_hdfs_path(const std::string& pathURL) {
-  if (!pathURL.empty() && (starts_with(pathURL, "hdfs:") || starts_with(pathURL, "s3:"))) {
+  if (!pathURL.empty() && (starts_with(pathURL, "hdfs:") || starts_with(pathURL, "s3:") || starts_with(pathURL, "s3a:"))) {
     return true;
   } else {
     return false;
