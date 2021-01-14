@@ -64,7 +64,7 @@
     std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \
     if (errno > 0) {                                                 \
       errmsg += " errno=" + std::to_string(errno) + "(" + std::string(std::strerror(errno)) + ")"; \
-    }
+    }                                                                \
     PRINT_ERROR(errmsg);                                             \
     TILEDB_MSG = errmsg;                                             \
   } while (false)
