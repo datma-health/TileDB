@@ -939,7 +939,7 @@ int read_from_file(StorageFS *fs,
 #define windowBits 15
 #define GZIP_ENCODING 16
 
-int read_from_file_after_decompression(StorageFS *fs, const std::string& filename, void** buffer, off_t &buffer_size, const int compression) {
+int read_from_file_after_decompression(StorageFS *fs, const std::string& filename, void** buffer, size_t &buffer_size, const int compression) {
   switch (compression) {
     case TILEDB_GZIP:
     case TILEDB_NO_COMPRESSION:
@@ -950,14 +950,13 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
   }
   
   auto size = fs->file_size(filename);
-  if (size <= 0) {
+  if (size == TILEDB_FS_ERR || size == 0) {
     UTILS_PATH_ERROR("Cannot read file into buffer as it does not exist or is empty", filename);
     return TILEDB_UT_ERR;
   }
   unsigned char *in = (unsigned char *)malloc(size);
   if (in == NULL) {
-    std::string errmsg = "Cannot read file into buffer; Mem allocation error for filesize=" + size;
-    UTILS_PATH_ERROR(errmsg, filename);
+    UTILS_PATH_ERROR( "Cannot read file into buffer; Mem allocation error for filesize=" + std::to_string(size), filename);
     return TILEDB_UT_ERR;
   }
 

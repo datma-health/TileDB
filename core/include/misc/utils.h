@@ -679,7 +679,7 @@ int read_from_file(StorageFS *fs,
 int read_from_file_after_decompression(StorageFS *fs,
     const std::string& filename,
     void** buffer,
-    off_t &buffer_size,
+    size_t &buffer_size,
     const int compression);
 
 

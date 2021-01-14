@@ -323,8 +323,8 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   std::string path = get_path(filename);
   auto bclient = reinterpret_cast<blob_client *>(bC.get());
   auto filesize = file_size(filename);
-  if (filesize <= 0) {
-    AZ_BLOB_ERROR("File does not exist or is empty", filename);
+  if (filesize == TILEDB_FS_ERR) {
+    AZ_BLOB_ERROR("File does not exist", filename);
     return TILEDB_FS_ERR;
   } else if (filesize < (ssize_t)length + offset) {
     AZ_BLOB_ERROR("Cannot read past the file size", filename);

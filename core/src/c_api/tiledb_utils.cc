@@ -351,6 +351,11 @@ int move_across_filesystems(const std::string& src, const std::string& dest)
   }
   auto size = file_size(tiledb_ctx, src);
   void *buffer = malloc(size);
+  if (buffer == NULL) {
+    FINALIZE;
+    snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Out-of-memory exception while allocating memory\n");
+    return TILEDB_ERR;
+  }
   int rc = read_file(tiledb_ctx, src, 0, buffer, size);
   rc |= close_file(tiledb_ctx, src);
   finalize(tiledb_ctx);
