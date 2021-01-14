@@ -326,9 +326,11 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   if (filesize <= 0) {
     AZ_BLOB_ERROR("File does not exist or is empty", filename);
     return TILEDB_FS_ERR;
-  } else if (filesize >= (ssize_t)length + offset) {
+  } else if (filesize < (ssize_t)length + offset) {
     AZ_BLOB_ERROR("Cannot read past the file size", filename);
     return TILEDB_FS_ERR;
+  } else if (length == 0) {
+    return TILEDB_FS_OK; // Nothing to read
   }
   storage_outcome<void> read_result;
   // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
