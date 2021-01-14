@@ -68,7 +68,13 @@ jobs:
       working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
         make -j4
-        TILEDB_BENCHMARK=1 make tests -j 4
+        make tests -j 4
+        export TILEDB_BENCHMARK=1
+        time test/test_sparse_array_benchmark
+        export TILEDB_DISABLE_FILE_LOCKING=1
+        time test/test_sparse_array_benchmark
+        export TILEDB_KEEP_FILE_HANDLES_OPEN=1
+        time test/test_sparse_array_benchmark
 
     - name: Cache Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure'

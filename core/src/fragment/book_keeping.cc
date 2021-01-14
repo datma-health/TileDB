@@ -372,7 +372,7 @@ int BookKeeping::load(StorageFS *fs) {
                          TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX;
 
   // Open book-keeping file
-  size_t size = file_size(fs, filename);
+  auto size = file_size(fs, filename);
   if (size <= 0) {
     std::string errmsg = "Cannot read book-keeping file; Filesize for " + filename + " is zero or undetermined";
     PRINT_ERROR(errmsg);

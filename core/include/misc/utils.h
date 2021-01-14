@@ -341,7 +341,7 @@ void expand_mbr(T* mbr, const T* coords, int dim_num);
  * @param filename The name of the file whose size is to be retrieved.
  * @return The file size on success, and TILEDB_UT_ERR for error.
  */
-size_t file_size(StorageFS *fs, const std::string& filename);
+ssize_t file_size(StorageFS *fs, const std::string& filename);
 
 /** Returns the names of the directories inside the input directory.
  *
@@ -679,7 +679,7 @@ int read_from_file(StorageFS *fs,
 int read_from_file_after_decompression(StorageFS *fs,
     const std::string& filename,
     void** buffer,
-    size_t &buffer_size,
+    off_t &buffer_size,
     const int compression);
 
 

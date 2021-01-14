@@ -282,7 +282,7 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
     FINALIZE;
     return TILEDB_ERR;
   }
-  size_t size = file_size(tiledb_ctx, filename);
+  auto size = file_size(tiledb_ctx, filename);
   *length = size;
   *buffer = (char *)malloc(size+1);
   if (*buffer == NULL) {
@@ -349,7 +349,7 @@ int move_across_filesystems(const std::string& src, const std::string& dest)
     FINALIZE;
     return TILEDB_ERR;
   }
-  size_t size = file_size(tiledb_ctx, src);
+  auto size = file_size(tiledb_ctx, src);
   void *buffer = malloc(size);
   int rc = read_file(tiledb_ctx, src, 0, buffer, size);
   rc |= close_file(tiledb_ctx, src);

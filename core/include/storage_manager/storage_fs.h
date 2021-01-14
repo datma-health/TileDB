@@ -78,7 +78,7 @@ class StorageFS {
   virtual int create_file(const std::string& filename, int flags, mode_t mode) = 0;
   virtual int delete_file(const std::string& filename) = 0;
 
-  virtual size_t file_size(const std::string& filename) = 0;
+  virtual ssize_t file_size(const std::string& filename) = 0;
 
   virtual int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) = 0;
   virtual int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) = 0;

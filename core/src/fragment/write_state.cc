@@ -443,12 +443,18 @@ int WriteState::write_file_buffers() {
       rc = file_buffer_[i]->finalize() || rc;
       delete file_buffer_[i];
       file_buffer_[i] = NULL;
+    } else {
+      rc = close_file(fs_, construct_filename(i, false)) || rc;
     }
+
     if (file_var_buffer_[i] != NULL) {
       rc = file_var_buffer_[i]->finalize() || rc;
       delete file_var_buffer_[i];
       file_var_buffer_[i] = NULL;
+    } else {
+      rc = close_file(fs_, construct_filename(i, false)) || rc;
     }
+
     if (rc) {
       std::string errmsg = "Could not finalize files from storage buffers";
       PRINT_ERROR(errmsg);

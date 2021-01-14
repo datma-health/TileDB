@@ -59,7 +59,7 @@ class PosixFS : public StorageFS {
   int create_file(const std::string& filename, int flags, mode_t mode);
   int delete_file(const std::string& filename);
 
-  size_t file_size(const std::string& filename);
+  ssize_t file_size(const std::string& filename);
 
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);

@@ -59,6 +59,16 @@
     TILEDB_MSG = errmsg;                                             \
   } while (false)
 
+#define TILEDB_ERROR_WITH_ERRNO(PREFIX, MSG, TILEDB_MSG)                        \
+  do {                                                               \
+    std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \
+    if (errno > 0) {                                                 \
+      errmsg += " errno=" + std::to_string(errno) + "(" + std::string(std::strerror(errno)) + ")"; \
+    }
+    PRINT_ERROR(errmsg);                                             \
+    TILEDB_MSG = errmsg;                                             \
+  } while (false)
+
 #define TILEDB_ERROR(PREFIX, MSG, TILEDB_MSG)                        \
   do {                                                               \
     std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \

@@ -379,17 +379,17 @@ int HDFS::delete_file(const std::string& filename) {
   return TILEDB_FS_OK;
 }
 
-size_t HDFS::file_size(const std::string& filename) {
+ssize_t HDFS::file_size(const std::string& filename) {
   hdfsFileInfo* file_info = hdfsGetPathInfo(hdfs_handle_, filename.c_str());
   if (!file_info) {
     print_errmsg(std::string("Cannot get path info for file ") + filename);
-    return 0;
+    return TILEDB_FS_ERR;
   }
 
   if ((char)(file_info->mKind) != 'F') {
     print_errmsg(std::string("Cannot get file_size for path ") + filename + " that is not a file");
     hdfsFreeFileInfo(file_info, 1);
-    return 0;
+    return TILEDB_FS_ERR;
   }
 
   size_t size = (size_t)file_info->mSize;
@@ -466,7 +466,10 @@ int HDFS::read_from_file(const std::string& filename, off_t offset, void *buffer
     assert(false && "No support for simultaneous reads/writes");
   }
 
-  size_t size = file_size(filename);
+  ssize_t size = file_size(filename);
+  if (size == TILEDB_FS_ERR) {
+    return print_errmsg(std::string("File=") + filename + " does not seem to exist");
+  }
 
   hdfsFile file;
 
@@ -486,7 +489,7 @@ int HDFS::read_from_file(const std::string& filename, off_t offset, void *buffer
     return print_errmsg(std::string("Cannot open file ") + filename + " for read");
   }
 
-  int rc = read_from_file_kernel(hdfs_handle_, file, buffer, length>size?size:length, offset);
+  int rc = read_from_file_kernel(hdfs_handle_, file, buffer, length>(size_t)size?size:length, offset);
 
   read_map_mtx_.lock();
   count = read_count(filename, read_count_, false);

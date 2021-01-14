@@ -30,6 +30,7 @@
  * This file implements the StorageBuffer class that buffers writes/reads to/from files
  */
 
+#include "error.h"
 #include "storage_buffer.h"
 
 #include <assert.h>
@@ -37,11 +38,9 @@
 #include <string>
 #include <string.h>
 
-#ifdef TILEDB_VERBOSE
-#  define PRINT_ERROR(x) std::cerr << TILEDB_BF_ERRMSG << x << ".\n" 
-#else
-#  define PRINT_ERROR(x) do { } while(0) 
-#endif
+#define BUFFER_PATH_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, MSG, PATH, tiledb_fs_errmsg)
+#define BUFFER_ERROR_WITH_ERRNO(MSG) TILEDB_ERROR_WITH_ERRNO(TILEDB_FS_ERRMSG, MSG, tiledb_fs_errmsg)
+#define BUFFER_ERROR(MSG) TILEDB_ERROR(TILEDB_FS_ERRMSG, MSG, tiledb_fs_errmsg)
 
 int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
   // Nothing to do
@@ -52,9 +51,7 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
   size_t filesize = fs_->file_size(filename_);
   size_t chunk_size = fs_->get_download_buffer_size();
   if (offset + size > filesize) {
-    std::string errmsg = "Cannot read past the filesize from buffer; ";
-    PRINT_ERROR(errmsg);
-    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    BUFFER_PATH_ERROR("Cannot read past the filesize from buffer", filename_);
     return TILEDB_BF_ERR;  
   }
 
@@ -74,9 +71,7 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
     if (buffer_size_ > allocated_buffer_size_) {
       buffer_ = realloc(buffer_, buffer_size_);
       if (buffer_ == NULL) {
-	std::string errmsg = "Cannot read to buffer; Mem allocation error";
-	PRINT_ERROR(errmsg);
-	tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+	BUFFER_ERROR_WITH_ERRNO("Cannot read to buffer; Mem allocation error");
 	return TILEDB_BF_ERR;
       }
       allocated_buffer_size_ = buffer_size_;
@@ -84,9 +79,7 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
     
     if (fs_->read_from_file(filename_, buffer_offset_, (char *)buffer_, buffer_size_)) {
       free_buffer();
-      std::string errmsg = "Cannot read to buffer; Mem allocation error";
-      PRINT_ERROR(errmsg);
-      tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+      BUFFER_PATH_ERROR("Cannot read to buffer", filename_);
       return TILEDB_BF_ERR;
     }
   }
@@ -103,9 +96,7 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
 #define CHUNK 1024
 int StorageBuffer::append_buffer(const void *bytes, size_t size) {
   if (read_only_) {
-    std::string errmsg = "Cannot append buffer to read-only buffers";
-    PRINT_ERROR(errmsg);
-    tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+    BUFFER_ERROR("Cannot append buffer to read-only buffers");
     return TILEDB_BF_ERR;
   }
 
@@ -129,9 +120,7 @@ int StorageBuffer::append_buffer(const void *bytes, size_t size) {
     buffer_ = realloc(buffer_, alloc_size);
     if (buffer_ == NULL) {
       free_buffer();
-      std::string errmsg = "Cannot write to buffer; Mem allocation error";
-      PRINT_ERROR(errmsg);
-      tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+      BUFFER_ERROR_WITH_ERRNO("Cannot write to buffer; Mem allocation error");
       return TILEDB_BF_ERR;
     }
     allocated_buffer_size_ = alloc_size;
@@ -149,9 +138,7 @@ int StorageBuffer::write_buffer() {
   if (buffer_size_ > 0) {
     if (fs_->write_to_file(filename_, buffer_, buffer_size_)) {
       free_buffer();
-      std::string errmsg = "Cannot write bytes for file=" + filename_;
-      PRINT_ERROR(errmsg);
-      tiledb_bf_errmsg = TILEDB_BF_ERRMSG + errmsg;
+      BUFFER_PATH_ERROR("Cannot write bytes", filename_);
       return TILEDB_BF_ERR;
     }
   }
@@ -163,7 +150,12 @@ int StorageBuffer::finalize() {
   int rc = TILEDB_BF_OK;
   if (!read_only_) {
     rc =  write_buffer();
-    fs_->close_file(filename_);
   }
-  return rc;
+  rc = fs_->close_file(filename_) || rc;
+  if (rc) {
+    // error is logged in write_buffer or close_file
+    return TILEDB_BF_ERR;
+  } else {
+    return TILEDB_BF_OK;
+  }
 }

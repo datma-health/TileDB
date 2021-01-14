@@ -173,7 +173,7 @@ std::vector<std::string> get_files(const TileDB_CTX* tiledb_ctx, const std::stri
  * @param filename The name of the file whose size is to be retrieved.
  * @return The file size on success, and TILEDB_UT_ERR for error.
  */
-size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file);
+ssize_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file);
 
 int create_file(const TileDB_CTX* tiledb_ctx, const std::string& filename, int flags, mode_t mode);
 

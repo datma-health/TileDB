@@ -314,7 +314,7 @@ int PosixFS::delete_file(const std::string& filename) {
   return TILEDB_FS_OK;
 }
 
-size_t PosixFS::file_size(const std::string& filename) {
+ssize_t PosixFS::file_size(const std::string& filename) {
   reset_errno();
   
   if (!is_file(filename)) {
