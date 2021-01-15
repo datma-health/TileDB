@@ -452,7 +452,7 @@ int WriteState::write_file_buffers() {
       delete file_var_buffer_[i];
       file_var_buffer_[i] = NULL;
     } else {
-      rc = close_file(fs_, construct_filename(i, false)) || rc;
+      rc = close_file(fs_, construct_filename(i, true)) || rc;
     }
 
     if (rc) {
