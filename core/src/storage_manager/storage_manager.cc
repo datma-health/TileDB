@@ -455,17 +455,8 @@ int StorageManager::array_load_schema(
 
   // Initialize buffer
   ssize_t buffer_size =  file_size(fs_, filename);
-  if (buffer_size == TILEDB_UT_ERR) {
-    std::string errmsg = "Cannot load array schema; Non-existent array schema file";
-    PRINT_ERROR(errmsg);
-    tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
-    return TILEDB_SM_ERR;
-  } else if(buffer_size == 0 or buffer_size == -1) {
-    std::string errmsg = "Cannot load array schema; Empty array schema file";
-    PRINT_ERROR(errmsg);
-    tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
-    return TILEDB_SM_ERR;
-  }
+  assert(buffer_size > 0);
+
   void* buffer = malloc(buffer_size);
   if (buffer == NULL) {
     std::string errmsg = "Storage Manager memory allocation error";
