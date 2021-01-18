@@ -132,5 +132,21 @@ class StorageFS {
   size_t upload_buffer_size_ = 0;
 };
 
+class StorageCloudFS : public virtual StorageFS {
+
+#define DELIMITER "/"
+
+ protected:
+  std::string get_path(const std::string& path);
+
+  int create_dir(const std::string& dir) {
+    // no-op
+    return TILEDB_FS_OK;
+  }
+
+ protected:
+  std::string working_dir_;
+};
+
 #endif /* __STORAGE_FS_H__ */
 

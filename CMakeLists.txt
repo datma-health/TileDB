@@ -5,7 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
-# Copyright (c) 2018-2020 Omics Data Automation, Inc.
+# Copyright (c) 2018-2021 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +45,9 @@ set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to mo
 set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 
+set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install" CACHE PATH "Path to aws sdk")
+set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.8.114.zip" CACHE STRING "URL to aws-sdk-cpp github release")
+
 # Set the following to true downstream when TileDB is added as a subdirectory 
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
 set(TILEDB_DISABLE_UNINSTALL False CACHE BOOL "Disable TileDB Uninstall")
@@ -79,12 +82,13 @@ endif()
 # Find required library dependencies
 find_package(ZLIB REQUIRED)
 include_directories(${ZLIB_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZLIB_LIBRARIES})
 
 find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LIBUUID_LIBRARY})
 
-set(TILEDB_LIB_DEPENDENCIES ${ZLIB_LIBRARIES} ${LIBUUID_LIBRARY})
-
+# LZ4 source included
 #find_package(LZ4)
 #include_directories(${LZ4_INCLUDE_DIR})
 #if(LZ4_FOUND)
@@ -115,6 +119,11 @@ include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include)
 add_subdirectory(${AZURE_FSCLIENT_SOURCE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite)
 
+# Build AWS S3 client static libraries
+find_package(S3Client REQUIRED)
+include_directories(${AWSSDK_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${AWSSDK_LINK_LIBRARIES})
+
 # Build MuParserX source code added as a dependency
 include_directories(${MUPARSERX_SOURCE_DIR}/parser)
 add_subdirectory(${MUPARSERX_SOURCE_DIR})
@@ -122,6 +131,7 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} muparserx)
 
 # Find optional library dependencies
 find_package(Doxygen)
+
 if(USE_MPI)
   find_package(MPI REQUIRED)
   include_directories(${MPI_CXX_INCLUDE_PATH})

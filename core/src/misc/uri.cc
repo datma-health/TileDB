@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 University of California, Los Angeles and Intel Corporation
+ * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -147,5 +148,13 @@ std::string azure_uri::account() {
 
 std::string azure_uri::container() {
   return container_;
+}
+
+s3_uri::s3_uri(const std::string& uri_s) : uri(uri_s) {
+  bucket_ = this->host();
+}
+
+std::string s3_uri::bucket() {
+  return bucket_;
 }
 

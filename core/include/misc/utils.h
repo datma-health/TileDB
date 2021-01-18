@@ -216,6 +216,13 @@ bool is_azure_path(const std::string& pathURL);
 bool is_azure_blob_storage_path(const std::string& pathURL);
 
 /**
+ * Checks if a given pathURL is aws s3.
+ * @param pathURL URL to path to be checked.
+ * @return true if pathURL starts with s3://
+ */
+bool is_s3_storage_path(const std::string& pathURL);
+
+/**
  * Checks if a given pathURL is GCS.
  * @param pathURL URL to path to be checked.
  * @return true if pathURL starts with gs://

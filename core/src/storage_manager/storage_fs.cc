@@ -32,6 +32,8 @@
  */
 
 #include "storage_fs.h"
+#include "utils.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -53,4 +55,27 @@ int StorageFS::close_file(const std::string& filename) {
 bool StorageFS::locking_support() {
   return false;
 }
+
+std::string StorageCloudFS::get_path(const std::string& path) {
+  std::string pathname(path);
+  if (path.find("://") != std::string::npos) {
+    uri path_uri(path);
+    pathname = path_uri.path();
+    if (pathname.empty()) {
+      return "";
+    }
+  }
+  if (pathname[0] == '/') {
+    return pathname.substr(1);
+  }
+  if (pathname.empty()) {
+    return working_dir_;
+  } else if (starts_with(pathname, working_dir_)) {
+    // TODO: this is a hack for now, but should work fine with GenomicsDB.
+    return pathname;
+  } else {
+    return working_dir_ + '/' + pathname;
+  }
+}
+
 

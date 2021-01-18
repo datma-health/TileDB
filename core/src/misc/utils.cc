@@ -227,7 +227,7 @@ int cmp_row_order(
 }
 
 bool is_supported_cloud_path(const std::string& pathURL) {
-  return is_hdfs_path(pathURL) || is_gcs_path(pathURL) || is_azure_path(pathURL) || is_azure_blob_storage_path(pathURL);
+  return is_hdfs_path(pathURL) || is_gcs_path(pathURL) || is_azure_path(pathURL) || is_azure_blob_storage_path(pathURL) || is_s3_storage_path(pathURL);
 }
 
 bool is_azure_path(const std::string& pathURL) {
@@ -248,6 +248,14 @@ bool is_azure_blob_storage_path(const std::string& pathURL) {
  }
 }
 
+bool is_s3_storage_path(const std::string& pathURL) {
+  if (!pathURL.empty() && starts_with(pathURL, "s3:")) {
+    return true;
+  } else {
+    return false;
+ }
+}
+
 bool is_gcs_path(const std::string& pathURL) {
   if (!pathURL.empty() && starts_with(pathURL, "gs:")) {
     return true;
@@ -257,7 +265,7 @@ bool is_gcs_path(const std::string& pathURL) {
 }
 
 bool is_hdfs_path(const std::string& pathURL) {
-  if (!pathURL.empty() && (starts_with(pathURL, "hdfs:") || starts_with(pathURL, "s3:") || starts_with(pathURL, "s3a:"))) {
+  if (!pathURL.empty() && (starts_with(pathURL, "hdfs:") || starts_with(pathURL, "s3a:"))) {
     return true;
   } else {
     return false;

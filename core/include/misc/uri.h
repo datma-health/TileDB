@@ -68,4 +68,13 @@ struct azure_uri : uri {
   std::string container_;
 };
 
+struct s3_uri : uri {
+  s3_uri(const std::string& uri_s);
+  std::string bucket();
+
+ private:
+  std::string bucket_;
+};
+
+
 #endif /* URI_HH_ */
