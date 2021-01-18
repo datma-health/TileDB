@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -341,7 +342,7 @@ void expand_mbr(T* mbr, const T* coords, int dim_num);
  * @param filename The name of the file whose size is to be retrieved.
  * @return The file size on success, and TILEDB_UT_ERR for error.
  */
-size_t file_size(StorageFS *fs, const std::string& filename);
+ssize_t file_size(StorageFS *fs, const std::string& filename);
 
 /** Returns the names of the directories inside the input directory.
  *

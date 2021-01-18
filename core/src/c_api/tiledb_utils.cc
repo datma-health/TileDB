@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
- * @copyright Copyright (c) 2019-2020 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2019-2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -282,7 +282,7 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
     FINALIZE;
     return TILEDB_ERR;
   }
-  size_t size = file_size(tiledb_ctx, filename);
+  auto size = file_size(tiledb_ctx, filename);
   *length = size;
   *buffer = (char *)malloc(size+1);
   if (*buffer == NULL) {
@@ -349,8 +349,13 @@ int move_across_filesystems(const std::string& src, const std::string& dest)
     FINALIZE;
     return TILEDB_ERR;
   }
-  size_t size = file_size(tiledb_ctx, src);
+  auto size = file_size(tiledb_ctx, src);
   void *buffer = malloc(size);
+  if (buffer == NULL) {
+    FINALIZE;
+    snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Out-of-memory exception while allocating memory\n");
+    return TILEDB_ERR;
+  }
   int rc = read_file(tiledb_ctx, src, 0, buffer, size);
   rc |= close_file(tiledb_ctx, src);
   finalize(tiledb_ctx);

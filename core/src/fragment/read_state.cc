@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -2282,7 +2282,7 @@ int ReadState::prepare_tile_for_reading_cmp(
 
   // Find file offset where the tile begins
   off_t file_offset = tile_offsets[attribute_id_real][tile_i];
-  off_t file_size = ::file_size(array_->config()->get_filesystem(), filename);
+  auto file_size = ::file_size(array_->config()->get_filesystem(), filename);
   size_t tile_compressed_size = 
       (tile_i == tile_num-1) 
           ? file_size - tile_offsets[attribute_id_real][tile_i] 
@@ -2428,7 +2428,7 @@ int ReadState::prepare_tile_for_reading_var_cmp(
 
   // Find file offset where the tile begins
   off_t file_offset = tile_offsets[attribute_id][tile_i];
-  off_t file_size = ::file_size(array_->config()->get_filesystem(), filename);
+  auto file_size = ::file_size(array_->config()->get_filesystem(), filename);
   size_t tile_compressed_size = 
       (tile_i == tile_num-1) ? file_size - tile_offsets[attribute_id][tile_i]
                              : tile_offsets[attribute_id][tile_i+1] - 

@@ -302,7 +302,7 @@ int AzureBlob::delete_file(const std::string& filename) {
   return TILEDB_FS_OK;
 }
 
-size_t AzureBlob::file_size(const std::string& filename) {
+ssize_t AzureBlob::file_size(const std::string& filename) {
   auto blob_property = bc->get_blob_property(container_name, get_path(filename));
   if (blob_property.valid()) {
     return blob_property.size;
@@ -323,24 +323,28 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   std::string path = get_path(filename);
   auto bclient = reinterpret_cast<blob_client *>(bC.get());
   auto filesize = file_size(filename);
-  if (filesize >= (length + offset)) {
-    storage_outcome<void> read_result;
-    // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
-    if (filesize < GRAIN_SIZE) {
-      omemstream os_buf(buffer, length);
-      read_result = bclient->download_blob_to_stream(container_name, path, offset, length, os_buf).get();
-    } else {
-      read_result = bclient->download_blob_to_buffer(container_name, path, offset, length, reinterpret_cast<char *>(buffer), std::thread::hardware_concurrency()/2).get();
-    }
-    if (!read_result.success()) {
-      AZ_BLOB_ERROR(read_result.error().message, filename);
-      return TILEDB_FS_ERR;
-    } else {
-      return TILEDB_FS_OK;
-    }
+  if (filesize == TILEDB_FS_ERR) {
+    AZ_BLOB_ERROR("File does not exist", filename);
+    return TILEDB_FS_ERR;
+  } else if (filesize < (ssize_t)length + offset) {
+    AZ_BLOB_ERROR("Cannot read past the file size", filename);
+    return TILEDB_FS_ERR;
+  } else if (length == 0) {
+    return TILEDB_FS_OK; // Nothing to read
+  }
+  storage_outcome<void> read_result;
+  // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
+  if (filesize < GRAIN_SIZE) {
+    omemstream os_buf(buffer, length);
+    read_result = bclient->download_blob_to_stream(container_name, path, offset, length, os_buf).get();
   } else {
-   AZ_BLOB_ERROR("Cannot read past the file size", filename);
-   return TILEDB_FS_ERR;
+    read_result = bclient->download_blob_to_buffer(container_name, path, offset, length, reinterpret_cast<char *>(buffer), std::thread::hardware_concurrency()/2).get();
+  }
+  if (!read_result.success()) {
+    AZ_BLOB_ERROR(read_result.error().message, filename);
+    return TILEDB_FS_ERR;
+  } else {
+    return TILEDB_FS_OK;
   }
 }
 

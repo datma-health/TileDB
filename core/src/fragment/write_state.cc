@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -443,12 +443,18 @@ int WriteState::write_file_buffers() {
       rc = file_buffer_[i]->finalize() || rc;
       delete file_buffer_[i];
       file_buffer_[i] = NULL;
+    } else {
+      rc = close_file(fs_, construct_filename(i, false)) || rc;
     }
+
     if (file_var_buffer_[i] != NULL) {
       rc = file_var_buffer_[i]->finalize() || rc;
       delete file_var_buffer_[i];
       file_var_buffer_[i] = NULL;
+    } else {
+      rc = close_file(fs_, construct_filename(i, true)) || rc;
     }
+
     if (rc) {
       std::string errmsg = "Could not finalize files from storage buffers";
       PRINT_ERROR(errmsg);

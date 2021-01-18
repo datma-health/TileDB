@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,7 @@ class AzureBlob : public StorageFS {
   int create_file(const std::string& filename, int flags, mode_t mode);
   int delete_file(const std::string& filename);
 
-  size_t file_size(const std::string& filename);
+  ssize_t file_size(const std::string& filename);
 
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);

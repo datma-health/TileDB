@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -372,14 +373,7 @@ int BookKeeping::load(StorageFS *fs) {
                          TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX;
 
   // Open book-keeping file
-  size_t size = file_size(fs, filename);
-  if (size <= 0) {
-    std::string errmsg = "Cannot read book-keeping file; Filesize for " + filename + " is zero or undetermined";
-    PRINT_ERROR(errmsg);
-    tiledb_bk_errmsg = TILEDB_BK_ERRMSG + errmsg;
-    return TILEDB_BK_ERR;
-  }
-
+  size_t size;
   void *buf;
   if (read_from_file_after_decompression(fs, filename, &buf, size, TILEDB_GZIP) == TILEDB_UT_ERR) {
     std::string errmsg = "Cannot read book-keeping file; Read failure for " + filename;
