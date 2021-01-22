@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04, macOS-10.15]
-        type: [basic, basic-codec, hdfs, gcs, azure]
+        type: [basic, basic-codec, hdfs, gcs, azure, azurite]
         exclude:
           - os: macos-10.15
             type: basic-codec
@@ -22,6 +22,8 @@ jobs:
             type: gcs
           - os: macos-10.15
             type: azure
+          - os: macos-10.15
+            type: azurite
 
     runs-on: ${{ matrix.os }}
 
@@ -45,6 +47,12 @@ jobs:
         export ENABLE_BLOSC=0
         if [[ ${{matrix.type}} == "basic-codec" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_supported_codec.sh
+        fi
+        if [[ ${{matrix.type}} == "azurite" ]]; then
+          sudo apt-get -y install nodejs-dev node-gyp libssl1.0 npm
+          npm install -g azurite
+          which azurite
+          azurite &
         fi
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC
@@ -76,12 +84,21 @@ jobs:
         export TILEDB_KEEP_FILE_HANDLES_OPEN=1
         time test/test_sparse_array_benchmark
 
+    - name: Build and Test - Azurite
+      if: matrix.type == 'azurite'
+      shell: bash
+      working-directory: ${{env.CMAKE_BUILD_DIR}}
+      run: |
+        az storage container create -n test --connection-string "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;"
+        
+
     - name: Cache Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure'
       uses: actions/cache@v2
       with:
         path: ~/hadoop-${{env.HADOOP_VER}}
         key: dfs-${{env.HADOOP_VER}}-v1
+        
 
     - name: Build and Test - Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure'
