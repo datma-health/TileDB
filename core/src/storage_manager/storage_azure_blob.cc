@@ -181,7 +181,7 @@ AzureBlob::AzureBlob(const std::string& home) {
   }
 
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
-  if (!account.get()) {
+  if (account == nullptr) {
     throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
   }
 
@@ -189,7 +189,8 @@ AzureBlob::AzureBlob(const std::string& home) {
   bc_wrapper = std::make_shared<blob_client_wrapper>(bC);
   bc = reinterpret_cast<blob_client_wrapper *>(bc_wrapper.get());
 
-  if (!bc->container_exists(path_uri.container())) {
+  auto outcome = bC->get_container_properties(container_name).get();
+  if (outcome.success() || !bc->container_exists(path_uri.container())) {
     throw std::system_error(EIO, std::generic_category(), "Azure Blob FS only supports already existing containers. Create container from either the az CLI or the storage portal before restarting operation");
   }
 

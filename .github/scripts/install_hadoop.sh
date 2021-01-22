@@ -107,7 +107,7 @@ install_hadoop() {
 echo "INSTALL_DIR=$INSTALL_DIR"
 echo "INSTALL_TYPE=$INSTALL_TYPE"
 # resources r.tar file encrypted using "gpg --symmetric --cipher-algo AES256 r.tar"
-gpg --quiet --batch --yes --decrypt --passphrase="$R_TAR" --output $INSTALL_DIR/r.tar $GITHUB_WORKSPACE/.github/r.tar.gpg &&
+gpg --quiet --batch --yes --decrypt --passphrase="$R_TAR" --output $INSTALL_DIR/r.tar $GITHUB_WORKSPACE/.github/scripts/r.tar.gpg &&
 tar xf $INSTALL_DIR/r.tar -C $GITHUB_WORKSPACE/.github &&
 install_hadoop
 
