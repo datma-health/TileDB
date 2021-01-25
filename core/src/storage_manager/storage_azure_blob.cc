@@ -71,9 +71,6 @@ static std::string run_command(const std::string& command) {
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
       output += buffer.data();
     }
-  } else {
-    output = "";
-    AZ_ERROR("Could not run command: "+command);
   }
   return output;
 }
