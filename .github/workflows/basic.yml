@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04, macOS-10.15]
-        type: [basic, basic-codec, hdfs, gcs, azure]
+        type: [basic, basic-codec, hdfs, gcs, azure, azurite]
         exclude:
           - os: macos-10.15
             type: basic-codec
@@ -22,6 +22,8 @@ jobs:
             type: gcs
           - os: macos-10.15
             type: azure
+          - os: macos-10.15
+            type: azurite
 
     runs-on: ${{ matrix.os }}
 
@@ -82,18 +84,24 @@ jobs:
       with:
         path: ~/hadoop-${{env.HADOOP_VER}}
         key: dfs-${{env.HADOOP_VER}}-v1
+        
 
     - name: Build and Test - Distributed FileSystems
-      if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure'
+      if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure' || matrix.type == 'azurite'
       shell: bash
       working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
-        source $GITHUB_WORKSPACE/.github/scripts/install_hadoop.sh
+        if [[ ${{matrix.type}} == "azurite" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/install_azurite.sh
+        else
+          source $GITHUB_WORKSPACE/.github/scripts/install_hadoop.sh
+        fi
         source $GITHUB_WORKSPACE/.github/scripts/run_dfs_tests.sh
       env:
         INSTALL_DIR: ${{runner.workspace}}
         INSTALL_TYPE: ${{matrix.type}}
         R_TAR: ${{secrets.R_TAR}}
+        AZURITE_TAR: ${{secrets.AZURITE_TAR}}
 
     - name: Upload Report to CodeCov
       uses: codecov/codecov-action@v1

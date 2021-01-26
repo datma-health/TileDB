@@ -58,37 +58,71 @@
 #endif
 #endif
 
+#define AZ_ERROR(MSG) TILEDB_ERROR_WITH_ERRNO(TILEDB_FS_ERRMSG, MSG, tiledb_fs_errmsg)
 #define AZ_BLOB_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, "Azure: "+MSG, PATH, tiledb_fs_errmsg)
 
 using namespace azure::storage_lite;
 
-static std::string get_account_key(const std::string& account_name) {
-  std::string key;
-  // Get enviroment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY
-  char *az_storage_ac_name = getenv("AZURE_STORAGE_ACCOUNT");
-  if (az_storage_ac_name && account_name.compare(az_storage_ac_name) == 0) {
-    key = getenv("AZURE_STORAGE_KEY");
-  }  
-  return key;
-}
-
-static std::string get_access_token(const std::string& account_name, const std::string& path) {
-  // Invoke `az account get-access-token --resource https://<account>.blob.core.windows.net -o tsv --query accessToken`
-  // Can use `az account get-access-token --resource https://storage.azure.com/ -o tsv --query accessToken` too
-  std::string token;
-  std::string resource_uri = "https://" + account_name + ".blob.core.windows.net";
-  std::string command =  "az account get-access-token --resource " + resource_uri + " -o tsv --query accessToken";
+static std::string run_command(const std::string& command) {
+  std::string output;
   std::array<char, 2048> buffer;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.data(), "r"), pclose);
   if (pipe) {
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-      token += buffer.data();
+      output += buffer.data();
     }
-  } else {
-    token = "";
-    AZ_BLOB_ERROR("Could not get access-token for account " + account_name, path);
   }
-  return token;
+  return output;
+}
+
+static std::string get_account_key(const std::string& account_name) {
+  // Try environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY first
+  char *az_storage_ac_name = getenv("AZURE_STORAGE_ACCOUNT");
+  if (az_storage_ac_name && account_name.compare(az_storage_ac_name) == 0) {
+    char *key = getenv("AZURE_STORAGE_KEY");
+    if (key) {
+      return key;
+    }
+  }
+
+  // Try via az CLI `az storage account keys list -o tsv --account-name <account_name>`
+  std::string keys = run_command("az storage account keys list -o tsv --account-name " + account_name);
+  std::string account_key("");
+
+  if (keys.length() > 1) {
+    // Get the first key available
+    std::string first_key("key1\tFull\t");
+    auto start_pos = first_key.length();
+    auto end_pos = keys.find("\n");
+    if (keys.find(first_key) != std::string::npos) {
+      if (end_pos == std::string::npos) {
+        account_key = keys.substr(start_pos);
+      } else {
+        account_key = keys.substr(start_pos, end_pos-start_pos);
+      }
+    }
+  }
+
+  return account_key;
+}
+
+static std::string get_blob_endpoint() {
+  // Get enviroment variable for AZURE_BLOB_ENDPOINT
+  std::string az_blob_endpoint("");
+  char *az_blob_endpoint_env = getenv("AZURE_BLOB_ENDPOINT");
+  if (az_blob_endpoint_env) {
+    az_blob_endpoint = az_blob_endpoint_env;
+  }
+  return az_blob_endpoint;
+}
+
+static std::string get_access_token(const std::string& account_name, const std::string& path) {
+  // Invoke `az account get-access-token --resource https://<account>.blob.core.windows.net -o tsv --query accessToken`
+  // Can probably use `az account get-access-token --resource https://storage.azure.com/ -o tsv --query accessToken` too
+  std::string token;
+  std::string resource_url = "https://" + account_name + ".blob.core.windows.net";
+  std::string command =  "az account get-access-token --resource " + resource_url + " -o tsv --query accessToken";
+  return run_command(command);
 }
 
 std::string AzureBlob::get_path(const std::string& path) {
@@ -128,7 +162,7 @@ AzureBlob::AzureBlob(const std::string& home) {
   }
 
   std::shared_ptr<storage_credential> cred = nullptr;
-  std::string azure_account = path_uri.account();  
+  std::string azure_account = path_uri.account();
   std::string azure_account_key = get_account_key(azure_account);
   if (azure_account_key.size() > 0) {
     cred = std::make_shared<shared_key_credential>(azure_account, azure_account_key);
@@ -143,12 +177,17 @@ AzureBlob::AzureBlob(const std::string& home) {
     throw std::system_error(EIO, std::generic_category(), "Could not get credentials for azure storage account=" + azure_account + ". Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
   }
 
-  std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */ true);
+  std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
+  if (account == nullptr) {
+    throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
+  }
+
   bC = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
   bc_wrapper = std::make_shared<blob_client_wrapper>(bC);
   bc = reinterpret_cast<blob_client_wrapper *>(bc_wrapper.get());
 
-  if (!bc->container_exists(path_uri.container())) {
+  auto outcome = bC->get_container_properties(container_name).get();
+  if (outcome.success() || !bc->container_exists(path_uri.container())) {
     throw std::system_error(EIO, std::generic_category(), "Azure Blob FS only supports already existing containers. Create container from either the az CLI or the storage portal before restarting operation");
   }
 
