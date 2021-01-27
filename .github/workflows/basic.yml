@@ -1,6 +1,12 @@
-name: Basic workflow to build and test TileDB
+name: build 
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
 
 env:
   CMAKE_BUILD_TYPE: Coverage
