@@ -1,8 +1,12 @@
 name: build 
 
-on: [push, pull_request]
-  paths-ignore:
-    - '**/*.md'
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
 
 env:
   CMAKE_BUILD_TYPE: Coverage
