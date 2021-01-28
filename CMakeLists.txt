@@ -55,7 +55,7 @@ set(TILEDB_DISABLE_UNINSTALL False CACHE BOOL "Disable TileDB Uninstall")
 # Only for Mac OS X
 if(APPLE)
   set(CMAKE_MACOSX_RPATH True CACHE BOOL "Set rpath on OSX")
-  set(CMAKE_FIND_FRAMEWORK NEVER CACHE STRING "Never try to find frameworks on Mac OS X")
+  set(CMAKE_FIND_FRAMEWORK LAST CACHE STRING "Find frameworks on Mac OS X last")
 endif()
 
 # Default user definitions
