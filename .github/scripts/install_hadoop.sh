@@ -72,10 +72,7 @@ configure_hadoop() {
     source $GITHUB_WORKSPACE/.github/resources/gcs/gcs_cred.sh
   fi
   if [[ $INSTALL_TYPE == azure ]]; then
-    ls -l $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh
     source $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh
-    echo AZURE_ACCOUNT_NAME=$AZURE_ACCOUNT_NAME
-    echo AZURE_STORAGE_KEY=$AZURE_STORAGE_KEY
   fi
   echo "configure_hadoop successful"
 }
