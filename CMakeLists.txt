@@ -147,11 +147,17 @@ if(USE_HDFS)
   set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${JAVA_JVM_LIBRARY})
 endif()
 
-#Add pthreads as a dependency
+# Add pthreads as a dependency
 set(CMAKE_THREAD_PREFER_PTHREAD True)
 find_package(Threads REQUIRED)
 if(DEFINED CMAKE_THREAD_LIBS_INIT AND (CMAKE_USE_PTHREADS_INIT OR CMAKE_HP_PTHREADS_INIT))
   set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_THREAD_LIBS_INIT})
+endif()
+
+# TODO: Fix this - AWSSDK has some sort of transitive dependency on CoreFoundation,
+# add this explicitly for now even though CMAKE_FIND_FRAMEWORK is set to LAST
+if(APPLE)
+  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} "-framework CoreFoundation")
 endif()
 
 # Set C++ 2011 flag
