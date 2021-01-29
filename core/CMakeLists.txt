@@ -61,7 +61,7 @@ target_link_libraries(tiledb_static azure-storage-lite muparserx)
 if(APPLE)
   target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES} "-framework CoreFoundation")
 else()
-  target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES} "-framework CoreFoundation")
+  target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 endif()
 
 # Install libraries
