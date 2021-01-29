@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -189,8 +189,11 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS read/write file", "[read-writ
 }
 
 TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS large read/write file", "[read-write-large]") {
+  if (!is_env_set("TILEDB_TEST_POSIXFS_LARGE")) {
+    return;
+  }
   test_dir += "read_write_large";
-  size_t size = ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*4;
+  ssize_t size = (ssize_t)TILEDB_UT_MAX_WRITE_COUNT*4;
   void *buffer = malloc(size);
   if (buffer) {
     memset(buffer, 'B', size);
@@ -223,7 +226,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
     std::string filename = test_dir+"/foo"+std::to_string(i);
 
     for (auto j=0; j<2; j++) {
-      size_t size = TILEDB_UT_MAX_WRITE_COUNT;
+      size_t size = 2048;
       void *buffer = malloc(size);
       if (buffer) {
 	memset(buffer, 'X', size);
@@ -244,7 +247,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"new/foo"+std::to_string(i);
       CHECK(fs.is_file(filename));
-      CHECK(fs.file_size(filename) == ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*2);
+      CHECK(fs.file_size(filename) == 2048*2);
     }
   }
 
@@ -354,7 +357,7 @@ TEST_CASE("Test writing with keeps file descriptors open until explicitly closed
   for (int i=0; i<n_iter; i++) {
     CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 6), TILEDB_FS_OK);
     REQUIRE(fs.is_file(test_dir+"/foo"));
-    CHECK(fs.file_size(test_dir+"/foo") == (size_t)(6*(i+1)));
+    CHECK(fs.file_size(test_dir+"/foo") == 6*(i+1));
   }
   CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
 
@@ -362,7 +365,7 @@ TEST_CASE("Test writing with keeps file descriptors open until explicitly closed
   
   buffer = realloc(buffer, 6*n_iter);
   CHECK_RC(fs1.read_from_file(test_dir+"/foo", 0, buffer, 6*n_iter), TILEDB_FS_OK);
-  CHECK(fs1.file_size(test_dir+"/foo") == (size_t)(6*n_iter));
+  CHECK(fs1.file_size(test_dir+"/foo") == 6*n_iter);
   CHECK_RC(fs1.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
   
   // Try closing non-existent file
@@ -394,9 +397,24 @@ TEST_CASE("Test reading/writing with keep file handles open set for write and un
   for (int i=0; i<n_iter; i++) {
     CHECK_RC(fs.write_to_file(test_dir+"/foo", "hello", 6), TILEDB_FS_OK);
     REQUIRE(fs.is_file(test_dir+"/foo"));
-    CHECK(fs.file_size(test_dir+"/foo") == (size_t)(6*(i+1)));
+    CHECK(fs.file_size(test_dir+"/foo") == 6*(i+1));
   }
   CHECK_RC(fs.close_file(test_dir+"/foo"), TILEDB_FS_OK);
+
+  // Perform some writes and sync the file. This should log an error but complete successfully
+  PosixFS *fs_sync = new PosixFS();
+  CHECK_RC(fs_sync->write_to_file(test_dir+"/foo_sync", "hello", 6), TILEDB_FS_OK);
+  REQUIRE(fs_sync->is_file(test_dir+"/foo_sync"));
+  CHECK(fs_sync->file_size(test_dir+"/foo_sync") == 6);
+  CHECK_RC(fs_sync->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  delete fs_sync;
+  
+  // Perform some writes and do not close/sync the file. This should log an error but complete successfully
+  PosixFS *fs_no_close = new PosixFS();
+  CHECK_RC(fs_no_close->write_to_file(test_dir+"/foo_no_close", "hello", 6), TILEDB_FS_OK);
+  REQUIRE(fs_no_close->is_file(test_dir+"/foo_no_close"));
+  CHECK(fs_no_close->file_size(test_dir+"/foo_no_close") == 6);
+  delete fs_no_close;
 
   unsetenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
 
@@ -404,7 +422,7 @@ TEST_CASE("Test reading/writing with keep file handles open set for write and un
   
   void *buffer = malloc(6*n_iter);
   CHECK_RC(fs1.read_from_file(test_dir+"/foo", 0, buffer, 6*n_iter), TILEDB_FS_OK);
-  CHECK(fs1.file_size(test_dir+"/foo") == (size_t)(6*n_iter));
+  CHECK(fs1.file_size(test_dir+"/foo") == 6*n_iter);
   CHECK_RC(fs1.delete_file(test_dir+"/foo"), TILEDB_FS_OK);
   
   // Try closing non-existent file

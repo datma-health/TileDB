@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corp.
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,13 +82,11 @@ int tiledb_ctx_init(
   if (tiledb_config && tiledb_config->home_) {
     TRACE_FN_ARG("Home=" << tiledb_config->home_);
     std::string home = std::string(tiledb_config->home_, strlen(tiledb_config->home_));
-    if (TileDBUtils::is_cloud_path(home)) {
-      if (!is_hdfs_path(home) && !is_gcs_path(home) &&!is_azure_blob_storage_path(home)) {
-	std::string errmsg = "No TileDB support for URL=" + home;
-	PRINT_ERROR(errmsg);
-	strcpy(tiledb_errmsg, errmsg.c_str());
-	return TILEDB_ERR;
-      }
+    if (TileDBUtils::is_cloud_path(home) && !is_supported_cloud_path(home)) {
+      std::string errmsg = "No TileDB support for URL=" + home;
+      PRINT_ERROR(errmsg);
+      strcpy(tiledb_errmsg, errmsg.c_str());
+      return TILEDB_ERR;
     }
   }
 
@@ -1853,11 +1851,11 @@ std::string current_working_dir(const TileDB_CTX* tiledb_ctx) {
    return "";
 }
 
-size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
+ssize_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
   if (sanity_check_fs(tiledb_ctx)) {
     return file_size(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), file);
   }
-  return 0;
+  return TILEDB_ERR;
 }
 
 inline int invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {

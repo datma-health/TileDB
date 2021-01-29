@@ -59,6 +59,7 @@ configure_hadoop() {
 }
 
 setup_paths() {
+  export JAVA_HOME=/usr/java/latest
   export PATH=$HADOOP_DIR/bin:$PATH
   export CLASSPATH=`$HADOOP_DIR/bin/hadoop classpath --glob`
   AZURE_JARS=`find $HADOOP_DIR/share/hadoop/tools/lib -name *azure*jar | tr '\n' ':'`

@@ -5,7 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
-# Copyright (c) 2018-2019 Omics Data Automation, Inc.
+# Copyright (c) 2018-2020 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 #
 
 project(TileDB)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.6)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 # Update git submodules
@@ -42,6 +42,7 @@ set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
 set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
+set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 
 # Set the following to true downstream when TileDB is added as a subdirectory 
@@ -108,6 +109,11 @@ endif()
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
+
+# Build Azure cpp lite client added as a dependency
+include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include)
+add_subdirectory(${AZURE_FSCLIENT_SOURCE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite)
 
 # Build MuParserX source code added as a dependency
 include_directories(${MUPARSERX_SOURCE_DIR}/parser)

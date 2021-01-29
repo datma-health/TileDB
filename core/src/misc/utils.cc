@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019, 2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -227,13 +227,21 @@ int cmp_row_order(
 }
 
 bool is_supported_cloud_path(const std::string& pathURL) {
-  return is_hdfs_path(pathURL) || is_gcs_path(pathURL) || is_azure_blob_storage_path(pathURL);
+  return is_hdfs_path(pathURL) || is_gcs_path(pathURL) || is_azure_path(pathURL) || is_azure_blob_storage_path(pathURL);
 }
 
-bool is_azure_blob_storage_path(const std::string& pathURL) {
+bool is_azure_path(const std::string& pathURL) {
   if (!pathURL.empty() && (starts_with(pathURL, "wasbs:") || starts_with(pathURL, "wasb:")
                            || starts_with(pathURL, "abfss:") || starts_with(pathURL, "abfs")
                            || starts_with(pathURL, "adl:"))) {
+    return true;
+  } else {
+    return false;
+ }
+}
+
+bool is_azure_blob_storage_path(const std::string& pathURL) {
+  if (!pathURL.empty() && starts_with(pathURL, "az:")) {
     return true;
   } else {
     return false;
@@ -249,7 +257,7 @@ bool is_gcs_path(const std::string& pathURL) {
 }
 
 bool is_hdfs_path(const std::string& pathURL) {
-  if (!pathURL.empty() && (starts_with(pathURL, "hdfs:") || starts_with(pathURL, "s3:"))) {
+  if (!pathURL.empty() && (starts_with(pathURL, "hdfs:") || starts_with(pathURL, "s3:") || starts_with(pathURL, "s3a:"))) {
     return true;
   } else {
     return false;
@@ -356,7 +364,7 @@ void expand_mbr(T* mbr, const T* coords, int dim_num) {
   }	
 } 
 
-size_t file_size(StorageFS *fs, const std::string& filename) {
+ssize_t file_size(StorageFS *fs, const std::string& filename) {
   return fs->file_size(filename);
 }
 
@@ -941,8 +949,16 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
       return TILEDB_UT_ERR;
   }
   
-  size_t size = fs->file_size(filename);
+  auto size = fs->file_size(filename);
+  if (size == TILEDB_FS_ERR || size == 0) {
+    UTILS_PATH_ERROR("Cannot read file into buffer as it does not exist or is empty", filename);
+    return TILEDB_UT_ERR;
+  }
   unsigned char *in = (unsigned char *)malloc(size);
+  if (in == NULL) {
+    UTILS_PATH_ERROR( "Cannot read file into buffer; Mem allocation error for filesize=" + std::to_string(size), filename);
+    return TILEDB_UT_ERR;
+  }
 
   if (fs->read_from_file(filename, 0, in, size) == TILEDB_UT_ERR) {
     free(in);

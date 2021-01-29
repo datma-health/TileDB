@@ -137,25 +137,28 @@ class BenchmarkConfig: public TempDir {
   }
 
   void free_buffers() {
-    int j = 0;
-    for(auto i=0ul; i<attributes_.size(); i++, j++) {
+    for(auto i=0ul, j=0ul; i<attributes_.size(); i++) {
       if (attribute_cell_val_nums_[i] == TILEDB_VAR_NUM) {
-        delete (int64_t *)buffers_[j++];
+	delete [] (int64_t *)buffers_[i+j];
+	buffers_[i+j] = NULL;
+	j++;
       }
       switch (attribute_data_types_[i]) {
         case TILEDB_INT32:
-          delete (int32_t *)buffers_[j];
+          delete [] (int32_t *)buffers_[i+j];
           break;
         case TILEDB_INT64:
-          delete (int64_t *)buffers_[j];
+          delete [] (int64_t *)buffers_[i+j];
           break;
         case TILEDB_CHAR:
-          delete (char *)buffers_[j];
+          delete [] (char *)buffers_[i+j];
         default:
           break;
       }
+      buffers_[i+j] = NULL;
     }
-    delete (int64_t *)buffers_[j]; // coords
+    delete [] (int64_t *)buffers_[buffers_.size()-1]; // coords
+    buffers_[buffers_.size()-1] = NULL;
     buffers_.clear();
     buffer_sizes_.clear();
   }

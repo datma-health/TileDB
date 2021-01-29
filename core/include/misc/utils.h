@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -201,9 +202,16 @@ int cmp_row_order(
 bool is_supported_cloud_path(const std::string& pathURL);
 
 /**
- * Checks if a given pathURL is Azure Blob Storage.
+ * Checks if a given pathURL is azure URL supported by hdfs.
  * @param pathURL URL to path to be checked.
  * @return true if pathURL starts with wasb:// or wasbs://
+ */
+bool is_azure_path(const std::string& pathURL);
+
+/**
+ * Checks if a given pathURL is Azure Blob Storage.
+ * @param pathURL URL to path to be checked.
+ * @return true if pathURL starts with az://
  */
 bool is_azure_blob_storage_path(const std::string& pathURL);
 
@@ -334,7 +342,7 @@ void expand_mbr(T* mbr, const T* coords, int dim_num);
  * @param filename The name of the file whose size is to be retrieved.
  * @return The file size on success, and TILEDB_UT_ERR for error.
  */
-size_t file_size(StorageFS *fs, const std::string& filename);
+ssize_t file_size(StorageFS *fs, const std::string& filename);
 
 /** Returns the names of the directories inside the input directory.
  *
