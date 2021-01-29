@@ -615,12 +615,3 @@ TEST_CASE("Test storage URIs", "[storage_uris]") {
   CHECK(is_supported_cloud_path("abfss://ddd/d"));
   CHECK(is_supported_cloud_path("adl://ddd/d"));
 }
-
-TEST_CASE("Test reading gzipped file", "[gzip]") {
-  PosixFS fs;
-  void *buffer;
-  size_t buffer_size;
-  int rc = read_from_file_after_decompression(&fs, "/Users/nalini/Downloads/__book_keeping.tdb.gz", &buffer, buffer_size, TILEDB_GZIP);
-  CHECK(rc == TILEDB_OK);
-  free(buffer);
-}
