@@ -78,4 +78,16 @@ std::string StorageCloudFS::get_path(const std::string& path) {
   }
 }
 
+int StorageCloudFS::commit_file(const std::string& file) {
+  // This should be implemented by the derived class
+  return TILEDB_FS_ERR;
+}
+
+int StorageCloudFS::sync_path(const std::string& path) {
+  return commit_file(path);
+}
+
+int StorageCloudFS::close_file(const std::string& filename) {
+  return commit_file(filename);
+}
 

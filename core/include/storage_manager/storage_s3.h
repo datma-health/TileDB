@@ -40,7 +40,9 @@
 #include <aws/s3/S3Client.h>
 #include <aws/core/auth/AWSCredentials.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
-
+#include <aws/core/utils/memory/AWSMemory.h>
+#include <aws/core/utils/stream/PreallocatedStreamBuf.h>
+#include <aws/s3/model/CompleteMultipartUploadRequest.h>
 
 class S3 : public StorageCloudFS {
 
@@ -72,12 +74,8 @@ class S3 : public StorageCloudFS {
 
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);
-  
-  int move_path(const std::string& old_path, const std::string& new_path);
-    
-  int sync_path(const std::string& path);
 
-  int close_file(const std::string& filename);
+  int commit_file(const std::string& filename);
 
   // Helper functions
   inline Aws::String to_aws_string(const std::string& s) const {
@@ -89,6 +87,23 @@ class S3 : public StorageCloudFS {
  
   Aws::SDKOptions options_;
   std::shared_ptr<Aws::S3::S3Client> client_;
+  std::mutex write_map_mtx_;
+  typedef struct multipart_upload_info_t {
+   public:
+    multipart_upload_info_t(const std::string& upload_id) : upload_id_(upload_id) {
+      completed_parts_ = std::make_shared<Aws::S3::Model::CompletedMultipartUpload>();
+    }
+    std::string upload_id_;
+    size_t part_number_ = 0;
+    size_t last_uploaded_size_ = 0;
+    std::shared_ptr<Aws::S3::Model::CompletedMultipartUpload> completed_parts_;
+    bool abort_upload_ = false;
+  } multipart_upload_info_t;
+  std::unordered_map<std::string, multipart_upload_info_t> write_map_;
+
+  bool path_exists(const std::string& path);
+  int create_path(const std::string& path);
+  int delete_path(const std::string& path);
 };
 
 #endif /*  __STORAGE_S3_H__ */

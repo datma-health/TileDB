@@ -20,7 +20,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04, macOS-10.15]
-        type: [basic, basic-codec, hdfs, gcs, azure, azurite]
+        # type: [basic, basic-codec, hdfs, gcs, azure, azurite, minio]
+        type: [basic, basic-codec, hdfs, azurite, minio]
         exclude:
           - os: macos-10.15
             type: basic-codec
@@ -32,8 +33,8 @@ jobs:
             type: azure
           - os: macos-10.15
             type: azurite
-          - type: azure
-            event-name: [pull_request]
+          - os: macos-10.15
+            type: minio
 
     runs-on: ${{ matrix.os }}
 
@@ -104,23 +105,19 @@ jobs:
         path: ~/hadoop-${{env.HADOOP_VER}}
         key: dfs-${{env.HADOOP_VER}}-v1
         
-
     - name: Build and Test - Distributed FileSystems
-      if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure' || matrix.type == 'azurite'
+      if: matrix.type == 'hdfs' || matrix.type == 'gcs' || matrix.type == 'azure' || matrix.type == 'azurite' || matrix.type == 'minio'
       shell: bash
       working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
         if [[ ${{matrix.type}} == "azurite" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_azurite.sh
+        elif [[ ${{matrix.type}} == "minio" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/install_minio.sh
         else
           source $GITHUB_WORKSPACE/.github/scripts/install_hadoop.sh
         fi
-        if [[ ${{matrix.type}} != "azure" ]]; then
-          source $GITHUB_WORKSPACE/.github/scripts/run_dfs_tests.sh
-        else
-          echo "TODO: Run tests on the Azure instance only for PRs"
-          echo "github.event.issue.pull_request=${{github.event.issue.pull_request}}"
-        fi
+        source $GITHUB_WORKSPACE/.github/scripts/run_dfs_tests.sh
       env:
         INSTALL_DIR: ${{runner.workspace}}
         INSTALL_TYPE: ${{matrix.type}}

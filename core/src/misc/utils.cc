@@ -613,11 +613,7 @@ bool intersect(const std::vector<T>& v1, const std::vector<T>& v2) {
 
 bool is_array(StorageFS *fs, const std::string& dir) {
   // Check existence
-  if(is_dir(fs, dir) && 
-     is_file(fs, dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME)) 
-    return true;
-  else
-    return false;
+  return is_file(fs, dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME);
 }
 
 template<class T>

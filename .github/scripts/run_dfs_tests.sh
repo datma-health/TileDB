@@ -24,7 +24,7 @@ setup_azurite() {
   export AZURE_BLOB_ENDPOINT="https://127.0.0.1:10000/devstoreaccount1"
 }
 
-make -j4 && make test_tiledb_utils && make test_azure_blob_storage && make examples && cd examples
+make -j4 && make test_tiledb_utils && make test_azure_blob_storage && make test_s3_storage && make examples && cd examples
 
 if [[ $INSTALL_TYPE == hdfs ]]; then
   echo "JAVA_HOME=$JAVA_HOME"
@@ -51,6 +51,11 @@ elif [[ $INSTALL_TYPE == azurite ]]; then
   tiledb_utils_tests "az://test@devstoreaccount1.blob.core.windows.net/github_azure_blob_test" &&
   $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://test@devstoreaccount1.blob.core.windows.net/github_azure_storage_test" &&
   $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/github_test"
+
+elif [[  $INSTALL_TYPE == minio ]]; then
+  source $HOME/aws_env.sh &&
+  $CMAKE_BUILD_DIR/test/test_s3_storage --test-dir s3://test/github_azure_storage_test &&
+  $GITHUB_WORKSPACE/examples/run_examples.sh s3://test/github_test
 fi
 
 if [[ -f github_test.log ]]; then

@@ -6,7 +6,7 @@
 INSTALL_DIR=${INSTALL_DIR:-/usr}
 USER=`whoami`
 
-HADOOP=hadoop-${HADOOP_VER:-3.2.1}
+HADOOP=hadoop-${HADOOP_VER:-3.2.2}
 HADOOP_DIR=${INSTALL_DIR}/$HADOOP
 HADOOP_ENV=$HADOOP_DIR/hadoop.env
 
@@ -25,16 +25,37 @@ install_prereqs() {
   echo "install_prereqs successful"
 }
 
+# retry logic from: https://docs.microsoft.com/en-us/azure/hdinsight/hdinsight-hadoop-script-actions-linux
+MAXATTEMPTS=3
+retry() {
+    local -r CMD="$@"
+    local -i ATTEMPTNUM=1
+    local -i RETRYINTERVAL=2
+
+    until $CMD
+    do
+        if (( ATTEMPTNUM == MAXATTEMPTS ))
+        then
+                echo "Attempt $ATTEMPTNUM failed. no more attempts left."
+                return 1
+        else
+                echo "Attempt $ATTEMPTNUM failed! Retrying in $RETRYINTERVAL seconds..."
+                sleep $(( RETRYINTERVAL ))
+                ATTEMPTNUM=$ATTEMPTNUM+1
+        fi
+    done
+}
+
 download_gcs_connector() {
   if [[ $INSTALL_TYPE == gcs ]]; then
-    wget -q https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar
+    retry wget -nv --trust-server-names https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar
 	  mv gcs-connector-hadoop3-latest.jar ${HADOOP_DIR}/share/hadoop/common
     echo "download_gcs_connector successful"
   fi
 }
 
 download_hadoop() {
-  wget -q http://www-eu.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz &&
+  retry wget -nv --trust-server-names http://www-eu.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz
   tar -xzf $HADOOP.tar.gz --directory $INSTALL_DIR &&
   download_gcs_connector &&
   echo "download_hadoop successful"
