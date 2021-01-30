@@ -70,6 +70,7 @@ class S3TestFixture {
   }
 };
 
+/*
 TEST_CASE("Test S3 constructor", "[s3_constr]") {
   std::string path = ("s3://nalini/path");
   S3 *s3_instance = new S3(path);
@@ -86,7 +87,7 @@ TEST_CASE("Test S3 constructor", "[s3_constr]") {
   delete s3_instance;
 }
 
-/*TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob cwd", "[cwd]") {
+TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob cwd", "[cwd]") {
   if (azure_blob == nullptr) {
     return;
   }
