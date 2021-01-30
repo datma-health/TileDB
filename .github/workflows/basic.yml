@@ -32,6 +32,8 @@ jobs:
             type: azure
           - os: macos-10.15
             type: azurite
+          - type: azure
+            event-name: [pull_request]
 
     runs-on: ${{ matrix.os }}
 
