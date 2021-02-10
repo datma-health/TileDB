@@ -52,6 +52,11 @@ elif [[ $INSTALL_TYPE == azurite ]]; then
   $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://test@devstoreaccount1.blob.core.windows.net/github_azure_storage_test" &&
   $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/github_test"
 
+elif [[ $INSTALL_TYPE == aws ]]; then
+  echo "Testing aws type"
+  $CMAKE_BUILD_DIR/test/test_s3_storage --test-dir s3://github-actions-1/github_azure_storage_test &&
+  $GITHUB_WORKSPACE/examples/run_examples.sh s3://github-actions-1/github_test
+
 elif [[  $INSTALL_TYPE == minio ]]; then
   source $HOME/aws_env.sh &&
   $CMAKE_BUILD_DIR/test/test_s3_storage --test-dir s3://test/github_azure_storage_test &&
