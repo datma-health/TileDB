@@ -26,16 +26,17 @@ setup_azurite() {
 
 make -j4 && make test_tiledb_utils && make test_azure_blob_storage && make test_s3_storage && make examples && cd examples
 
+EXAMPLES_DIR=github_examples_test_$RANDOM
 if [[ $INSTALL_TYPE == hdfs ]]; then
   echo "JAVA_HOME=$JAVA_HOME"
   java -version
   echo "1 CLASSPATH=$CLASSPATH"
   tiledb_utils_tests "hdfs://localhost:9000/github_unit_test" &&
-    time $GITHUB_WORKSPACE/examples/run_examples.sh "hdfs://localhost:9000/github_test"
+    time $GITHUB_WORKSPACE/examples/run_examples.sh "hdfs://localhost:9000/$EXAMPLES_DIR"
 
 elif [[ $INSTALL_TYPE == gcs ]]; then
   tiledb_utils_tests "gs://$GS_BUCKET/github_unit_test" &&
-    time  $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/github_test"
+    time  $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$EXAMPLES_DIR"
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
@@ -43,29 +44,29 @@ elif [[ $INSTALL_TYPE == azure ]]; then
   #echo "wasbs schema utils test" && tiledb_utils_tests "wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_unit_test" &&
     echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_azure_blob_test" &&
     echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_azure_storage_test" &&
-    echo "az schema examples" && time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_test"
-    #    echo "wasbs schema examples" && time  $GITHUB_WORKSPACE/examples/run_examples.sh "wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_test"
+    echo "az schema examples" && time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$EXAMPLES_DIR"
+    #    echo "wasbs schema examples" && time  $GITHUB_WORKSPACE/examples/run_examples.sh "wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$EXAMPLES_DIR"
 
 elif [[ $INSTALL_TYPE == azurite ]]; then
   setup_azurite
   tiledb_utils_tests "az://test@devstoreaccount1.blob.core.windows.net/github_azure_blob_test" &&
   $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://test@devstoreaccount1.blob.core.windows.net/github_azure_storage_test" &&
-  $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/github_test"
+  $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/$EXAMPLES_DIR"
 
 elif [[ $INSTALL_TYPE == aws ]]; then
   echo "Testing aws type"
   $CMAKE_BUILD_DIR/test/test_s3_storage --test-dir s3://github-actions-1/github_azure_storage_test &&
-  $GITHUB_WORKSPACE/examples/run_examples.sh s3://github-actions-1/github_test
+  $GITHUB_WORKSPACE/examples/run_examples.sh s3://github-actions-1/$EXAMPLES_DIR
 
 elif [[  $INSTALL_TYPE == minio ]]; then
   source $HOME/aws_env.sh &&
   $CMAKE_BUILD_DIR/test/test_s3_storage --test-dir s3://test/github_azure_storage_test &&
-  $GITHUB_WORKSPACE/examples/run_examples.sh s3://test/github_test
+  $GITHUB_WORKSPACE/examples/run_examples.sh s3://test/$EXAMPLES_DIR
 fi
 
-if [[ -f github_test.log ]]; then
-  diff github_test.log  $GITHUB_WORKSPACE/examples/expected_results
+if [[ -f $EXAMPLES_DIR.log ]]; then
+  diff $EXAMPLES_DIR.log  $GITHUB_WORKSPACE/examples/expected_results
 else
-  echo "github_test.log from run_examples.sh does not seem to be found"
+  echo $EXAMPLES_DIR.log from run_examples.sh does not seem to exist. Check the results of running run_examples.sh"
   exit 1
 fi

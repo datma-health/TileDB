@@ -48,8 +48,8 @@
 #include <aws/s3/model/UploadPartRequest.h>
 
 // errno is not relevant with aws sdk, so setting to 0
-#define S3_ERROR(MSG, PATH) errno=0; SYSTEM_ERROR(TILEDB_FS_ERRMSG, "S3: "+MSG, PATH, tiledb_fs_errmsg)
-#define S3_ERROR1(MSG, OUTCOME, PATH) errno=0; SYSTEM_ERROR(TILEDB_FS_ERRMSG, "S3: "+MSG+" "+OUTCOME.GetError().GetExceptionName()+" "+OUTCOME.GetError().GetMessage(), PATH, tiledb_fs_errmsg)
+#define S3_ERROR(MSG, PATH) PATH_ERROR(TILEDB_FS_ERRMSG, "S3: "+MSG, PATH, tiledb_fs_errmsg)
+#define S3_ERROR1(MSG, OUTCOME, PATH) PATH_ERROR(TILEDB_FS_ERRMSG, "S3: "+MSG+" "+OUTCOME.GetError().GetExceptionName()+" "+OUTCOME.GetError().GetMessage(), PATH, tiledb_fs_errmsg)
 #define CLASS_TAG "TILEDB_STORAGE_S3"
 
 S3::S3(const std::string& home) {
@@ -271,9 +271,11 @@ std::vector<std::string> S3::get_dirs(const std::string& dir) {
       request.SetContinuationToken(continuation_token);
     }
     auto outcome = client_->ListObjectsV2(request);
-    continuation_token = outcome.GetResult().GetNextContinuationToken();
-    for (const auto& object : outcome.GetResult().GetCommonPrefixes()) {
-      dirs.push_back(unslashify(object.GetPrefix()));
+    if (outcome.IsSuccess()) {
+      continuation_token = outcome.GetResult().GetNextContinuationToken();
+      for (const auto& object : outcome.GetResult().GetCommonPrefixes()) {
+        dirs.push_back(unslashify(object.GetPrefix()));
+      }
     }
   } while (continuation_token.length() > 0);
   return dirs;
@@ -292,10 +294,12 @@ std::vector<std::string> S3::get_files(const std::string& dir) {
       request.SetContinuationToken(continuation_token);
     }
     auto outcome = client_->ListObjectsV2(request);
-    continuation_token = outcome.GetResult().GetNextContinuationToken();
-    for (const auto& object : outcome.GetResult().GetContents()) {
-      if (is_file(object.GetKey())) {
-        files.push_back(object.GetKey());
+    if (outcome.IsSuccess()) {
+      continuation_token = outcome.GetResult().GetNextContinuationToken();
+      for (const auto& object : outcome.GetResult().GetContents()) {
+        if (is_file(object.GetKey())) {
+          files.push_back(object.GetKey());
+        }
       }
     }
   } while (continuation_token.length() > 0);
@@ -396,7 +400,7 @@ int S3::write_to_file(const std::string& filename, const void *buffer, size_t bu
     // Verify that the previous uploaded part was at least 5M - see https://docs.aws.amazon.com/AmazonS3/latest/API/mpUploadUploadPart.html
     auto last_uploaded_size = found->second.last_uploaded_size_;
     if (found->second.abort_upload_ || (last_uploaded_size != 0 && last_uploaded_size < 5*1024*1024)) {
-      S3_ERROR("Only the last of the uploadable parts can be less than 5Mb", filepath);
+      S3_ERROR("Only the last of the uploadable parts can be less than 5Mb, try increasing TILEDB_UPLOAD_BUFFER_SIZE to at least 5Mb", filepath);
       found->second.abort_upload_ = true;
       return TILEDB_FS_ERR;
     } else {
