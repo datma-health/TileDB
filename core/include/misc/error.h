@@ -59,7 +59,20 @@
     TILEDB_MSG = errmsg;                                             \
   } while (false)
 
-#define TILEDB_ERROR_WITH_ERRNO(PREFIX, MSG, TILEDB_MSG)                        \
+// To be used when errno has to be ignored as with awssdk api. Most other times
+// SYSTEM_ERROR is more appropriate.
+#define PATH_ERROR(PREFIX, MSG, PATH, TILEDB_MSG)                    \
+  do {                                                               \
+    std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \
+    std::string errpath = PATH;                                      \
+    if (errpath.length() > 0) {                                      \
+      errmsg +=  " path=" + errpath;                                 \
+    }                                                                \
+    PRINT_ERROR(errmsg);                                             \
+    TILEDB_MSG = errmsg;                                             \
+  } while (false)
+
+#define TILEDB_ERROR_WITH_ERRNO(PREFIX, MSG, TILEDB_MSG)             \
   do {                                                               \
     std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \
     if (errno > 0) {                                                 \

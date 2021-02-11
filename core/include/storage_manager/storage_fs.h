@@ -38,8 +38,9 @@
 #include "uri.h"
 
 #include <string>
-#include <vector>
 #include <sys/stat.h>
+#include <system_error>
+#include <vector>
 
 /**@{*/
 /** Return code. */
@@ -130,6 +131,33 @@ class StorageFS {
  protected:
   size_t download_buffer_size_ = 0;
   size_t upload_buffer_size_ = 0;
+};
+
+class StorageCloudFS : public virtual StorageFS {
+
+#define DELIMITER "/"
+
+ public:
+  int create_dir(const std::string& dir) {
+    // no-op
+    return TILEDB_FS_OK;
+  }
+
+  int move_path(const std::string& old_path, const std::string& new_path) {
+    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TBD: No support for moving path");
+  }
+
+  virtual int commit_file(const std::string& filename);
+
+  int sync_path(const std::string& path);
+
+  int close_file(const std::string& filename);
+
+ protected:
+  std::string get_path(const std::string& path);
+
+ protected:
+  std::string working_dir_;
 };
 
 #endif /* __STORAGE_FS_H__ */

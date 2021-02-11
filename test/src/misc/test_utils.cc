@@ -582,8 +582,6 @@ TEST_CASE_METHOD(TempDir, "Test utils file system operations", "[test_utils_fs]"
   CHECK(buffer_length == 6);
   CHECK(!strcmp(buffer, "Hello"));
   free(buffer);
-
-  CHECK(!delete_dir(fs, temp_dir));
 }
 
 TEST_CASE("Test empty value concept", "[empty_cell_val]") {

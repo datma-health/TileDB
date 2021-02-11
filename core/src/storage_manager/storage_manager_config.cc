@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@
  */
 
 #include "storage_azure_blob.h"
+#include "storage_s3.h"
 #include "storage_manager_config.h"
 #include "tiledb_constants.h"
 #include "utils.h"
@@ -99,6 +100,14 @@ int StorageManagerConfig::init(
        } catch(std::system_error& ex) {
          PRINT_ERROR(ex.what());
 	 tiledb_smc_errmsg = "Azure Storage Blob intialization failed for home=" + home_;
+	 return TILEDB_SMC_ERR;
+       }
+     } else if (is_s3_storage_path(home_)) {
+        try {
+          fs_ = new S3(home_);
+       } catch(std::system_error& ex) {
+         PRINT_ERROR(ex.what());
+	 tiledb_smc_errmsg = "S3 Storage intialization failed for home=" + home_;
 	 return TILEDB_SMC_ERR;
        }
      } else if (is_supported_cloud_path(home_)) {
