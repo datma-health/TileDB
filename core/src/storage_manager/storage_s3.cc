@@ -52,6 +52,16 @@
 #define S3_ERROR1(MSG, OUTCOME, PATH) PATH_ERROR(TILEDB_FS_ERRMSG, "S3: "+MSG+" "+OUTCOME.GetError().GetExceptionName()+" "+OUTCOME.GetError().GetMessage(), PATH, tiledb_fs_errmsg)
 #define CLASS_TAG "TILEDB_STORAGE_S3"
 
+// ugly, as we cannot call Aws::ShutdownAPI(memory leak??) but no other option for now -
+// See https://github.com/aws/aws-sdk-cpp/issues/456 and
+//     https://github.com/aws/aws-sdk-cpp/issues/1067
+std::once_flag awssdk_init_api_flag;
+std::shared_ptr<Aws::SDKOptions> awssdk_options;
+void awssdk_init_api() {
+  awssdk_options = std::make_shared<Aws::SDKOptions>();
+  Aws::InitAPI(*awssdk_options.get());
+}
+
 S3::S3(const std::string& home) {
   s3_uri path_uri(home);
 
@@ -63,9 +73,7 @@ S3::S3(const std::string& home) {
     throw std::system_error(EPROTO, std::generic_category(), "S3 URI does not seem to have a bucket specified");
   }
 
-  // TODO: Set up options_ wrt logging
-  Aws::InitAPI(options_);
-  //  std::shared_ptr<Aws::Auth::AWSCredentialsProvider> credentials_provider = setup_credentials_provider();
+  std::call_once(awssdk_init_api_flag, awssdk_init_api);
 
   Aws::Client::ClientConfiguration client_config;
   client_config.scheme = Aws::Http::Scheme::HTTPS; // SSL/TLS only for HIPPA/PHI Compliance
@@ -112,7 +120,6 @@ S3::~S3() {
   for (auto filename : uncommitted_files) {
     commit_file(filename);
   }
-  Aws::ShutdownAPI(options_);
 }
 
 std::string S3::current_dir() {
@@ -164,8 +171,6 @@ std::string S3::real_dir(const std::string& dir) {
     if (path_uri.bucket().compare(bucket_name_)) {
       throw std::runtime_error("Credentialed account during instantiation does not match the uri passed to real_dir. Aborting");
     }
-    // This is absolute path, so return the entire path
-    return path_uri.path();
   }
   return get_path(dir);
 }

@@ -100,8 +100,8 @@ TEST_CASE_METHOD(S3TestFixture, "Test S3 real_dir", "[real_dir]") {
   CHECK(s3_instance->real_dir("xxx").compare(s3_instance->current_dir()+"/xxx") == 0);
   CHECK(s3_instance->real_dir("xxx/yyy").compare(s3_instance->current_dir()+"/xxx/yyy") == 0);
   CHECK(s3_instance->real_dir("/xxx/yyy").compare("xxx/yyy") == 0);
-  s3_uri test_url(get_test_dir());
-  CHECK(s3_instance->real_dir(get_test_dir()).compare(test_url.path()) == 0);
+  s3_uri test_uri(get_test_dir());
+  CHECK(s3_instance->real_dir(get_test_dir()).compare(test_uri.path().substr(1)) == 0);
   CHECK_THROWS(s3_instance->real_dir("xxx://yyy"));
 }
 
