@@ -346,7 +346,6 @@ ssize_t AzureBlob::file_size(const std::string& filename) {
   if (blob_property.valid()) {
     return blob_property.size;
   } else {
-    AZ_BLOB_ERROR("Could not get file properties", filename);
     return TILEDB_FS_ERR;
   }
   return 0;
@@ -355,25 +354,14 @@ ssize_t AzureBlob::file_size(const std::string& filename) {
 #define GRAIN_SIZE (4*1024*1024)
 
 int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
-  if (!is_file(filename)) {
-    AZ_BLOB_ERROR("File does not exist", filename);
-    return TILEDB_FS_ERR;
+  if (length == 0) {
+    return TILEDB_FS_OK; // Nothing to read
   }
   std::string path = get_path(filename);
   auto bclient = reinterpret_cast<blob_client *>(bC.get());
-  auto filesize = file_size(filename);
-  if (filesize == TILEDB_FS_ERR) {
-    AZ_BLOB_ERROR("File does not exist", filename);
-    return TILEDB_FS_ERR;
-  } else if (filesize < (ssize_t)length + offset) {
-    AZ_BLOB_ERROR("Cannot read past the file size", filename);
-    return TILEDB_FS_ERR;
-  } else if (length == 0) {
-    return TILEDB_FS_OK; // Nothing to read
-  }
   storage_outcome<void> read_result;
   // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
-  if (filesize < GRAIN_SIZE) {
+  if (length < GRAIN_SIZE) {
     omemstream os_buf(buffer, length);
     read_result = bclient->download_blob_to_stream(container_name, path, offset, length, os_buf).get();
   } else {
