@@ -382,7 +382,6 @@ int HDFS::delete_file(const std::string& filename) {
 ssize_t HDFS::file_size(const std::string& filename) {
   hdfsFileInfo* file_info = hdfsGetPathInfo(hdfs_handle_, filename.c_str());
   if (!file_info) {
-    print_errmsg(std::string("Cannot get path info for file ") + filename);
     return TILEDB_FS_ERR;
   }
 
@@ -460,22 +459,24 @@ static int read_count(const std::string& filename, std::unordered_map<std::strin
 }
 
 int HDFS::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
+  if (length == 0) {
+    return TILEDB_FS_OK;  // Nothing to read
+  }
+  
   // Not supporting simultaneous read/writes.
   if (get_hdfsFile(filename, write_map_)) {
     print_errmsg(std::string("File=") + filename + " is open simultaneously for reads/writes");
     assert(false && "No support for simultaneous reads/writes");
   }
 
-  ssize_t size = file_size(filename);
-  if (size == TILEDB_FS_ERR) {
-    return print_errmsg(std::string("File=") + filename + " does not seem to exist");
-  }
-
-  hdfsFile file;
-
-  read_map_mtx_.lock();
-  file = get_hdfsFile(filename, read_map_);
+  read_map_mtx_.lock();  
+  hdfsFile file = get_hdfsFile(filename, read_map_);
   if (!file) {
+    ssize_t size = file_size(filename);
+    if (size == TILEDB_FS_ERR) {
+      read_map_mtx_.unlock();
+      return TILEDB_FS_ERR;
+    }
     file = hdfs_open_file_for_read(hdfs_handle_, filename, size>MAX_SIZE?MAX_SIZE:((size/getpagesize())+1)*getpagesize());
     if (file) {
       read_map_.emplace(filename, file);
@@ -489,7 +490,7 @@ int HDFS::read_from_file(const std::string& filename, off_t offset, void *buffer
     return print_errmsg(std::string("Cannot open file ") + filename + " for read");
   }
 
-  int rc = read_from_file_kernel(hdfs_handle_, file, buffer, length>(size_t)size?size:length, offset);
+  int rc = read_from_file_kernel(hdfs_handle_, file, buffer, length, offset);
 
   read_map_mtx_.lock();
   count = read_count(filename, read_count_, false);

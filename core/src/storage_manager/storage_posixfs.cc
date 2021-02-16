@@ -318,7 +318,6 @@ ssize_t PosixFS::file_size(const std::string& filename) {
   reset_errno();
   
   if (!is_file(filename)) {
-    POSIX_ERROR("Cannot get file size for paths that are not files", filename);
     return TILEDB_FS_ERR;
   }
   
