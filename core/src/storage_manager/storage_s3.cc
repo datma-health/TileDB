@@ -347,7 +347,7 @@ int S3::read_from_file(const std::string& filename, off_t offset, void *buffer, 
   Aws::S3::Model::GetObjectRequest request;
   request.SetBucket(bucket_name_);
   request.SetKey(to_aws_string(get_path(filename)));
-  request.SetRange(to_aws_string("bytes=" + std::to_string(offset) + "-" + std::to_string(length-1)));
+  request.SetRange(to_aws_string("bytes=" + std::to_string(offset) + "-" + std::to_string(offset+length-1)));
   request.SetResponseStreamFactory([buffer, length]() {
       unsigned char* buf = reinterpret_cast<unsigned char*>(const_cast<void*>(buffer));
       auto stream_buffer = Aws::New<Aws::Utils::Stream::PreallocatedStreamBuf>(CLASS_TAG, buf, length);
