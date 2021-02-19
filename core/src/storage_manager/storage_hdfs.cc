@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 University of California, Los Angeles and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019, 2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@
 
 #include "storage_hdfs.h"
 
-#include "url.h"
+#include "uri.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -91,7 +91,7 @@ void maximize_rlimits() {
   get_rlimits(&limits);
 }
 
-hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
+hdfsFS hdfs_connect(uri path_uri, const std::string& name_node) {
   hdfsFS hdfs_handle = NULL;
 
   struct hdfsBuilder *builder = hdfsNewBuilder();
@@ -101,16 +101,17 @@ hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
   }
   
   // Forces the builder to always create a new instance of the FileSystem.
-  // Cached instances of the builder should be fine.
-  // hdfsBuilderSetForceNewInstance(builder);
+  // TODO: Figure out if cached instances of the builder can be used at least per thread, but
+  //       use a new instance for now.
+  hdfsBuilderSetForceNewInstance(builder);
   
   hdfsBuilderSetNameNode(builder, name_node.c_str());
-  if (!path_url.port().empty()) {
-    hdfsBuilderSetNameNodePort(builder, path_url.nport());
+  if (!path_uri.port().empty()) {
+    hdfsBuilderSetNameNodePort(builder, path_uri.nport());
   }
   
-  if (path_url.protocol().compare("gs") == 0) {
-    hdfs_handle = gcs_connect(builder, path_url.path());
+  if (path_uri.protocol().compare("gs") == 0) {
+    hdfs_handle = gcs_connect(builder, path_uri.path());
   } else {
     hdfs_handle = hdfsBuilderConnect(builder);
   }
@@ -119,32 +120,32 @@ hdfsFS hdfs_connect(url path_url, const std::string& name_node) {
 }
 
 HDFS::HDFS(const std::string& home) {
-  url path_url(home);
+  uri path_uri(home);
   std::string name_node;
 
-  if (path_url.host().empty()) {
-    if (!path_url.port().empty()) {
+  if (path_uri.host().empty()) {
+    if (!path_uri.port().empty()) {
       PRINT_ERROR(std::string("home=") + home + " not supported. hdfs host and port have to be both empty");
-      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URL not supported: hdfs host and port have to be both empty");
+      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URI not supported: hdfs host and port have to be both empty");
     }
     name_node.assign("default");
-  } else if (path_url.protocol().compare("hdfs") != 0) { // s3/gs protocols
-    name_node.assign(path_url.protocol() + "://" + path_url.host());
+  } else if (path_uri.protocol().compare("hdfs") != 0) { // s3/gs protocols
+    name_node.assign(path_uri.protocol() + "://" + path_uri.host());
   } else {
-    if (path_url.port().empty()) {
+    if (path_uri.port().empty()) {
       PRINT_ERROR(std::string("home=") + home + " not supported. hdfs host and port have to be specified together");
-      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URL not supported: hdfs host and port have to be specified together");
+      throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Home URI not supported: hdfs host and port have to be specified together");
     }
-    name_node.assign(path_url.host());
+    name_node.assign(path_uri.host());
   }
 
-  hdfs_handle_ = hdfs_connect(path_url, name_node);
+  hdfs_handle_ = hdfs_connect(path_uri, name_node);
   if (!hdfs_handle_) {
     PRINT_ERROR("Error getting hdfs connection");
     throw std::system_error(ECONNREFUSED, std::generic_category(), "Error getting hdfs connection");
   }
 
-  if (hdfsSetWorkingDirectory(hdfs_handle_, ((path_url.path().empty())?(home+"/"):home).c_str())) {
+  if (hdfsSetWorkingDirectory(hdfs_handle_, ((path_uri.path().empty())?(home+"/"):home).c_str())) {
     PRINT_ERROR(std::string("Error setting up hdfs working directory ") + home);
     throw std::system_error(ENOENT, std::generic_category(), "Error setting up hdfs working directory");
   }
@@ -378,17 +379,17 @@ int HDFS::delete_file(const std::string& filename) {
   return TILEDB_FS_OK;
 }
 
-size_t HDFS::file_size(const std::string& filename) {
+ssize_t HDFS::file_size(const std::string& filename) {
   hdfsFileInfo* file_info = hdfsGetPathInfo(hdfs_handle_, filename.c_str());
   if (!file_info) {
     print_errmsg(std::string("Cannot get path info for file ") + filename);
-    return 0;
+    return TILEDB_FS_ERR;
   }
 
   if ((char)(file_info->mKind) != 'F') {
     print_errmsg(std::string("Cannot get file_size for path ") + filename + " that is not a file");
     hdfsFreeFileInfo(file_info, 1);
-    return 0;
+    return TILEDB_FS_ERR;
   }
 
   size_t size = (size_t)file_info->mSize;
@@ -465,7 +466,10 @@ int HDFS::read_from_file(const std::string& filename, off_t offset, void *buffer
     assert(false && "No support for simultaneous reads/writes");
   }
 
-  size_t size = file_size(filename);
+  ssize_t size = file_size(filename);
+  if (size == TILEDB_FS_ERR) {
+    return print_errmsg(std::string("File=") + filename + " does not seem to exist");
+  }
 
   hdfsFile file;
 
@@ -485,7 +489,7 @@ int HDFS::read_from_file(const std::string& filename, off_t offset, void *buffer
     return print_errmsg(std::string("Cannot open file ") + filename + " for read");
   }
 
-  int rc = read_from_file_kernel(hdfs_handle_, file, buffer, length>size?size:length, offset);
+  int rc = read_from_file_kernel(hdfs_handle_, file, buffer, length>(size_t)size?size:length, offset);
 
   read_map_mtx_.lock();
   count = read_count(filename, read_count_, false);

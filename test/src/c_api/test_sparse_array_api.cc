@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +35,10 @@
 
 #include "c_api_sparse_array_spec.h"
 #include "progress_bar.h"
+#include "storage_manager.h"
+#include "storage_posixfs.h"
+#include "utils.h"
+
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -61,12 +66,6 @@ SparseArrayTestFixture::~SparseArrayTestFixture() {
   // Finalize TileDB context
   rc = tiledb_ctx_finalize(tiledb_ctx_);
   CHECK_RC(rc, TILEDB_OK);
-
-  // Remove the temporary workspace
-  std::string command = "rm -rf ";
-  command.append(WORKSPACE);
-  rc = system(command.c_str());
-  CHECK_RC(rc, 0);
 }
 
 
@@ -127,7 +126,9 @@ int SparseArrayTestFixture::create_sparse_array_1D(
            cell_order,
            NULL,
            compression,
-	   compression_level,
+           compression_level,
+           NULL, // Offsets compression
+           NULL, // Offsets compression level
            0, // Sparse
            dimensions,
            1,
@@ -348,6 +349,8 @@ int SparseArrayTestFixture::create_sparse_array_2D(
            NULL,
            compression,
 	   NULL,
+           NULL, // Offsets compression
+           NULL, // Offsets compression level
            dense,
            dimensions,
            2,
@@ -637,7 +640,99 @@ TEST_CASE_METHOD(SparseArrayTestFixture, "Test random read subregions", "[test_r
 
   // Delete progress bar
   delete progress_bar;
-} 
+}
 
+class SparseArrayEnvTestFixture : SparseArrayTestFixture {
+  public:
+  SparseArrayTestFixture *test_fixture;
 
+  SparseArrayEnvTestFixture() {
+    test_fixture = NULL;
+  }
 
+  ~SparseArrayEnvTestFixture() {
+    delete test_fixture;
+  }
+
+  void set_disable_file_locking() {
+    CHECK(setenv("TILEDB_DISABLE_FILE_LOCKING", "1", 1) == 0);
+    CHECK(is_env_set("TILEDB_DISABLE_FILE_LOCKING"));
+
+    PosixFS fs;
+    REQUIRE(!fs.locking_support());
+  }
+
+  void unset_disable_file_locking() {
+    unsetenv("TILEDB_DISABLE_FILE_LOCKING");
+    CHECK(!is_env_set("TILEDB_DISABLE_FILE_LOCKING"));
+    PosixFS fs;
+    REQUIRE(fs.locking_support());
+  }
+
+  void set_keep_write_file_handles_open() {
+    CHECK(setenv("TILEDB_KEEP_FILE_HANDLES_OPEN", "1", 1) == 0);
+    CHECK(is_env_set("TILEDB_KEEP_FILE_HANDLES_OPEN"));
+    
+    PosixFS fs;
+    REQUIRE(fs.keep_write_file_handles_open());
+  }
+
+  void unset_keep_write_file_handles_open() {
+    unsetenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
+    CHECK(!is_env_set("KEEP_FILE_HANDLES_OPEN"));
+    PosixFS fs;
+    REQUIRE(!fs.keep_write_file_handles_open());
+  }
+
+  int write_array() {
+    // Set array name
+    set_array_name("sparse_test_disable_file_locking_env");
+    CHECK_RC(create_sparse_array_2D(4, 4, 0, 15, 0, 15, 0, false, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR), TILEDB_OK);
+
+    // Write array cells with value = row id * COLUMNS + col id
+    // to disk
+    CHECK_RC(write_sparse_array_unsorted_2D(16, 16), TILEDB_OK);
+
+    return 0;
+  }
+
+  int read_array() {
+    CHECK(read_sparse_array_2D(4, 0, 4, 0, TILEDB_ARRAY_READ) != NULL);
+    return 0;
+  }
+
+  bool consolidation_file_lock_exists() {
+    PosixFS fs;
+    return fs.is_file(array_name_+"/"+TILEDB_SM_CONSOLIDATION_FILELOCK_NAME);
+  }
+};
+
+TEST_CASE_METHOD(SparseArrayEnvTestFixture, "Test reading/writing with env unset", "[test_sparse_read_with_env_unset]") {
+  unset_disable_file_locking();
+  unset_keep_write_file_handles_open();
+  write_array();
+  CHECK(consolidation_file_lock_exists());
+
+  // TILEDB_DISABLE_FILE_LOCK unset
+  unset_disable_file_locking();
+  read_array();
+
+  // TILEDB_DISABLE_FILE_LOCK=1
+  set_disable_file_locking();
+  read_array();
+}
+
+TEST_CASE_METHOD(SparseArrayEnvTestFixture, "Test reading/writing with env set", "[test_sparse_read_with_env_set]") {
+  set_disable_file_locking();
+  set_keep_write_file_handles_open();
+  write_array();
+  CHECK(consolidation_file_lock_exists());
+
+  // TILEDB_DISABLE_FILE_LOCK unset
+  unset_disable_file_locking();
+  read_array();
+
+  // TILEDB_DISABLE_FILE_LOCK=1
+  set_disable_file_locking();
+  read_array();
+}

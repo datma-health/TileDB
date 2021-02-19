@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +37,10 @@
 #include "tiledb.h"
 #include "storage_posixfs.h"
 
+#include "catch.h"
 
 /** Test fixture for the array schema. */
-class ArraySchemaTestFixture {
+class ArraySchemaTestFixture : TempDir {
 
  public:
   /* ********************************* */
@@ -46,7 +48,7 @@ class ArraySchemaTestFixture {
   /* ********************************* */
 
   /** Workspace folder name. */
-  const std::string WORKSPACE = ".__workspace/";
+  const std::string WORKSPACE = get_temp_dir() + "/schema_workspace/";
   /** 
    * Array name.
    * Format: (<domain_size_1>x<domain_size_2>_<tile_extent_1>x<tile_extent_2>). 
@@ -61,9 +63,6 @@ class ArraySchemaTestFixture {
   /* ********************************* */
   ArraySchemaTestFixture();
   ~ArraySchemaTestFixture();
-
-
-
 
 
   /* ********************************* */

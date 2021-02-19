@@ -36,6 +36,7 @@
 #include "book_keeping.h"
 #include "codec.h"
 #include "fragment.h"
+#include "storage_buffer.h"
 #include <vector>
 #include <iostream>
 
@@ -174,11 +175,12 @@ class WriteState {
   void* bounding_coords_;
 
   /** Internal buffers associated with the attribute files */
-  std::vector<Buffer *> file_buffer_;
-  std::vector<Buffer *> file_var_buffer_;
+  std::vector<StorageBuffer *> file_buffer_;
+  std::vector<StorageBuffer *> file_var_buffer_;
 
   /** Compression per attribute */
   std::vector<Codec *> codec_;
+  std::vector<Codec *> offsets_codec_;
 
   /**  
    * The current offsets of the variable-sized attributes in their 
@@ -231,7 +233,8 @@ class WriteState {
       unsigned char* tile,
       size_t tile_size,
       void** tile_compressed,
-      size_t& tile_compressed_size);
+      size_t& tile_compressed_size,
+      bool compress_offsets = false);
 
   /**
    * Compresses the current tile for the input attribute, and writes (appends)

@@ -37,6 +37,7 @@
 #include "book_keeping.h"
 #include "codec.h"
 #include "fragment.h"
+#include "storage_buffer.h"
 #include <vector>
 
 
@@ -413,11 +414,12 @@ class ReadState {
   size_t coords_size_;
 
   /** Internal buffers associated with the attribute files */
-  std::vector<Buffer *> file_buffer_;
-  std::vector<Buffer *> file_var_buffer_;
+  std::vector<StorageBuffer *> file_buffer_;
+  std::vector<StorageBuffer *> file_var_buffer_;
   
   /** Compression per attribute */
   std::vector<Codec *> codec_;
+  std::vector<Codec *> offsets_codec_;
 
   /** Indicates if the read operation on this fragment finished. */
   bool done_;
@@ -637,7 +639,8 @@ class ReadState {
       unsigned char* tile_compressed,
       size_t tile_compressed_size,
       unsigned char* tile,
-      size_t tile_size);
+      size_t tile_size,
+      bool decompress_offsets = false);
 
   /** 
    * Returns the cell position in the search tile that is after the

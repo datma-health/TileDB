@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +85,12 @@ int main(int argc, char *argv[]) {
       1                           // coordinates
   };
 #endif
-
+  const int offsets_compression[] =
+  {
+        0,                        // a1 - DON'T CARE
+        TILEDB_GZIP,              // a2
+        0                         // a3 - DON'T CARE
+  };
   int64_t tile_extents[] = 
   { 
       2,                          // d1
@@ -114,6 +120,8 @@ int main(int argc, char *argv[]) {
 #else
       NULL,                       // Compression level, use defaults
 #endif
+      offsets_compression,        // Offsets compression
+      NULL,                       // Offsets compression level, use defaults
       1,                          // Dense array
       dimensions,                 // Dimensions
       2,                          // Number of dimensions

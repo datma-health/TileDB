@@ -6,6 +6,8 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,10 +53,6 @@
 #  define PRINT_ERROR(x) do { } while(0) 
 #endif
 
-/**
- * The first 4 bytes of the array schema is the version
- **/
-#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0x1u
 #define TILEDB_ARRAY_SCHEMA_VERSION_MAX 0xFu
 
 /**
@@ -71,8 +69,6 @@
 /* ****************************** */
 
 std::string tiledb_as_errmsg = "";
-
-
 
 
 /* ****************************** */
@@ -198,6 +194,14 @@ void ArraySchema::array_schema_export(ArraySchemaC* array_schema_c) const {
   for(int i=0; i<attribute_num_+1; ++i) {
     array_schema_c->compression_[i] = compression_[i];
     array_schema_c->compression_level_[i] = compression_level_[i];
+  }
+
+  // Set offsets compression
+  array_schema_c->offsets_compression_ = (int*) malloc((attribute_num_+1)*sizeof(int));
+  array_schema_c->offsets_compression_level_ = (int*) malloc((attribute_num_+1)*sizeof(int));
+  for(int i=0; i<attribute_num_+1; ++i) {
+    array_schema_c->offsets_compression_[i] = offsets_compression_[i];
+    array_schema_c->offsets_compression_level_[i] = offsets_compression_level_[i];
   }
 }
 
@@ -331,6 +335,16 @@ int ArraySchema::compression_level(int attribute_id) const {
   return compression_level_[attribute_id];
 }
 
+int ArraySchema::offsets_compression(int attribute_id) const {
+  assert(attribute_id >= 0 && attribute_id < attribute_num_);
+  return offsets_compression_[attribute_id];
+}
+
+int ArraySchema::offsets_compression_level(int attribute_id) const {
+  assert(attribute_id >= 0 && attribute_id < attribute_num_+1);
+  return offsets_compression_level_[attribute_id];
+}
+
 size_t ArraySchema::coords_size() const {
   return coords_size_;
 }
@@ -404,9 +418,51 @@ bool ArraySchema::is_contained_in_tile_slab_row(const void* range) const {
     return false;
 }
 
+static void print_compression_type(int compression) {
+  int compression_type = compression & COMPRESS;
+  if(compression_type == TILEDB_GZIP)
+    std::cout << "\tType = GZIP";
+  else if(compression_type == TILEDB_ZSTD)
+    std::cout << "\tType = ZSTD";
+  else if(compression_type == TILEDB_LZ4)
+    std::cout << "\tType = : LZ4";
+  else if(compression_type == TILEDB_BLOSC)
+    std::cout << "\tType = BLOSC";
+  else if(compression_type == TILEDB_BLOSC_LZ4)
+    std::cout << "\tType =  BLOSC_LZ4";
+  else if(compression_type == TILEDB_BLOSC_LZ4HC)
+    std::cout << "\tType = BLOSC_LZ4HC";
+  else if(compression_type == TILEDB_BLOSC_SNAPPY)
+    std::cout << "\tType = BLOSC_SNAPPY";
+  else if(compression_type == TILEDB_BLOSC_ZLIB)
+    std::cout << "\tType = BLOSC_ZLIB";
+  else if(compression_type == TILEDB_BLOSC_ZSTD)
+    std::cout << "\tType = BLOSC_ZSTD";
+  else if(compression_type == TILEDB_RLE)
+    std::cout << "\tType =  RLE";
+  else if(compression_type == TILEDB_JPEG2K)
+    std::cout << "\tType =  JPEG2K";
+  else if(compression_type == TILEDB_JPEG2K_RGB)
+    std::cout << "\tType = JPEG2K_RGB";
+  else if(compression_type == TILEDB_NO_COMPRESSION)
+    std::cout << "\tType =  NONE";
+  else
+    std::cout << "\tType =" << std::to_string(compression);
+  int pre_compression_type = compression & PRE_COMPRESS;
+  if (pre_compression_type == TILEDB_DELTA_ENCODE)
+    std::cout << " + DELTA_ENCODE";
+  else if(pre_compression_type == TILEDB_BIT_SHUFFLE)
+    std::cout << " + BIT_SHUFFLE";
+  std::cout << "\n";
+}
+
 void ArraySchema::print() const {
-  // Array workspace
-  std::cout << "Array workspace:\n\t" << array_workspace_ << "\n";
+  // Array version
+  std::cout << "Array Schema Version:\n\t" << std::to_string(get_version()) << "\n";
+  // Array workspace - this is not supported anymore - present for backward compatibility
+  if (array_workspace_.size() > 0) {
+    std::cout << "Array workspace:\n\t" << array_workspace_ << "\n";
+  }
   // Array name
   std::cout << "Array name:\n\t" << array_name_ << "\n";
   // Dimension names
@@ -552,67 +608,27 @@ void ArraySchema::print() const {
                   << tile_extents_double[i] << "\n";
     }
   }
-  // Compression type
-  std::cout << "Compression type:\n";
-  for(int i=0; i<attribute_num_; ++i)
-    if(compression_[i] == TILEDB_GZIP)
-      std::cout << "\t" << attributes_[i] << ": GZIP\n";
-    else if(compression_[i] == TILEDB_ZSTD)
-      std::cout << "\t" << attributes_[i] << ": ZSTD\n";
-    else if(compression_[i] == TILEDB_LZ4)
-      std::cout << "\t" << attributes_[i] << ": LZ4\n";
-    else if(compression_[i] == TILEDB_BLOSC)
-      std::cout << "\t" << attributes_[i] << ": BLOSC\n";
-    else if(compression_[i] == TILEDB_BLOSC_LZ4)
-      std::cout << "\t" << attributes_[i] << ": BLOSC_LZ4\n";
-    else if(compression_[i] == TILEDB_BLOSC_LZ4HC)
-      std::cout << "\t" << attributes_[i] << ": BLOSC_LZ4HC\n";
-    else if(compression_[i] == TILEDB_BLOSC_SNAPPY)
-      std::cout << "\t" << attributes_[i] << ": BLOSC_SNAPPY\n";
-    else if(compression_[i] == TILEDB_BLOSC_ZLIB)
-      std::cout << "\t" << attributes_[i] << ": BLOSC_ZLIB\n";
-    else if(compression_[i] == TILEDB_BLOSC_ZSTD)
-      std::cout << "\t" << attributes_[i] << ": BLOSC_ZSTD\n";
-    else if(compression_[i] == TILEDB_RLE)
-      std::cout << "\t" << attributes_[i] << ": RLE\n";
-    else if(compression_[i] == TILEDB_JPEG2K)
-      std::cout << "\t" << attributes_[i] << ": JPEG2K\n";
-    else if(compression_[i] == TILEDB_JPEG2K_RGB)
-      std::cout << "\t" << attributes_[i] << ": JPEG2K_RGB\n";
-    else if(compression_[i] == TILEDB_NO_COMPRESSION)
-      std::cout << "\t" << attributes_[i] << ": NONE\n";
-  if(compression_[attribute_num_] == TILEDB_GZIP)
-    std::cout << "\tCoordinates: GZIP\n";
-  else if(compression_[attribute_num_] == TILEDB_ZSTD)
-    std::cout << "\tCoordinates: ZSTD\n";
-  else if(compression_[attribute_num_] == TILEDB_LZ4)
-    std::cout << "\tCoordinates: LZ4\n";
-  else if(compression_[attribute_num_] == TILEDB_BLOSC)
-    std::cout << "\tCoordinates: BLOSC\n";
-  else if(compression_[attribute_num_] == TILEDB_BLOSC_LZ4)
-    std::cout << "\tCoordinates: BLOSC_LZ4\n";
-  else if(compression_[attribute_num_] == TILEDB_BLOSC_LZ4HC)
-    std::cout << "\tCoordinates: BLOSC_LZ4HC\n";
-  else if(compression_[attribute_num_] == TILEDB_BLOSC_SNAPPY)
-    std::cout << "\tCoordinates: BLOSC_SNAPPY\n";
-  else if(compression_[attribute_num_] == TILEDB_BLOSC_ZLIB)
-    std::cout << "\tCoordinates: ZLIB\n";
-  else if(compression_[attribute_num_] == TILEDB_BLOSC_ZSTD)
-    std::cout << "\tCoordinates: BLOSC_ZSTD\n";
-  else if(compression_[attribute_num_] == TILEDB_RLE)
-    std::cout << "\tCoordinates: RLE\n";
-  else if(compression_[attribute_num_] == TILEDB_JPEG2K)
-    std::cout << "\tCoordinates: JPEG2K\n";
-  else if(compression_[attribute_num_] == TILEDB_JPEG2K_RGB)
-    std::cout << "\tCoordinates: JPEG2K_RGB\n";
-  else if(compression_[attribute_num_] == TILEDB_NO_COMPRESSION)
-    std::cout << "\tCoordinates: NONE\n";
+  for(int i=0; i<attribute_num_; ++i) {
+    // Compression type
+    std::cout << "Compression for " << attributes_[i] << "\n";
+    print_compression_type(compression_[i]);
 
-  // Compression level
-  std::cout << "Compression level: " << compression_level_[attribute_num_] << "\n";
+    // Compression level
+    std::cout << "\tLevel= " << compression_level_[i] << "\n";
+
+    // Compression type for offsets
+    if(cell_val_num_[i] == TILEDB_VAR_NUM) {
+      std::cout << "Compression for offsets of " << attributes_[i] << "\n";
+      print_compression_type(offsets_compression_[i]);
+      std::cout << "\tLevel= " << offsets_compression_level_[i] << "\n";
+    }
+  }
+
+  std::cout << "Compression for Coordinates:\n";
+  print_compression_type(compression_[attribute_num_]);
 }
 
-// ===== FORMAT =====
+// ===== FORMAT Version 2 =====
 // array_workspace_size(int)
 //     array_workspace(string)
 // array_name_size(int) 
@@ -638,6 +654,9 @@ void ArraySchema::print() const {
 // type#1(char) type#2(char) ... 
 // cell_val_num#1(int) cell_val_num#2(int) ... 
 // compression#1(char) compression#2(char) ...
+// compression_level#1(char) compression_level#2(char) ...
+// offsets_compression#1(char) offsets_compression#2(char) ...
+// offsets_compression_level#1(char) offsets_compression_level#2(char) ...
 int ArraySchema::serialize(
     void*& array_schema_bin,
     size_t& array_schema_bin_size) const {
@@ -758,12 +777,28 @@ int ArraySchema::serialize(
     memcpy(buffer + offset, &compression, sizeof(char));
     offset += sizeof(char);
   }
-
+  // Copy compression_level_
   char compression_level;
   for(int i=0; i<=attribute_num_; ++i) {
     compression_level = compression_level_[i];
     assert(offset + sizeof(char) <= buffer_size);
     memcpy(buffer + offset, &compression_level, sizeof(char));
+    offset += sizeof(char);
+  }
+  // Copy offsets compression_
+  char offsets_compression;
+  for(int i=0; i<attribute_num_; ++i) {
+    offsets_compression = offsets_compression_[i];
+    assert(offset + sizeof(char) <= buffer_size);
+    memcpy(buffer + offset, &offsets_compression, sizeof(char));
+    offset += sizeof(char);
+  }
+  // Copy offsets compression_level_
+  char offsets_compression_level;
+  for(int i=0; i<attribute_num_; ++i) {
+    offsets_compression_level = offsets_compression_level_[i];
+    assert(offset + sizeof(char) <= buffer_size);
+    memcpy(buffer + offset, &offsets_compression_level, sizeof(char));
     offset += sizeof(char);
   }
   
@@ -938,20 +973,28 @@ int64_t ArraySchema::tile_slab_row_cell_num(const void* subarray) const {
 }
 
 int ArraySchema::type(int i) const {
-  if(i<0 || i>attribute_num_) {
+  if(i<0 || i>attribute_num_+1) {
     std::string errmsg = "Cannot retrieve type; Invalid attribute id";
     PRINT_ERROR(errmsg);
     tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
     return TILEDB_AS_ERR;
+  } 
+ if (i == attribute_num_+1) {
+    // This is a special cased "search tile" that is basically the coordinate tile
+    return types_[i-1];
   } else {
     return types_[i];
   }
 }
 
 size_t ArraySchema::type_size(int i) const {
-  assert(i>=0 && i <= attribute_num_);
-
-  return type_sizes_[i];
+  assert(i>=0 && i <= attribute_num_+1);
+  if (i == attribute_num_+1) {
+    // This is a special cased "search tile" that is basically the coordinate tile
+    return type_sizes_[i-1];
+  } else {
+    return type_sizes_[i];
+  }
 }
 
 int ArraySchema::var_attribute_num() const {
@@ -1000,6 +1043,9 @@ bool ArraySchema::var_size(int attribute_id) const {
 // type#1(char) type#2(char) ... 
 // cell_val_num#1(int) cell_val_num#2(int) ... 
 // compression#1(char) compression#2(char) ...
+// compression_level#1(char) compression_level#2(char) ...
+// offsets_compression#1(char) offsets_compression#2(char) ...
+// offsets_compression_level#1(char) offsets_compression_level#2(char) ...
 int ArraySchema::deserialize(
     const void* array_schema_bin, 
     size_t array_schema_bin_size) {
@@ -1138,19 +1184,50 @@ int ArraySchema::deserialize(
     memcpy(&compression, buffer + offset, sizeof(char));
     offset += sizeof(char);
     compression_.push_back(static_cast<int>(compression));
-  }
-  // Load compression_level_. Supported added in array schema version 1L
-  char compression_level;
-  for(int i=0; i<=attribute_num_; ++i) {
-    if (offset == buffer_size) {
-      // Backward compatibility when compression levels are not found in the schema
-      assert(GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_) == 0x0L || GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_) > TILEDB_ARRAY_SCHEMA_VERSION_MAX);
+    // Backward Compatibility
+    if (get_version() < 1L) {
+      // Load compression levels when not found in the schema
       compression_level_.push_back(Codec::get_default_level(compression));
-    } else {
+    }
+    if (get_version() < 2L && i < attribute_num_) {
+      if (cell_val_num_[i] == TILEDB_VAR_NUM) {
+        // Load offset compression for versions below 2 that do not have them
+        offsets_compression_.push_back(static_cast<int>(compression));
+        offsets_compression_level_.push_back(Codec::get_default_level(compression));
+      } else {
+        offsets_compression_.push_back(0);
+        offsets_compression_level_.push_back(0);
+      }
+    }
+  }
+  // Load compression_level_. Support added in array schema version 1L
+  if (get_version() >= 1L) {
+    char compression_level;
+    for(int i=0; i<=attribute_num_; ++i) {
       assert(offset + sizeof(char) <= buffer_size);
       memcpy(&compression_level, buffer + offset, sizeof(char));
       offset += sizeof(char);
-      compression_level_.push_back(Codec::normalize_level(compression_[i], static_cast<int>(compression_level)));
+      compression_level_.push_back(compression_level);
+    }
+  }
+  // Load offsets_compression_. Support added in array schema version 2L
+  if (get_version() >= 2L) {
+    char offsets_compression;
+    for(int i=0; i<attribute_num_; ++i) {
+      assert(offset + sizeof(char) <= buffer_size);
+      memcpy(&offsets_compression, buffer + offset, sizeof(char));
+      offset += sizeof(char);
+      offsets_compression_.push_back(static_cast<int>(offsets_compression));
+    }
+  }
+  // Load offsets_compression_level_. Support added in array schema version 2L
+  if (get_version() >= 2L) {
+    char offsets_compression_level;
+    for(int i=0; i<attribute_num_; ++i) {
+      assert(offset + sizeof(char) <= buffer_size);
+      memcpy(&offsets_compression_level, buffer + offset, sizeof(char));
+      offset += sizeof(char);
+      offsets_compression_level_.push_back(offsets_compression_level);
     }
   }
   assert(offset == buffer_size); 
@@ -1184,7 +1261,7 @@ int ArraySchema::deserialize(
   return TILEDB_AS_OK;
 }
 
-int ArraySchema::init(const ArraySchemaC* array_schema_c) {
+int ArraySchema::init(const ArraySchemaC* array_schema_c, bool do_print) {
   // Set array workspace
   //KG: useless function - more trouble than worth fixing
   //set_array_workspace(array_schema_c->array_workspace_);
@@ -1215,6 +1292,12 @@ int ArraySchema::init(const ArraySchemaC* array_schema_c) {
   // Set types
   if(set_types(array_schema_c->types_) != TILEDB_AS_OK)
     return TILEDB_AS_ERR;
+  // Set offsets compression
+  if(set_offsets_compression(array_schema_c->offsets_compression_) != TILEDB_AS_OK)
+    return TILEDB_AS_ERR;
+  // Set offsets compression level
+  if(set_offsets_compression_level(array_schema_c->offsets_compression_level_) != TILEDB_AS_OK)
+    return TILEDB_AS_ERR;
   // Set tile extents
   if(set_tile_extents(array_schema_c->tile_extents_) != TILEDB_AS_OK)
     return TILEDB_AS_ERR;
@@ -1244,6 +1327,10 @@ int ArraySchema::init(const ArraySchemaC* array_schema_c) {
   if(tile_coords_aux_ != NULL)
     free(tile_coords_aux_);
   tile_coords_aux_ = malloc(coords_size_*dim_num_);
+
+  if (do_print) { 
+    print();
+  }
 
   // Success
   return TILEDB_AS_OK;
@@ -1415,6 +1502,8 @@ int ArraySchema::set_attributes(
     return TILEDB_AS_ERR;
   }
 
+  attributes_.clear();
+
   // Set attributes and attribute number
   for(int i=0; i<attribute_num; ++i) 
     attributes_.push_back(attributes[i]);
@@ -1455,6 +1544,7 @@ void ArraySchema::set_capacity(int64_t capacity) {
 }
 
 void ArraySchema::set_cell_val_num(const int* cell_val_num) {
+  cell_val_num_.clear();
   if(cell_val_num == NULL) {
     for(int i=0; i<attribute_num_; ++i)
       cell_val_num_.push_back(1);
@@ -1480,31 +1570,55 @@ int ArraySchema::set_cell_order(int cell_order) {
   return TILEDB_AS_OK;
 }
 
+/** Compression fields are stored as 1 byte in the schema, the last 4 least significant digits
+  * denote the main compression type, the next 2 denote pre compression filters and the leading 2 digits
+  * denote the post compression filters.
+  * Compression fields can be simply composed as a sum of 1 main compression type and optionally one pre
+  * and one post compression type.
+  * e.g. compression for an attribute could be TILEDB_GZIP+TILEDB_DELTA_ENCODE+TILEDB_CHECKSUM
+  *                                                            ^^^^pre^^^^      ^^^^post^^^^
+  */
+static bool validate_compression(int *compression, int attribute_num) {
+  for(int i=0; i<attribute_num; ++i) {
+    int compression_type = compression[i] & COMPRESS;
+    if(compression_type != TILEDB_NO_COMPRESSION &&
+       compression_type != TILEDB_GZIP         &&
+       compression_type != TILEDB_ZSTD         && 
+       compression_type != TILEDB_LZ4          && 
+       compression_type != TILEDB_BLOSC        && 
+       compression_type != TILEDB_BLOSC_LZ4    && 
+       compression_type != TILEDB_BLOSC_LZ4HC  && 
+       compression_type != TILEDB_BLOSC_SNAPPY && 
+       compression_type != TILEDB_BLOSC_ZLIB   && 
+       compression_type != TILEDB_BLOSC_ZSTD   &&
+       compression_type != TILEDB_RLE          &&
+       compression_type != TILEDB_JPEG2K       &&
+       compression_type != TILEDB_JPEG2K_RGB)
+      return false;
+    int pre_compression_type = compression[i] & PRE_COMPRESS;
+    if (pre_compression_type != TILEDB_DELTA_ENCODE &&
+        pre_compression_type != TILEDB_BIT_SHUFFLE &&
+        pre_compression_type != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
 int ArraySchema::set_compression(int* compression) {
+  compression_.clear();
   // Set compression  
   if(compression == NULL) {
     for(int i=0; i<attribute_num_+1; ++i)
       compression_.push_back(TILEDB_NO_COMPRESSION);
   } else {
+    if (!validate_compression(compression, attribute_num_+1)) {
+      std::string errmsg = "Cannot set compression; Invalid compression type for attribute\n";
+      PRINT_ERROR(errmsg);
+      tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
+      return TILEDB_AS_ERR;
+    }
     for(int i=0; i<attribute_num_+1; ++i) {
-      if(compression[i] != TILEDB_NO_COMPRESSION &&
-         compression[i] != TILEDB_GZIP         &&
-         compression[i] != TILEDB_ZSTD         && 
-         compression[i] != TILEDB_LZ4          && 
-         compression[i] != TILEDB_BLOSC        && 
-         compression[i] != TILEDB_BLOSC_LZ4    && 
-         compression[i] != TILEDB_BLOSC_LZ4HC  && 
-         compression[i] != TILEDB_BLOSC_SNAPPY && 
-         compression[i] != TILEDB_BLOSC_ZLIB   && 
-         compression[i] != TILEDB_BLOSC_ZSTD   &&
-         compression[i] != TILEDB_RLE          &&
-         compression[i] != TILEDB_JPEG2K       &&
-         compression[i] != TILEDB_JPEG2K_RGB) {
-        std::string errmsg = "Cannot set compression; Invalid compression type";
-        PRINT_ERROR(errmsg);
-        tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
-        return TILEDB_AS_ERR;
-      }
       compression_.push_back(compression[i]);
     }
   }
@@ -1513,16 +1627,69 @@ int ArraySchema::set_compression(int* compression) {
   return TILEDB_AS_OK;
 }
 
-
 int ArraySchema::set_compression_level(int* compression_level) {
+   // Set defaults based on codec
+  assert(compression_.size() == (size_t)(attribute_num_+1) && "set_compression() should be called before set_compression_level");
+  compression_level_.clear();
   for(int i=0; i<attribute_num_+1; ++i) {
-      // Set defaults based on codec
-      assert(compression_.size() >= (unsigned)i && "set_compression should be called before set_compression_level");
-      if (compression_level == NULL) {
-	compression_level_.push_back(Codec::get_default_level(compression_[i]));
+    if (compression_level == NULL) {
+      compression_level_.push_back(Codec::get_default_level(compression_[i]));
+    } else {
+      compression_level_.push_back(compression_level[i]);
+    }
+  }
+
+  // Success
+  return TILEDB_AS_OK;
+}
+
+int ArraySchema::set_offsets_compression(int* offsets_compression) {
+  assert(compression_.size() == (size_t)(attribute_num_+1) && "set_compression() should be called before set_offsets_compression");
+  assert(cell_val_num_.size() >= (size_t)(attribute_num_) && "set_cell_val_num() should be called before set_offsets_compression");
+  offsets_compression_.clear();
+  // Set offsets compression  
+  if(offsets_compression == NULL) {
+    // Use the same compression specified for the attribute if none is specified for offsets.
+    for(int i=0; i<attribute_num_; ++i) {
+      offsets_compression_.push_back(compression_[i]);
+    }
+  } else {
+    if (!validate_compression(offsets_compression, attribute_num_)) {
+      std::string errmsg =  "Cannot set offsets compression; Invalid compression type\n";
+      PRINT_ERROR(errmsg);
+      tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
+      return TILEDB_AS_ERR;
+    }
+    for(int i=0; i<attribute_num_; ++i) {
+      if (cell_val_num_[i] == TILEDB_VAR_NUM) {
+        if ((compression_[i] > TILEDB_NO_COMPRESSION && offsets_compression[i] == TILEDB_NO_COMPRESSION) ||
+            (compression_[i] == TILEDB_NO_COMPRESSION && offsets_compression[i] > TILEDB_NO_COMPRESSION)) {
+          std::string errmsg = "Unsupported. For a given VAR attribute, both compression and offsets_compression have to either have compression or not\n";
+          PRINT_ERROR(errmsg);
+          tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
+          return TILEDB_AS_ERR;
+        }
+        offsets_compression_.push_back(offsets_compression[i]);
       } else {
-	compression_level_.push_back(Codec::normalize_level(compression_[i], compression_level[i]));
+        offsets_compression_.push_back(TILEDB_NO_COMPRESSION);
       }
+    }
+  }
+
+  // Success
+  return TILEDB_AS_OK;
+}
+
+int ArraySchema::set_offsets_compression_level(int* compression_level) {
+   // Set defaults based on codec
+  assert(offsets_compression_.size() == (size_t)(attribute_num_) && "set_offsets_compression() should be called before set_offsets_compression_level");
+  offsets_compression_level_.clear();
+  for(int i=0; i<attribute_num_; ++i) {
+    if (compression_level == NULL) {
+      offsets_compression_level_.push_back(Codec::get_default_level(compression_[i]));
+    } else {
+      offsets_compression_level_.push_back(compression_level[i]);
+    }
   }
 
   // Success
@@ -1553,6 +1720,8 @@ int ArraySchema::set_dimensions(
     tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
     return TILEDB_AS_ERR;
   }
+
+  dimensions_.clear();
 
   // Set dimensions and dimension number
   for(int i=0; i<dim_num; ++i) 
@@ -2362,6 +2531,10 @@ size_t ArraySchema::compute_bin_size() const {
   bin_size += (attribute_num_+1) * sizeof(char);
   // Size for compression_level_
   bin_size += (attribute_num_+1) * sizeof(char);
+  // Size for offsets_compression_
+  bin_size += (attribute_num_) * sizeof(char);
+  // Size for offsets_compression_level_
+  bin_size += (attribute_num_) * sizeof(char);
 
   return bin_size;
 }
@@ -2890,9 +3063,16 @@ int64_t ArraySchema::tile_slab_row_cell_num(const T* subarray) const {
   return cell_num;
 }
 
-bool ArraySchema::version_tag_exists() const
-{
+bool ArraySchema::version_tag_exists() const {
   return (GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_) <= TILEDB_ARRAY_SCHEMA_VERSION_MAX);
+}
+
+uint32_t ArraySchema::get_version() const {
+  if (version_tag_exists()) {
+    return GET_REAL_TILEDB_SCHEMA_VERSION(version_tag_);
+  } else {
+    return TILEDB_ARRAY_SCHEMA_VERSION_MAX;
+  }
 }
 
 // Explicit template instantiations

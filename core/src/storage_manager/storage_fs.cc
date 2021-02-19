@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,8 @@
  */
 
 #include "storage_fs.h"
+#include "utils.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -54,25 +56,38 @@ bool StorageFS::locking_support() {
   return false;
 }
 
-void StorageFS::set_disable_file_locking(const bool val) {
-  disable_file_locking_ = val;
+std::string StorageCloudFS::get_path(const std::string& path) {
+  std::string pathname(path);
+  if (path.find("://") != std::string::npos) {
+    uri path_uri(path);
+    pathname = path_uri.path();
+    if (pathname.empty()) {
+      return "";
+    }
+  }
+  if (pathname[0] == '/') {
+    return pathname.substr(1);
+  }
+  if (pathname.empty()) {
+    return working_dir_;
+  } else if (starts_with(pathname, working_dir_)) {
+    // TODO: this is a hack for now, but should work fine with GenomicsDB.
+    return pathname;
+  } else {
+    return working_dir_ + '/' + pathname;
+  }
 }
 
-bool StorageFS::disable_file_locking() {
-  if (is_disable_file_locking_set) {
-    return disable_file_locking_;
-  }
-
-  is_disable_file_locking_set = true;
-
-  if(disable_file_locking_)
-    return true;
-
-  auto env_var = getenv("TILEDB_DISABLE_FILE_LOCKING");
-  if(env_var && (strcasecmp(env_var, "true") == 0 || strcmp(env_var, "1") == 0)) {
-    disable_file_locking_ = true;
-    return true;
-  }
-  disable_file_locking_ = false;
-  return false;
+int StorageCloudFS::commit_file(const std::string& file) {
+  // This should be implemented by the derived class
+  return TILEDB_FS_ERR;
 }
+
+int StorageCloudFS::sync_path(const std::string& path) {
+  return commit_file(path);
+}
+
+int StorageCloudFS::close_file(const std::string& filename) {
+  return commit_file(filename);
+}
+

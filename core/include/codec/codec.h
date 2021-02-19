@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 #define __CODEC_H__
 
 #include "array_schema.h"
+#include "codec_filter.h"
 
 #include <errno.h>
 #include <dlfcn.h>
@@ -69,11 +70,9 @@ class Codec {
   /*        STATIC METHODS         */
   /* ****************************** */
   
-  static Codec* create(const ArraySchema* array_schema, const int attribute_id);
+  static Codec* create(const ArraySchema* array_schema, const int attribute_id, const bool is_offsets_compression=false);
 
   static int get_default_level(const int compression_type);
-
-  static int normalize_level(const int compression_type, const int compression_level);
 
   static int print_errmsg(const std::string& msg);
   
@@ -94,8 +93,13 @@ class Codec {
    * Destructor
    */
   virtual ~Codec() {
-    if(tile_compressed_ != NULL) {
+    if (tile_compressed_ != NULL) {
       free(tile_compressed_);
+    }    if (pre_compression_filter_) {
+      delete pre_compression_filter_;
+    }
+    if (post_compression_filter_) {
+      delete post_compression_filter_;
     }
   }
   
@@ -165,25 +169,47 @@ class Codec {
   } while (false)
 
   /**
-   * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
-  virtual int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) = 0;
+  const std::string& name() {
+    return name_;
+  }
+
+  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size);
+
+  int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size);
 
   /**
    * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
    */
-  virtual int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) = 0;
+  virtual int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) = 0;
+
+  /**
+   * @return TILEDB_CD_OK on success and TILEDB_CD_ERR on error.
+   */
+  virtual int do_decompress_tile(unsigned char* tile_compressed, size_t tile_compressed_size, unsigned char* tile, size_t tile_size) = 0;
+
+  void set_pre_compression(CodecFilter* filter) {
+    pre_compression_filter_ = filter;
+  };
+
+  void set_post_compression(CodecFilter* filter) {
+    post_compression_filter_ = filter;
+  };
 
   /* ********************************* */
   /*         PROTECTED ATTRIBUTES      */
   /* ********************************* */
  protected:
+  std::string name_ = "";
   int compression_level_;
+  CodecFilter* pre_compression_filter_ = NULL;
+  CodecFilter* post_compression_filter_ = NULL;
 
   /** Internal buffer used in the case of compression. */
   void* tile_compressed_ = NULL;
   /** Allocated size for internal buffer used in the case of compression. */
   size_t tile_compressed_allocated_size_ = 0;
+
   void *dl_handle_ = NULL;
   std::string dl_error_;
 #ifdef __APPLE__

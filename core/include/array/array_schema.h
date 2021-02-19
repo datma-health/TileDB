@@ -69,8 +69,11 @@
 /** Default error message. */
 #define TILEDB_AS_ERRMSG std::string("[TileDB::ArraySchema] Error: ")
 
-
-
+/**
+ * The first 4 bytes of the array schema is the version. Bump this version whenever
+ * the schema is changed
+ **/
+#define TILEDB_ARRAY_SCHEMA_VERSION_TAG 0x2u
 
 /* ********************************* */
 /*          GLOBAL VARIABLES         */
@@ -79,8 +82,15 @@
 /** Stores potential error messages. */
 extern std::string tiledb_as_errmsg;
 
-
-
+/** Compression fields are stored as 1 byte in the schema, the last 4 least significant digits
+  * denote the main compression type, the next 2 denote pre compression filters and the leading 2 digits
+  * denote the post compression filters.
+  * Compression fields can be simply composed as a sum of 1 main compression type and optionally one pre
+  * and one post compression type.
+  * e.g. compression for an attribute could be TILEDB_GZIP+TILEDB_DELTA_ENCODE+TILEDB_CHECKSUM
+  *                                                            ^^^^pre^^^^      ^^^^post^^^^
+  */
+typedef enum filter_type_t {COMPRESS=0xF, PRE_COMPRESS=0x30, POST_COMPRESS=0xC0} filter_type_t;
 
 /** Specifies the array schema. */
 class ArraySchema {
@@ -149,11 +159,23 @@ class ArraySchema {
   /** Returns the number of values per cell of the input attribute. */
   int cell_val_num(int attribute_id) const;
 
-  /** Returns the compression type of the attribute with the input id. */
+  /** Returns the compression type of the input attribute. */
   int compression(int attribute_id) const;
 
   /** Returns the compression level of the input attribute */
   int compression_level(int attribute_id) const;
+
+  /**
+   * Returns the compression type associated with the offsets to the input attribute.
+   * This is only relevant if the number of cells for the attribute is variable.
+   */
+  int offsets_compression(int attribute_id) const;
+
+  /**
+   * Returns the compression level associated with the offsets to the input attribute.
+   * This is only relevant if the number of cells for the attribute is variable.
+   */
+  int offsets_compression_level(int attribute_id) const;
 
   /** Returns the coordinates size. */
   size_t coords_size() const;
@@ -332,9 +354,10 @@ class ArraySchema {
    * input C-style ArraySchemaC struct.
    *
    * @param array_schema_c The array schema in a C-style struct.
+   * @param do_print Option to print array_schema
    * @return TILEDB_AS_OK for success, and TILEDB_AS_ERR for error.
    */ 
-  int init(const ArraySchemaC* array_schema_c);  
+  int init(const ArraySchemaC* array_schema_c, bool do_print=false);
 
   /** 
    * Initializes the ArraySchema object using the information provided in the
@@ -383,6 +406,12 @@ class ArraySchema {
 
   /** Sets the compression levels. */
   int set_compression_level(int* compression_level);
+
+    /** Sets the offsets compression types. */
+  int set_offsets_compression(int* compression);
+
+  /** Sets the offsets compression levels. */
+  int set_offsets_compression_level(int* compression_level);
 
   /** Sets the proper flag to indicate if the array is dense. */
   void set_dense(int dense);
@@ -679,6 +708,11 @@ class ArraySchema {
    */
   bool version_tag_exists() const;
 
+  /**
+   * Get version for the schema
+   */
+  uint32_t get_version() const;
+
   /* ********************************* */
   /*        AUXILIARY ATTRIBUTES       */
   /* ********************************* */
@@ -749,9 +783,19 @@ class ArraySchema {
   std::vector<int> compression_;
   /**
    * The compression level for each attribute + 1 for coordinates. This level will be interpreted
-   * based on the compression type in compression_.
+   * based on the compression type in compression_. Introduced in schema version "1".
    */
   std::vector<int> compression_level_;
+  /**
+   * The compression type for the offsets associated with the attribute. It is only relevant for
+   * attributes that have variable number of cells(TILEDB_VAR_NUM). Introduced in schema version "2".
+   */
+  std::vector<int> offsets_compression_;
+   /**
+   * The compression level for the offsets associated with the attribute. It is only relevant for
+   * attributes that have variable number of cells(TILEDB_VAR_NUM). Introduced in schema version "2".
+   */
+  std::vector<int> offsets_compression_level_;
   /** Auxiliary variable used when calculating Hilbert ids. */
   int* coords_for_hilbert_;
   /** The size (in bytes) of the coordinates. */
@@ -826,7 +870,7 @@ class ArraySchema {
   /** Stores the size of every attribute type (plus coordinates in the end). */
   std::vector<size_t> type_sizes_;
   /** Array schema version **/
-  unsigned version_tag_;
+  uint32_t version_tag_;
   /** The Storage Filesystem */
   StorageFS *fs_;
 

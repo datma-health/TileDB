@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 #include "codec_rle.h"
 #include "utils.h"
 
-int CodecRLE::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecRLE::do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
   // Allocate space to store the compressed tile
   size_t compress_bound;
   if(!is_coords_)
@@ -96,7 +96,7 @@ int CodecRLE::compress_tile(unsigned char* tile, size_t tile_size, void** tile_c
   return TILEDB_CD_OK;
 }
 
-int CodecRLE::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecRLE::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
    // Decompress tile
   int rc;
   if(!is_coords_) { 

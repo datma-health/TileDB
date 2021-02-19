@@ -26,15 +26,24 @@
 #
 
 # Include core header directories
-file(GLOB TILEDB_CORE_INCLUDE_DIRS "include/*")
+file(GLOB TILEDB_CORE_INCLUDE_DIRS "include/*" 
+	"src/codec/external/lz4"
+	"src/codec/external/bitshuffle")
 include_directories(${TILEDB_CORE_INCLUDE_DIRS})
 
 # Gather the core source files
-file(GLOB_RECURSE TILEDB_CORE_SOURCES "src/*.cc")
+file(GLOB_RECURSE TILEDB_CORE_SOURCES "src/*.cc" "src/codec/external/bitshuffle/*.c")
+if(LZ4_FOUND)
+    Message(STATUS "Using LZ4 from ${LZ4_LIBRARIES}")
+else()
+    list(APPEND TILEDB_CORE_SOURCES "src/codec/external/lz4/lz4.c")
+endif()
 
 # Compile sources with PIC
 add_library(TILEDB_CORE_OBJECTS OBJECT ${TILEDB_CORE_SOURCES})
 set_property(TARGET TILEDB_CORE_OBJECTS PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_dependencies(TILEDB_CORE_OBJECTS awssdk-ep)
 
 # Create static and shared libraries
 if(USE_HDFS)
@@ -48,7 +57,7 @@ endif()
 set_target_properties(tiledb_static PROPERTIES OUTPUT_NAME "tiledb")
 set_target_properties(tiledb_shared PROPERTIES OUTPUT_NAME "tiledb")
 
-target_link_libraries(tiledb_static muparserx)
+target_link_libraries(tiledb_static azure-storage-lite muparserx ${AWSSDK_LINK_LIBRARIES})
 target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 
 # Install libraries

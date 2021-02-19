@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019,2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -531,44 +531,57 @@ TEST_CASE("Tests RLE compression (coordinates, column-major cell order)", "[test
   CHECK_FALSE(memcmp(input, decompressed, input_size));
 }
 
-TEST_CASE("Test utils file system operations", "[test_utils_fs]") {
+TEST_CASE_METHOD(TempDir, "Test utils file system operations", "[test_utils_fs]") {
   PosixFS test_fs;
   PosixFS *fs = &test_fs;
   
-  char *temp_dir = strdup("tiledb_test_XXXXXX");
-  if (!mkstemp(temp_dir)) {
-    CHECK(create_dir(fs, "/non-existent-dir/dir"));
-    CHECK(create_file(fs, "/non-existent-dir/file", 0, 0));
-    CHECK(write_to_file(fs, "/non-existent-dir/file", NULL, 0));
-    CHECK(read_from_file(fs, "/non-existent-dir/file", 0, NULL, 0));
-    CHECK(sync_path(fs, "/non-existent-dir/file"));
-    CHECK(delete_file(fs, "/non-existent-dir/file"));
-    CHECK(delete_dir(fs, "/non-existent-dir/dir"));
-    CHECK(move_path(fs, "/non-existent-dir/old", "/non-existent-dir/new"));
+  std::string temp_dir = get_temp_dir()+"/temp";
+  CHECK(create_dir(fs, "/non-existent-dir/dir") == TILEDB_UT_ERR);
+  CHECK(create_file(fs, "/non-existent-dir/file", 0, 0) == TILEDB_UT_ERR);
+  CHECK(write_to_file(fs, "/non-existent-dir/file", "Hello", 6) == TILEDB_UT_ERR);
+  char check_str[6];
+  CHECK(read_from_file(fs, "/non-existent-dir/file", 0, &check_str[0], 6) == TILEDB_UT_ERR);
+  CHECK(!sync_path(fs, "/non-existent-dir/file")); // This is OK for an non-existent path
+  CHECK(delete_file(fs, "/non-existent-dir/file") == TILEDB_UT_ERR);
+  CHECK(delete_dir(fs, "/non-existent-dir/dir") == TILEDB_UT_ERR);
+  CHECK(move_path(fs, "/non-existent-dir/old", "/non-existent-dir/new") == TILEDB_UT_ERR);
 
-    CHECK(!create_dir(fs, temp_dir));
-    CHECK(is_dir(fs, temp_dir));
+  CHECK(!create_dir(fs, temp_dir));
+  CHECK(is_dir(fs, temp_dir));
 
-    const std::string path = std::string(temp_dir)+"/foo";
-    CHECK(!create_file(fs, path,  O_WRONLY|O_CREAT,  S_IRWXU));
-    CHECK(is_file(fs, path));
-    CHECK(!write_to_file(fs, path, "Hello", 6));
-    char check_str[6];
-    CHECK(!read_from_file(fs, path, 0, &check_str[0], 6));
-    CHECK(file_size(fs, &check_str[0]) == 5);
-    CHECK(!sync_path(fs, path));
+  const std::string path = temp_dir+"/foo";
+  CHECK(!create_file(fs, path,  O_WRONLY|O_CREAT,  S_IRWXU));
+  CHECK(is_file(fs, path));
+  CHECK(!write_to_file(fs, path, "Hello", 6));
+  CHECK(!sync_path(fs, path));
+  CHECK(!read_from_file(fs, path, 0, &check_str[0], 6));
+  CHECK(file_size(fs, path) == 6);
+  CHECK(strcmp(&check_str[0], "Hello") == 0);
 
-    const std::string new_path = std::string(temp_dir)+"/new";
-    CHECK(!move_path(fs, path, new_path));
-    CHECK(!is_file(fs, new_path));
-    CHECK(!delete_file(fs, new_path));
-    CHECK(!delete_dir(fs, temp_dir));
-  }
+  const std::string new_path = temp_dir+"/new";
+  CHECK(!move_path(fs, path, new_path));
+  CHECK(is_file(fs, new_path));
+  CHECK(file_size(fs, new_path) == 6);
+  CHECK(!delete_file(fs, new_path));
 
-  // Cleanup temporary dir if it still exists
-  std::string cleanup = std::string("rm -fr ") + temp_dir;
-  system(cleanup.c_str());
-  free(temp_dir);
+  char *buffer;
+  size_t buffer_length;
+
+  CHECK(write_to_file_after_compression(fs, "/non-existent-file", "Hello", 6, TILEDB_NO_COMPRESSION) == TILEDB_UT_ERR);
+  CHECK(write_to_file_after_compression(fs, "/non-existent-file", "Hello", 6, TILEDB_GZIP) == TILEDB_UT_ERR);
+  CHECK(read_from_file_after_decompression(fs, "/non-existent-file", (void **)(&buffer), buffer_length, TILEDB_NO_COMPRESSION) == TILEDB_UT_ERR);
+  CHECK(read_from_file_after_decompression(fs, "/non-existent-file", (void **)(&buffer), buffer_length, TILEDB_GZIP) == TILEDB_UT_ERR);
+  
+  const std::string compressed_file = temp_dir+"/compressed_foo";
+  CHECK(write_to_file_after_compression(fs, "/non-existent-file", "Hello", 6, 1000) == TILEDB_UT_ERR); // Unsupported type
+  REQUIRE(!write_to_file_after_compression(fs, compressed_file, "Hello", 6, TILEDB_GZIP));
+  CHECK(!close_file(fs, compressed_file));
+ 
+  CHECK(read_from_file_after_decompression(fs, compressed_file, (void **)(&buffer), buffer_length, 1000) == TILEDB_UT_ERR); // Unsupported type
+  CHECK(!read_from_file_after_decompression(fs, compressed_file, (void **)(&buffer), buffer_length, TILEDB_GZIP));
+  CHECK(buffer_length == 6);
+  CHECK(!strcmp(buffer, "Hello"));
+  free(buffer);
 }
 
 TEST_CASE("Test empty value concept", "[empty_cell_val]") {
@@ -600,7 +613,7 @@ TEST_CASE("Test empty value concept", "[empty_cell_val]") {
 
 }
 
-TEST_CASE("Test storage URLs", "[storage_urls]") {
+TEST_CASE("Test storage URIs", "[storage_uris]") {
   CHECK(!is_supported_cloud_path("gibberish://ddd/d"));
 
   CHECK(is_supported_cloud_path("hdfs://ddd/d"));

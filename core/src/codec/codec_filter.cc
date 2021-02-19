@@ -1,11 +1,11 @@
 /**
- * @file   url.h
+ * @file   codec_filter.cc
  *
  * @section LICENSE
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 University of California, Los Angeles and Intel Corporation
+ * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,36 +24,36 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- *
+ * 
  * @section DESCRIPTION
- *  
- * URL Parsing Header File
+ *
+ * This file implements the base class for pre and post compression filters
  */
 
-#ifndef URL_HH_
-#define URL_HH_    
+#include "codec_filter.h"
+#include <iostream>
 #include <string>
 
-struct url {
-  url(const std::string& url_s);
+/* ****************************** */
+/*             MACROS             */
+/* ****************************** */
 
-  // Accessors
-  std::string protocol();
-  std::string host();
-  std::string port();
-  int16_t nport();
-  std::string path();
-  std::string query();
+#ifdef TILEDB_VERBOSE
+#  define PRINT_ERROR(x) std::cerr << TILEDB_CDF_ERRMSG << x << ".\n" 
+#else
+#  define PRINT_ERROR(x) do { } while(0) 
+#endif
 
- private:
-  void parse(const std::string& url_s);
+/* ****************************** */
+/*        GLOBAL VARIABLES        */
+/* ****************************** */
 
- private:
-  std::string protocol_;
-  std::string host_;
-  std::string port_;
-  int16_t nport_ = 0;
-  std::string path_;
-  std::string query_;
-};
-#endif /* URL_HH_ */
+std::string tiledb_cdf_errmsg = "";
+
+int CodecFilter::print_errmsg(const std::string& msg) {
+  if (msg.length() > 0) {
+    PRINT_ERROR(msg);
+    tiledb_cdf_errmsg = TILEDB_CDF_ERRMSG + msg;
+  }
+  return TILEDB_CDF_ERR;
+}

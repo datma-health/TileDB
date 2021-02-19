@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,10 +40,10 @@
 class TestCodecBasic : public Codec {
  public:
   using Codec::Codec;
-  int compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+  int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
     return TILEDB_CD_OK;
   }
-  int decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+  int do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
     return TILEDB_CD_OK;
   }
 };
@@ -100,4 +100,38 @@ TEST_CASE("Test zlib", "[codec-z]") {
   free(zlib);
 }
 
+#include "codec_lz4.h"
+
+TEST_CASE("Test lz4", "[codec-lz4]") {
+  // Try lz4 with default compression
+  Codec* lz4 = new CodecLZ4(TILEDB_COMPRESSION_LEVEL_LZ4);
+  unsigned char test_string[] = "HELLO";
+  unsigned char* buffer;
+  size_t buffer_size;
+
+  CHECK(lz4->compress_tile(test_string, 0, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+  CHECK(lz4->compress_tile(test_string, 6, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+
+  unsigned char* decompressed_string =  (unsigned char*)malloc(6);
+  CHECK(lz4->decompress_tile(buffer, buffer_size, decompressed_string, 6) == TILEDB_CD_OK);
+  CHECK(strlen((char *)decompressed_string) == 5);
+  CHECK(strcmp((char *)decompressed_string, (char *)test_string) == 0);
+
+  free(lz4);
+
+  // Try lz4 with acceleration=2
+  lz4 = new CodecLZ4(2);
+
+  CHECK(lz4->compress_tile(test_string, 0, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+  CHECK(lz4->compress_tile(test_string, 6, (void **)(&buffer), buffer_size) == TILEDB_CD_OK);
+
+  memset(decompressed_string, 0, 6);
+  CHECK(lz4->decompress_tile(buffer, buffer_size, decompressed_string, 6) == TILEDB_CD_OK);
+  CHECK(strlen((char *)decompressed_string) == 5);
+  CHECK(strcmp((char *)decompressed_string, (char *)test_string) == 0);
+
+  free(lz4);
+
+  free(decompressed_string);
+}
 

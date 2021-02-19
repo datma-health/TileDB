@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018-2019 Omics Data Automation Inc. and Intel Corporation
+ * @copyright Copyright (c) 2020-2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +35,12 @@
 #ifndef __STORAGE_FS_H__
 #define  __STORAGE_FS_H__
 
+#include "uri.h"
+
 #include <string>
-#include <vector>
 #include <sys/stat.h>
+#include <system_error>
+#include <vector>
 
 /**@{*/
 /** Return code. */
@@ -75,7 +79,7 @@ class StorageFS {
   virtual int create_file(const std::string& filename, int flags, mode_t mode) = 0;
   virtual int delete_file(const std::string& filename) = 0;
 
-  virtual size_t file_size(const std::string& filename) = 0;
+  virtual ssize_t file_size(const std::string& filename) = 0;
 
   virtual int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) = 0;
   virtual int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) = 0;
@@ -88,12 +92,72 @@ class StorageFS {
 
   virtual bool locking_support();
 
-  void set_disable_file_locking(const bool val);
+  size_t get_download_buffer_size() {
+    auto env_var = getenv("TILEDB_DOWNLOAD_BUFFER_SIZE");
+    if (env_var) {
+      return std::stoull(env_var);
+    } else {
+      return download_buffer_size_;
+    }
+  }
+  
+  size_t get_upload_buffer_size() {
+    auto env_var = getenv("TILEDB_UPLOAD_BUFFER_SIZE");
+    if (env_var) {
+      return std::stoull(env_var);
+    } else {
+      return upload_buffer_size_;
+    }
+  }
 
-  bool disable_file_locking();
- private:
-  bool disable_file_locking_ = false;
-  bool is_disable_file_locking_set = false;
+  std::string slashify(const std::string& path) const {
+    if (path.empty()) {
+      return "/";
+    } else if (path.back() != '/') {
+      return path + '/';
+    } else {
+      return path;
+    }
+  }
+
+  std::string unslashify(const std::string& path) const {
+    if (!path.empty() && path.back() == '/') {
+      return path.substr(0, path.size()-1);
+    } else {
+      return path;
+    }
+  }
+
+ protected:
+  size_t download_buffer_size_ = 0;
+  size_t upload_buffer_size_ = 0;
+};
+
+class StorageCloudFS : public virtual StorageFS {
+
+#define DELIMITER "/"
+
+ public:
+  int create_dir(const std::string& dir) {
+    // no-op
+    return TILEDB_FS_OK;
+  }
+
+  int move_path(const std::string& old_path, const std::string& new_path) {
+    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TBD: No support for moving path");
+  }
+
+  virtual int commit_file(const std::string& filename);
+
+  int sync_path(const std::string& path);
+
+  int close_file(const std::string& filename);
+
+ protected:
+  std::string get_path(const std::string& path);
+
+ protected:
+  std::string working_dir_;
 };
 
 #endif /* __STORAGE_FS_H__ */

@@ -33,18 +33,18 @@
 #ifndef __C_API_DENSE_ARRAY_SPEC_H__
 #define __C_API_DENSE_ARRAY_SPEC_H__
 
+#include "catch.h"
 #include "tiledb.h"
 
-
 /** Test fixture for dense array operations. */
-class DenseArrayTestFixture {
+class DenseArrayTestFixture : TempDir {
  public:
   /* ********************************* */
   /*             CONSTANTS             */
   /* ********************************* */
 
   /** Workspace folder name. */
-  const std::string WORKSPACE = ".__workspace/";
+  const std::string WORKSPACE = get_temp_dir() + "/dense_workspace/";
 
 
 

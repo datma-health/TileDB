@@ -67,12 +67,6 @@ DenseArrayTestFixture::~DenseArrayTestFixture() {
   // Finalize TileDB context
   rc = tiledb_ctx_finalize(tiledb_ctx_);
   CHECK_RC(rc, TILEDB_OK);
-
-  // Remove the temporary workspace
-  std::string command = "rm -rf ";
-  command.append(WORKSPACE);
-  rc = system(command.c_str());
-  CHECK_RC(rc, 0);
 }
 
 
@@ -174,7 +168,9 @@ int DenseArrayTestFixture::create_dense_array_1D(
            cell_order,
            NULL,
            compression,
-	   compression_level,
+           compression_level,
+           NULL, // offsets compression
+           NULL, // offsets compression level
            dense,
            dimensions,
            1,
@@ -382,7 +378,9 @@ int DenseArrayTestFixture::create_dense_array_2D(
            cell_order,
            NULL,
            compression,
-	   NULL,
+           NULL,
+           NULL, // offsets compression
+           NULL, // offsets compression level
            dense,
            dimensions,
            2,

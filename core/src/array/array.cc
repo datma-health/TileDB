@@ -995,22 +995,19 @@ int Array::write(const void** buffers, const size_t* buffer_sizes) {
   }
 
   // Write based on mode
-  int rc = TILEDB_AR_OK;
-
   if(mode_ == TILEDB_ARRAY_WRITE_SORTED_COL ||
      mode_ == TILEDB_ARRAY_WRITE_SORTED_ROW) { 
-    rc = array_sorted_write_state_->write(buffers, buffer_sizes); 
+    if (array_sorted_write_state_->write(buffers, buffer_sizes) != TILEDB_ASWS_OK) {
+      tiledb_ar_errmsg = tiledb_asws_errmsg;
+      return TILEDB_AR_ERR;
+    }
   } else if(mode_ == TILEDB_ARRAY_WRITE ||
             mode_ == TILEDB_ARRAY_WRITE_UNSORTED) { 
-    rc = write_default(buffers, buffer_sizes);
+    if (write_default(buffers, buffer_sizes) != TILEDB_AR_OK) {
+      return TILEDB_AR_ERR;
+    }
   } else {
     assert(0);
-  }
-
-  // Handle error
-  if(rc != TILEDB_ASWS_OK) {
-    tiledb_ar_errmsg = tiledb_asws_errmsg;
-    return TILEDB_AR_ERR;
   }
 
   // In all modes except TILEDB_ARRAY_WRITE, the fragment must be finalized

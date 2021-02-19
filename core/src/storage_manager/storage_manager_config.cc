@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,8 @@
  * This file implements the StorageManagerConfig class.
  */
 
+#include "storage_azure_blob.h"
+#include "storage_s3.h"
 #include "storage_manager_config.h"
 #include "tiledb_constants.h"
 #include "utils.h"
@@ -86,13 +88,29 @@ int StorageManagerConfig::init(
 #endif
     int read_method,
     int write_method,
-    const bool disable_file_locking) {
+    const bool enable_shared_posixfs_optimizations) {
   // Initialize home
-  if (strstr(home, "://")) {
+  if (home !=  NULL && strstr(home, "://")) {
      if (fs_ != NULL)
        delete fs_;
      home_ = std::string(home, strlen(home));
-     if (is_supported_cloud_path(home_)) {
+     if (is_azure_blob_storage_path(home_)) {
+       try {
+         fs_ = new AzureBlob(home_);
+       } catch(std::system_error& ex) {
+         PRINT_ERROR(ex.what());
+	 tiledb_smc_errmsg = "Azure Storage Blob intialization failed for home=" + home_;
+	 return TILEDB_SMC_ERR;
+       }
+     } else if (is_s3_storage_path(home_)) {
+        try {
+          fs_ = new S3(home_);
+       } catch(std::system_error& ex) {
+         PRINT_ERROR(ex.what());
+	 tiledb_smc_errmsg = "S3 Storage intialization failed for home=" + home_;
+	 return TILEDB_SMC_ERR;
+       }
+     } else if (is_supported_cloud_path(home_)) {
        try {
 #ifdef USE_HDFS
 	 fs_ = new HDFS(home_);
@@ -113,16 +131,18 @@ int StorageManagerConfig::init(
      read_method_ = TILEDB_IO_READ;
      write_method_ = TILEDB_IO_WRITE;
      return TILEDB_SMC_OK;
-   }
+  }
 
-   if (fs_ == NULL)
-     fs_ = new PosixFS();
+  // Default Posix case
+  assert(fs_ != NULL);
+  dynamic_cast<PosixFS *>(fs_)->set_disable_file_locking(enable_shared_posixfs_optimizations);
+  dynamic_cast<PosixFS *>(fs_)->set_keep_write_file_handles_open(enable_shared_posixfs_optimizations);
 
-   if(home == NULL) {
-     home_ = "";
-   } else {
-     home_ = std::string(home, strlen(home));
-   } 
+  if(home == NULL) {
+    home_ = "";
+  } else {
+    home_ = std::string(home, strlen(home));
+  }
 
 #ifdef HAVE_MPI
   // Initialize MPI communicator
@@ -142,11 +162,8 @@ int StorageManagerConfig::init(
      write_method_ != TILEDB_IO_MPI)
     write_method_ = TILEDB_IO_WRITE;  // Use default 
 
-  fs_->set_disable_file_locking(disable_file_locking);
-
   return TILEDB_SMC_OK;
 }
-
 
 /* ****************************** */
 /*            ACCESSORS           */

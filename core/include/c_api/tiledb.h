@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -120,9 +120,11 @@ typedef struct TileDB_Config {
    */
   int write_method_;
   /*
-   * Disables file locking even if the underlying storage system supports it
+   * Allows some optimizations like disable file locking and keeping file handles open until explicitly closed
+   * to help minimize excessive writes and other unpredictable behavior on shared posix systems like NFS and Lustre.
+   * These can be overridden with env TILEDB_DISABLE_FILE_LOCKING and TILEDB_KEEP_FILE_HANDLES_OPEN.
    */
-  bool disable_file_locking_;
+  bool enable_shared_posixfs_optimizations_;
 } TileDB_Config; 
 
 
@@ -261,6 +263,10 @@ typedef struct TileDB_ArraySchema {
   int* compression_;
   /** Specifies the compression level */
   int* compression_level_;
+  /** Compression type for the offsets for variable number of cells TILEDB_VAR_NUM for attribute */
+  int* offsets_compression_;
+  /** Compression level for the offsets for variable number of cells TILEDB_VAR_NUM for attribute */
+  int* offsets_compression_level_;
   /** 
    * Specifies if the array is dense (1) or sparse (0). If the array is dense, 
    * then the user must specify tile extents (see below).
@@ -342,6 +348,8 @@ TILEDB_EXPORT int tiledb_array_set_schema(
     const int* cell_val_num,
     const int* compression,
     const int* compression_level,
+    const int* offsets_compression,
+    const int* offsets_compression_level,
     int dense,
     const char** dimensions,
     int dim_num,

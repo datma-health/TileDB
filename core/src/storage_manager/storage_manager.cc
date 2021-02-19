@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@
 
 #include "storage_manager.h"
 
+#include "uri.h"
 #include "utils.h"
 #include "storage_fs.h"
 
@@ -163,6 +164,30 @@ static std::vector<std::string> list_workspaces(StorageFS *fs, const char *paren
   return workspace_dirs;
 }
 
+static std::string relative_dir(std::string dir, const char *parent_dir) {
+  if (dir.find(parent_dir) != std::string::npos && dir.size() > strlen(parent_dir)) {
+    return dir.substr(strlen(parent_dir)+1);
+  } else if (strstr(parent_dir, "://")) {
+    uri path_uri(parent_dir);
+    std::string path;
+    if (path_uri.path().size() > 1) {
+      if (path_uri.path()[0] == '/') {
+        path = path_uri.path().substr(1);
+      } else {
+        path = path_uri.path();
+      }
+      if (dir.find(path) != std::string::npos && dir.size() > path.size()) {
+        if (path[path.size()-1] == '/') {
+          return dir.substr(path.size());
+        } else {
+          return dir.substr(path.size()+1);
+        }
+      }
+    }
+  }
+  return dir;
+}
+
 int StorageManager::ls_workspaces(
     const char *parent_dir,
     char** workspaces,
@@ -178,7 +203,7 @@ int StorageManager::ls_workspaces(
 
   workspace_num = 0;
   for (auto const dir: workspace_dirs) {
-    strncpy(workspaces[workspace_num++], dir.substr(strlen(parent_dir)+1).c_str(), TILEDB_NAME_MAX_LEN);
+    strncpy(workspaces[workspace_num++], relative_dir(dir, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
   }
 
   // Success
@@ -429,15 +454,16 @@ int StorageManager::array_load_schema(
   std::string filename = real_array_dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME;
 
   // Initialize buffer
-  size_t buffer_size =  file_size(fs_, filename);
+  ssize_t buffer_size =  file_size(fs_, filename);
+  assert(buffer_size > 0);
 
-  if(buffer_size == 0) {
-    std::string errmsg = "Cannot load array schema; Empty array schema file";
+  void* buffer = malloc(buffer_size);
+  if (buffer == NULL) {
+    std::string errmsg = "Storage Manager memory allocation error";
     PRINT_ERROR(errmsg);
     tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
   }
-  void* buffer = malloc(buffer_size);
 
   // Load array schema
   if(read_from_file(fs_, filename, 0, buffer, buffer_size) == TILEDB_UT_ERR) {
@@ -1073,7 +1099,7 @@ int StorageManager::ls(
     }
     if (dir_type >= 0) {
       if (dir_i < dir_num) {
-	strncpy(dirs[dir_i], dir.substr(strlen(parent_dir)+1).c_str(), TILEDB_NAME_MAX_LEN);
+	strncpy(dirs[dir_i], relative_dir(dir, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
 	dir_types[dir_i++] = dir_type;
       } else {
 	std::string errmsg = 
@@ -1511,36 +1537,12 @@ int StorageManager::config_set(StorageManagerConfig* config) {
   config_ = config;
   fs_ = config_->get_filesystem();
 
-  // Set the TileDB home directory
-  tiledb_home_ = config->home();
-  if(tiledb_home_ == "") {
-    auto env_home_ptr = getenv("HOME");
-    tiledb_home_ = env_home_ptr ? env_home_ptr : "";
-    if(tiledb_home_ == "") {
-      char cwd[1024];
-      if(getcwd(cwd, sizeof(cwd)) != NULL) {
-        tiledb_home_ = cwd;
-      } else {
-        std::string errmsg = "Cannot set TileDB home directory";
-        PRINT_ERROR(errmsg);
-        tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
-        return TILEDB_SM_ERR;
-      }
-    }
-    tiledb_home_ += "/.tiledb";
-  }
-
-  tiledb_home_ = real_dir(fs_, tiledb_home_);
-
   // Success
   return TILEDB_SM_OK;
 } 
 
 int StorageManager::consolidation_filelock_create(
     const std::string& dir) const {
-  if (!fs_->locking_support()) {
-    return TILEDB_SM_OK;
-  }
   
   // Create file
   std::string filename = dir + "/" + TILEDB_SM_CONSOLIDATION_FILELOCK_NAME;
@@ -1590,12 +1592,17 @@ int StorageManager::consolidation_filelock_lock(
   // Create consolidation lock file if necessary
   if (!fs_->is_file(filename)) {
     if (consolidation_filelock_create(array_name_real)) {
+      std::string errmsg =
+        std::string("Cannot lock consolidation filelock; consolidation lock file doesn't exist and ")
+        + " cannot create consolidation lock file "+filename;
+      PRINT_ERROR(errmsg);
+      tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
       return TILEDB_SM_ERR;
     }
   }
 
   // Open the file
-  fd = ::open(filename.c_str(), O_RDWR);
+  fd = ::open(filename.c_str(), (lock_type == TILEDB_SM_SHARED_LOCK) ? O_RDONLY : O_RDWR);
   if(fd == -1) {
     std::string errmsg = 
         "Cannot lock consolidation filelock; Cannot open filelock";

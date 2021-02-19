@@ -35,7 +35,7 @@
 
 #include <math.h>
 
-int CodecGzip::compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
+int CodecGzip::do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
   // Allocate space to store the compressed tile
   if(tile_compressed_ == NULL) {
     tile_compressed_allocated_size_ = 
@@ -50,6 +50,10 @@ int CodecGzip::compress_tile(unsigned char* tile, size_t tile_size, void** tile_
         tile_size + 6 + 5*(ceil(tile_size/16834.0));
     tile_compressed_ = 
         realloc(tile_compressed_, tile_compressed_allocated_size_);
+  }
+
+  if (tile_compressed_ == NULL) {
+    return print_errmsg("OOM while trying to allocate memory for compress using " + name());
   }
 
   // Compress tile
@@ -67,7 +71,7 @@ int CodecGzip::compress_tile(unsigned char* tile, size_t tile_size, void** tile_
   return TILEDB_CD_OK;
 }
 
-int CodecGzip::decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
+int CodecGzip::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
   // Decompress tile 
   size_t gunzip_out_size;
   if(gunzip(

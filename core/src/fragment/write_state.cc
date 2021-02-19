@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +32,7 @@
  */
 
 #include "comparators.h"
+#include "storage_buffer.h"
 #include "tiledb_constants.h"
 #include "utils.h"
 #include "write_state.h"
@@ -137,6 +139,14 @@ WriteState::WriteState(
   for(int i=0; i<attribute_num_+1; ++i) {
     codec_[i] = Codec::create(array_schema_, i);
   }
+  offsets_codec_.resize(attribute_num_);
+  for(int i=0; i<attribute_num_; ++i) {
+    if (array_schema_->var_size(i)) {
+      offsets_codec_[i] = Codec::create(array_schema_, i, true);
+    } else {
+      offsets_codec_[i] = NULL;
+    }
+  }
 }
 
 WriteState::~WriteState() {
@@ -144,6 +154,11 @@ WriteState::~WriteState() {
   for(auto i=0u; i<codec_.size(); ++i) {
     if (codec_[i]) {
       delete codec_[i];
+    }
+  }
+  for(auto i=0u; i<offsets_codec_.size(); ++i) {
+    if (offsets_codec_[i]) {
+      delete offsets_codec_[i];
     }
   }
     
@@ -421,38 +436,31 @@ std::string WriteState::construct_filename(int attribute_id, bool is_var) {
   return filename;
 }
 
-int write_file(StorageFS *fs, std::string filename, void *buffer, int64_t size) {
-  if (write_to_file(fs, filename, buffer, size) == TILEDB_UT_ERR) {
-    std::string errmsg = "Cannot write buffer to file " + filename;
-    PRINT_ERROR(errmsg);
-    return TILEDB_WS_ERR;
-  }
-  return TILEDB_WS_OK;
-}
-
 int WriteState::write_file_buffers() {
   int rc = TILEDB_WS_OK;
   for(int i=0; i<attribute_num_+1; ++i) {
-    std::string filename = construct_filename(i, false);
     if (file_buffer_[i] != NULL) {
-      if (!rc) {
-        rc = write_file(fs_, filename, file_buffer_[i]->get_buffer(), file_buffer_[i]->get_buffer_size());
-      }
+      rc = file_buffer_[i]->finalize() || rc;
       delete file_buffer_[i];
       file_buffer_[i] = NULL;
+    } else {
+      rc = close_file(fs_, construct_filename(i, false)) || rc;
     }
-    close_file(fs_, filename);
 
-    std::string filename_var = construct_filename(i, true);
     if (file_var_buffer_[i] != NULL) {
-      if (!rc) {
-        rc = write_file(fs_, filename_var, file_var_buffer_[i]->get_buffer(), file_var_buffer_[i]->get_buffer_size());
-      }
+      rc = file_var_buffer_[i]->finalize() || rc;
       delete file_var_buffer_[i];
       file_var_buffer_[i] = NULL;
-      continue;
+    } else {
+      rc = close_file(fs_, construct_filename(i, true)) || rc;
     }
-    close_file(fs_, filename_var);
+
+    if (rc) {
+      std::string errmsg = "Could not finalize files from storage buffers";
+      PRINT_ERROR(errmsg);
+      tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
+      return TILEDB_WS_ERR;
+    }
     
     // For variable length attributes, ensure an empty file exists even if there
     // are no valid values for querying.
@@ -477,24 +485,23 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
   // Construct the attribute file name
   std::string filename = construct_filename(attribute_id, is_var);
 
-  // Experimental buffered writes to cloud.
-  // If file does not exist, use buffers and persist the buffer to the file during finalization. Otherwise, write to file directly.
-  /*  if (!is_file(fs_, filename) && is_hdfs_path(filename)) {
-    Buffer *file_buffer;
+  // Use buffers when desired, otherwise rely on HDFS or the Posix Filesystem to handle buffering
+  if (fs_->get_upload_buffer_size() > 0) {
+    StorageBuffer *file_buffer;
     if (is_var) {
       assert((attribute_id < attribute_num_) && "Coords attribute cannot be variable");
       if (file_var_buffer_[attribute_id] == NULL) {
-        file_var_buffer_[attribute_id]= new Buffer();
+        file_var_buffer_[attribute_id]= new StorageBuffer(fs_, filename);
       }
       file_buffer = file_var_buffer_[attribute_id];
     } else {
       if (file_buffer_[attribute_id] == NULL) {
-        file_buffer_[attribute_id] = new Buffer();
+        file_buffer_[attribute_id] = new StorageBuffer(fs_, filename);
       }
       file_buffer = file_buffer_[attribute_id];
     }
   
-    // Write to file buffers if possible
+    // Buffered writing to help with distributed filesystem and cloud performance
     if (file_buffer != NULL) {
       if (file_buffer->append_buffer(segment, length) == TILEDB_BF_ERR) {
         file_buffer->free_buffer();
@@ -505,7 +512,7 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
         return TILEDB_WS_OK;
       }
     }
-    } */
+  }
 
   // Write_segment directly
   int rc = TILEDB_WS_OK;
@@ -527,7 +534,7 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
   if (rc != TILEDB_UT_OK) {
     std::string errmsg = "Cannot write segment to file";
     PRINT_ERROR(errmsg);
-    tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
+    tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg + '\n' + tiledb_ut_errmsg;
     return TILEDB_WS_ERR;
   }
 
@@ -574,8 +581,20 @@ int WriteState::compress_tile(
     unsigned char* tile, 
     size_t tile_size,
     void** tile_compressed,
-    size_t& tile_compressed_size) {
-  if(codec_[attribute_id]->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size) != TILEDB_CD_OK) {
+    size_t& tile_compressed_size,
+    bool compress_offsets) {
+  Codec* codec;
+  if (compress_offsets) {
+    codec = offsets_codec_[attribute_id];
+    if (codec == NULL) {
+      tile_compressed = reinterpret_cast<void **>(&tile);
+      tile_compressed_size = tile_size;
+      return TILEDB_WS_OK;
+    }
+  } else {
+   codec = codec_[attribute_id];
+  }
+  if(codec->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot compress tile";
     PRINT_ERROR(errmsg);
     tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
@@ -601,7 +620,8 @@ int WriteState::compress_and_write_tile(int attribute_id) {
          tile, 
          tile_size,
 	 &tile_compressed,
-         tile_compressed_size) != TILEDB_WS_OK) 
+         tile_compressed_size,
+         array_schema_->var_size(attribute_id)) != TILEDB_WS_OK) 
     return TILEDB_WS_ERR;
 
   // Write segment to file
