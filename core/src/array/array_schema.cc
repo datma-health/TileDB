@@ -1579,7 +1579,8 @@ static bool validate_compression(int *compression, int attribute_num) {
        compression_type != TILEDB_BLOSC_SNAPPY && 
        compression_type != TILEDB_BLOSC_ZLIB   && 
        compression_type != TILEDB_BLOSC_ZSTD   &&
-       compression_type != TILEDB_RLE) {
+       compression_type != TILEDB_RLE &&
+       !Codec::is_registered_codec(compression_type)) {
       return false;
     }
     int pre_compression_type = compression[i] & PRE_COMPRESS;
