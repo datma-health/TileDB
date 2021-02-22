@@ -150,17 +150,25 @@ int StorageManagerConfig::init(
 #endif
 
   // Initialize read method
-  read_method_ = read_method;
-  if(read_method_ != TILEDB_IO_READ &&
-     read_method_ != TILEDB_IO_MMAP &&
-     read_method_ != TILEDB_IO_MPI)
-    read_method_ = TILEDB_IO_MMAP;  // Use default 
+  if (is_env_set("TILEDB_IO_READ")) {
+    // Experiment with using TILEDB_IO_READ as default for shared posix filesystems as compared
+    // to TILEDB_IO_MMAP
+    read_method_ = TILEDB_IO_READ;
+  } else {
+    read_method_ = read_method;
+    if(read_method_ != TILEDB_IO_READ &&
+       read_method_ != TILEDB_IO_MMAP &&
+       read_method_ != TILEDB_IO_MPI) {
+      read_method_ = TILEDB_IO_MMAP;  // Use default
+    }
+  }
 
   // Initialize write method
   write_method_ = write_method;
   if(write_method_ != TILEDB_IO_WRITE &&
-     write_method_ != TILEDB_IO_MPI)
-    write_method_ = TILEDB_IO_WRITE;  // Use default 
+     write_method_ != TILEDB_IO_MPI) {
+    write_method_ = TILEDB_IO_WRITE;  // Use default
+  }
 
   return TILEDB_SMC_OK;
 }
