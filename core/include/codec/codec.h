@@ -38,6 +38,7 @@
 
 #include <errno.h>
 #include <dlfcn.h>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <string>
