@@ -106,8 +106,13 @@ int get_filter_level(const ArraySchema* array_schema, const int attribute_id,
 }
 
 static std::map<int, Codec::create_fn_t> registered_codecs_;
-void Codec::register_codec(int compression_type, Codec::create_fn_t create_fn) {
+int Codec::register_codec(int compression_type, Codec::create_fn_t create_fn) {
+  if (is_registered_codec(compression_type)) {
+    std::cerr << "Codec for compression type=" << compression_type << " has already been registered" << std::endl;
+    return TILEDB_CD_ERR;
+  }
   registered_codecs_.insert({compression_type, create_fn});
+  return TILEDB_CD_OK;
 }
 
 bool Codec::is_registered_codec(int compression_type) {

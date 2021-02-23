@@ -142,7 +142,8 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
 
 TEST_CASE("Test plugin", "[codec-plugin]") {
   int compression_type = 15;
-  Codec::register_codec(compression_type, &TestCodecBasic::createTestCodecBasic);
+  CHECK(Codec::register_codec(compression_type, &TestCodecBasic::createTestCodecBasic) == TILEDB_CD_OK);
+  CHECK(Codec::register_codec(compression_type, &TestCodecBasic::createTestCodecBasic) == TILEDB_CD_ERR);
   
   ArraySchema array_schema(NULL);
   const char* attributes[1] = {"this_attribute"};

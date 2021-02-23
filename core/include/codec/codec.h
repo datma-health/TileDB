@@ -74,7 +74,7 @@ class Codec {
 
   typedef std::function<Codec*(const ArraySchema*, const int, const bool)> create_fn_t;
 
-  static void register_codec(int compression_type, Codec::create_fn_t create_fn);
+  static int register_codec(int compression_type, Codec::create_fn_t create_fn);
 
   static bool is_registered_codec(int compression_type);
 
