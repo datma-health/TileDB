@@ -32,6 +32,7 @@
  */
 
 #include "storage_azure_blob.h"
+#include "storage_gcs.h"
 #include "storage_s3.h"
 #include "storage_manager_config.h"
 #include "tiledb_constants.h"
@@ -103,11 +104,19 @@ int StorageManagerConfig::init(
 	 return TILEDB_SMC_ERR;
        }
      } else if (is_s3_storage_path(home_)) {
-        try {
+       try {
           fs_ = new S3(home_);
        } catch(std::system_error& ex) {
          PRINT_ERROR(ex.what());
 	 tiledb_smc_errmsg = "S3 Storage intialization failed for home=" + home_;
+	 return TILEDB_SMC_ERR;
+       }
+     } else if (is_gcs_path(home_)) {
+       try {
+          fs_ = new GCS(home_);
+       } catch(std::system_error& ex) {
+         PRINT_ERROR(ex.what());
+	 tiledb_smc_errmsg = "GCS Storage intialization failed for home=" + home_;
 	 return TILEDB_SMC_ERR;
        }
      } else if (is_supported_cloud_path(home_)) {

@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -147,3 +147,75 @@ hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) 
 }
 
 #endif /* USE_HDFS */
+
+GCS::GCS(const std::string& home) {
+  google::cloud::StatusOr<gcs::Client> client = gcs::Client::CreateDefaultClient();
+  if (!client) {
+    std::cerr << "Failed to create Storage Client, status=" << client.status()
+              << "\n";
+  }
+}
+  
+GCS::~GCS() {
+  // Nothing yet
+}
+
+std::string GCS::current_dir() {
+  return "";
+}
+
+int GCS::set_working_dir(const std::string& dir) {
+  return 0;
+}
+
+bool GCS::is_dir(const std::string& dir) {
+  return true;
+}
+
+bool GCS::is_file(const std::string& file) {
+  return true;
+}
+
+std::string GCS::real_dir(const std::string& dir) {
+  return "";
+}
+
+int GCS::create_dir(const std::string& dir) {
+  return 0;
+}
+
+int GCS::delete_dir(const std::string& dir) {
+  return 0;
+}
+
+std::vector<std::string> GCS::get_dirs(const std::string& dir) {
+  return {};
+}
+
+std::vector<std::string> GCS::get_files(const std::string& dir) {
+  return {};
+}
+
+int GCS::create_file(const std::string& filename, int flags, mode_t mode) {
+  return 0;
+}
+
+int GCS::delete_file(const std::string& filename) {
+  return 0;
+}
+
+ssize_t GCS::file_size(const std::string& filename) {
+  return -1;
+}
+
+int GCS::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
+  return 0;
+}
+
+int GCS::write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) {
+  return 0;
+}
+
+int GCS::commit_file(const std::string& filename) {
+  return 0;
+}

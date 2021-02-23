@@ -122,9 +122,20 @@ elseif(NOT GCSSDK_FOUND)
   add_dependencies(gcssdk-ep gcssdk-build)
 endif()
 
+# Note: abseil is a mess with library organization...
 set(_GCSSDK_LIBS "google_cloud_cpp_storage"
                  "google_cloud_cpp_common"
-                 "crc32c")
+                 "crc32c"
+                 "absl_bad_optional_access"
+                 "absl_int128"
+                 "absl_raw_logging_internal"
+                 "absl_strings_internal"
+                 "absl_str_format_internal"
+                 "absl_strings"
+                 "absl_throw_delegate"
+                 "absl_time"
+                 "absl_time_zone"
+                 )
 set(GCSSSDK_LINK_LIBRARIES)
 file(MAKE_DIRECTORY ${GCSSDK_INCLUDE_DIR})
 foreach(_GCSSDK_LIB ${_GCSSDK_LIBS})
