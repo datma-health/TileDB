@@ -24,7 +24,13 @@ setup_azurite() {
   export AZURE_BLOB_ENDPOINT="https://127.0.0.1:10000/devstoreaccount1"
 }
 
-make -j4 && make test_tiledb_utils && make test_azure_blob_storage && make test_s3_storage && make examples && cd examples
+make -j4 &&
+make test_tiledb_utils &&
+make test_azure_blob_storage &&
+make test_sparse_array_benchmark &&
+make test_s3_storage &&
+make examples &&
+cd examples
 
 TEST=github_test_$RANDOM
 if [[ $INSTALL_TYPE == hdfs ]]; then
@@ -54,8 +60,10 @@ elif [[ $INSTALL_TYPE == azurite ]]; then
   $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/$TEST"
 
 elif [[ $INSTALL_TYPE == aws ]]; then
-  echo "Testing aws type"
+  TILEDB_BENCHMARK=1
+  tiledb_utils_tests "s3://github-actions-1/$TEST" &&
   $CMAKE_BUILD_DIR/test/test_s3_storage --test-dir s3://github-actions-1/$TEST &&
+  $CMAKE_BUILD_DIR/test/test_sparse_array_benchmark --test-dir s3://github-actions-1/$TEST &&
   $GITHUB_WORKSPACE/examples/run_examples.sh s3://github-actions-1/$TEST
 
 elif [[  $INSTALL_TYPE == minio ]]; then

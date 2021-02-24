@@ -85,7 +85,6 @@ class S3 : public StorageCloudFS {
  protected:
   std::string bucket_name_;
  
-  Aws::SDKOptions options_;
   std::shared_ptr<Aws::S3::S3Client> client_;
   std::mutex write_map_mtx_;
   typedef struct multipart_upload_info_t {
