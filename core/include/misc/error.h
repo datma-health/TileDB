@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018,2020-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,10 +50,33 @@
     std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \
     std::string errpath = PATH;                                      \
     if (errpath.length() > 0) {                                      \
-      errmsg +=  "; path=" + errpath;                                \
+      errmsg +=  " path=" + errpath;                                \
     }                                                                \
     if (errno > 0) {                                                 \
-      errmsg += "; errno=" + std::to_string(errno) + "(" + std::string(std::strerror(errno)) + ")"; \
+      errmsg += " errno=" + std::to_string(errno) + "(" + std::string(std::strerror(errno)) + ")"; \
+    }                                                                \
+    PRINT_ERROR(errmsg);                                             \
+    TILEDB_MSG = errmsg;                                             \
+  } while (false)
+
+// To be used when errno has to be ignored as with awssdk api. Most other times
+// SYSTEM_ERROR is more appropriate.
+#define PATH_ERROR(PREFIX, MSG, PATH, TILEDB_MSG)                    \
+  do {                                                               \
+    std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \
+    std::string errpath = PATH;                                      \
+    if (errpath.length() > 0) {                                      \
+      errmsg +=  " path=" + errpath;                                 \
+    }                                                                \
+    PRINT_ERROR(errmsg);                                             \
+    TILEDB_MSG = errmsg;                                             \
+  } while (false)
+
+#define TILEDB_ERROR_WITH_ERRNO(PREFIX, MSG, TILEDB_MSG)             \
+  do {                                                               \
+    std::string errmsg = PREFIX + "(" + __func__ + ") " + MSG;       \
+    if (errno > 0) {                                                 \
+      errmsg += " errno=" + std::to_string(errno) + "(" + std::string(std::strerror(errno)) + ")"; \
     }                                                                \
     PRINT_ERROR(errmsg);                                             \
     TILEDB_MSG = errmsg;                                             \

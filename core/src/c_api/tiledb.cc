@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corp.
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,13 +82,11 @@ int tiledb_ctx_init(
   if (tiledb_config && tiledb_config->home_) {
     TRACE_FN_ARG("Home=" << tiledb_config->home_);
     std::string home = std::string(tiledb_config->home_, strlen(tiledb_config->home_));
-    if (TileDBUtils::is_cloud_path(home)) {
-      if (!is_hdfs_path(home) && !is_gcs_path(home) &&!is_azure_blob_storage_path(home)) {
-	std::string errmsg = "No TileDB support for URL=" + home;
-	PRINT_ERROR(errmsg);
-	strcpy(tiledb_errmsg, errmsg.c_str());
-	return TILEDB_ERR;
-      }
+    if (TileDBUtils::is_cloud_path(home) && !is_supported_cloud_path(home)) {
+      std::string errmsg = "No TileDB support for URL=" + home;
+      PRINT_ERROR(errmsg);
+      strcpy(tiledb_errmsg, errmsg.c_str());
+      return TILEDB_ERR;
     }
   }
 
@@ -116,7 +114,7 @@ int tiledb_ctx_init(
 #endif
         tiledb_config->read_method_, 
         tiledb_config->write_method_,
-        tiledb_config->disable_file_locking_) == TILEDB_SMC_ERR) {
+        tiledb_config->enable_shared_posixfs_optimizations_) == TILEDB_SMC_ERR) {
       strcpy(tiledb_errmsg, tiledb_smc_errmsg.c_str());
       return TILEDB_ERR;
     }
@@ -312,6 +310,8 @@ int tiledb_array_set_schema(
     const int* cell_val_num,
     const int* compression,
     const int* compression_level,
+    const int* offsets_compression,
+    const int* offsets_compression_level,
     int dense,
     const char** dimensions, 
     int dim_num,
@@ -329,47 +329,8 @@ int tiledb_array_set_schema(
     return TILEDB_ERR;
   }
 
-  // Check image dimensions and tiling for JPEG2K compression
-  if (*compression == TILEDB_JPEG2K)  {
-    // Only support 2D images at this time 
-    //   JPEG2K_RGB may have 1 dimension if whole image is compressed, no check
-    if (dim_num != 2) { 
-      std::string errmsg =
-          std::string("Cannot create array_schema; number of image dimensions not equal 2");
-      PRINT_ERROR(errmsg);
-      strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-      return TILEDB_ERR;
-    }
-  }
-  if (*compression == TILEDB_JPEG2K) {
-    // Check that image width and height are divisible by tiling 
-    // RGB tiling should already be checked and rejected before this if bad
-    int64_t *l_domain = (int64_t*)domain;
-    int64_t *l_tile_extents = (int64_t*)tile_extents;
-    // Width of image MUST be divisible by first tile extent
-    int pixels = l_domain[1] - l_domain[0] + 1; // width upper - lower bound
-    if (pixels % l_tile_extents[0] != 0) {      // divisible by tile width?
-      std::string errmsg =
-          std::string("Cannot create array_schema; image width (" + std::to_string(pixels) + ") not divisible by tile width (" + std::to_string(l_tile_extents[0]) + ")");
-      PRINT_ERROR(errmsg);
-      strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-      return TILEDB_ERR;
-    }
-    // Height of image MUST be divisible by second tile extent
-    pixels = l_domain[3] - l_domain[2] + 1; // height upper - lower bound
-    if (pixels % l_tile_extents[1] != 0) {  // divisible by tile height?
-      std::string errmsg =
-          std::string("Cannot create array_schema; image height (" + std::to_string(pixels) + ") not divisible by tile height (" + std::to_string(l_tile_extents[1]) + ")");
-      PRINT_ERROR(errmsg);
-      strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-      return TILEDB_ERR;
-    }
-  }
-
-
-  //Nullify workspace
-  tiledb_array_schema->array_workspace_ = NULL;
-
+  memset(tiledb_array_schema, 0, sizeof(TileDB_ArraySchema));
+  
   // Set array name
   size_t array_name_len = strlen(array_name); 
   if(array_name == NULL || array_name_len > TILEDB_NAME_MAX_LEN) {
@@ -383,8 +344,7 @@ int tiledb_array_set_schema(
 
   // Set attributes and number of attributes
   tiledb_array_schema->attribute_num_ = attribute_num;
-  tiledb_array_schema->attributes_ = 
-      (char**) malloc(attribute_num*sizeof(char*));
+  tiledb_array_schema->attributes_ = (char**) malloc(attribute_num*sizeof(char*));
   for(int i=0; i<attribute_num; ++i) { 
     size_t attribute_len = strlen(attributes[i]);
     if(attributes[i] == NULL || attribute_len > TILEDB_NAME_MAX_LEN) {
@@ -420,22 +380,19 @@ int tiledb_array_set_schema(
   memcpy(tiledb_array_schema->domain_, domain, domain_len);
 
   // Set tile extents
-  if(tile_extents == NULL) {
-    tiledb_array_schema->tile_extents_ = NULL;
-  } else {
+  if(tile_extents != NULL) {
     tiledb_array_schema->tile_extents_ = malloc(tile_extents_len); 
     memcpy(tiledb_array_schema->tile_extents_, tile_extents, tile_extents_len);
   }
 
   // Set types
   tiledb_array_schema->types_ = (int*) malloc((attribute_num+1)*sizeof(int));
-  for(int i=0; i<attribute_num+1; ++i)
+  for(int i=0; i<attribute_num+1; ++i) {
     tiledb_array_schema->types_[i] = types[i];
+  }
 
   // Set cell val num
-  if(cell_val_num == NULL) {
-    tiledb_array_schema->cell_val_num_ = NULL; 
-  } else {
+  if(cell_val_num != NULL) {
     tiledb_array_schema->cell_val_num_ = 
         (int*) malloc((attribute_num)*sizeof(int));
     for(int i=0; i<attribute_num; ++i) {
@@ -451,23 +408,35 @@ int tiledb_array_set_schema(
   tiledb_array_schema->capacity_ = capacity;
 
   // Set compression
-  if(compression == NULL) {
-    tiledb_array_schema->compression_ = NULL; 
-  } else {
-    tiledb_array_schema->compression_ = 
-        (int*) malloc((attribute_num+1)*sizeof(int));
-    for(int i=0; i<attribute_num+1; ++i)
+  if(compression != NULL) {
+    tiledb_array_schema->compression_ = (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i) {
       tiledb_array_schema->compression_[i] = compression[i];
+    }
   }
 
   // Set compression levels
-  if (compression_level == NULL) {
-    tiledb_array_schema->compression_level_ = NULL;
-  } else {
-    tiledb_array_schema->compression_level_ = 
-      (int*) malloc((attribute_num+1)*sizeof(int));
-    for(int i=0; i<attribute_num+1; ++i)
+  if (compression_level != NULL) {
+    tiledb_array_schema->compression_level_ = (int*) malloc((attribute_num+1)*sizeof(int));
+    for(int i=0; i<attribute_num+1; ++i) {
       tiledb_array_schema->compression_level_[i] = compression_level[i];
+    }
+  }
+
+  // Set offsets compression
+  if(offsets_compression != NULL) {
+    tiledb_array_schema->offsets_compression_ = (int*) malloc((attribute_num)*sizeof(int));
+    for(int i=0; i<attribute_num; ++i) {
+      tiledb_array_schema->offsets_compression_[i] = offsets_compression[i];
+    }
+  }
+
+  // Set offsets compression levels
+  if (offsets_compression_level != NULL) {
+    tiledb_array_schema->offsets_compression_level_ = (int*) malloc((attribute_num)*sizeof(int));
+    for(int i=0; i<attribute_num; ++i) {
+      tiledb_array_schema->offsets_compression_level_[i] = offsets_compression_level[i];
+    }
   }
 
   // Success
@@ -483,6 +452,7 @@ int tiledb_array_create(
 
   // Copy array schema to a C struct
   ArraySchemaC array_schema_c;
+  memset(&array_schema_c, 0, sizeof(array_schema_c));
   array_schema_c.array_name_ = array_schema->array_name_;
   array_schema_c.attributes_ = array_schema->attributes_;
   array_schema_c.attribute_num_ = array_schema->attribute_num_;
@@ -491,6 +461,8 @@ int tiledb_array_create(
   array_schema_c.cell_val_num_ = array_schema->cell_val_num_;
   array_schema_c.compression_ = array_schema->compression_;
   array_schema_c.compression_level_ = array_schema->compression_level_;
+  array_schema_c.offsets_compression_ = array_schema->offsets_compression_;
+  array_schema_c.offsets_compression_level_ = array_schema->offsets_compression_level_;
   array_schema_c.dense_ = array_schema->dense_;
   array_schema_c.dimensions_ = array_schema->dimensions_;
   array_schema_c.dim_num_ = array_schema->dim_num_;
@@ -623,6 +595,8 @@ int tiledb_array_get_schema(
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
   tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
+  tiledb_array_schema->offsets_compression_ = array_schema_c.offsets_compression_;
+  tiledb_array_schema->offsets_compression_level_ = array_schema_c.offsets_compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -671,6 +645,8 @@ int tiledb_array_load_schema(
   tiledb_array_schema->cell_val_num_ = array_schema_c.cell_val_num_;
   tiledb_array_schema->compression_ = array_schema_c.compression_;
   tiledb_array_schema->compression_level_ = array_schema_c.compression_level_;
+  tiledb_array_schema->offsets_compression_ = array_schema_c.offsets_compression_;
+  tiledb_array_schema->offsets_compression_level_ = array_schema_c.offsets_compression_level_;
   tiledb_array_schema->dense_ = array_schema_c.dense_;
   tiledb_array_schema->dimensions_ = array_schema_c.dimensions_;
   tiledb_array_schema->dim_num_ = array_schema_c.dim_num_;
@@ -735,6 +711,14 @@ int tiledb_array_free_schema(
   // Free compression level
   if(tiledb_array_schema->compression_level_ != NULL) 
     free(tiledb_array_schema->compression_level_);
+
+  // Free offsets compression
+  if(tiledb_array_schema->offsets_compression_ != NULL)
+    free(tiledb_array_schema->offsets_compression_);
+
+  // Free offsets compression level
+  if(tiledb_array_schema->compression_level_ != NULL) 
+    free(tiledb_array_schema->offsets_compression_level_);
 
   // Free cell val num
   if(tiledb_array_schema->cell_val_num_ != NULL)
@@ -1069,6 +1053,8 @@ int tiledb_metadata_set_schema(
     return TILEDB_ERR;
   }
 
+  memset(tiledb_metadata_schema, 0, sizeof(TileDB_MetadataSchema));
+
   // Set metadata name
   size_t metadata_name_len = strlen(metadata_name); 
   if(metadata_name == NULL || metadata_name_len > TILEDB_NAME_MAX_LEN) {
@@ -1148,6 +1134,7 @@ int tiledb_metadata_create(
 
   // Copy metadata schema to the proper struct
   MetadataSchemaC metadata_schema_c;
+  memset(&metadata_schema_c, 0, sizeof(metadata_schema_c));
   metadata_schema_c.metadata_name_ = metadata_schema->metadata_name_;
   metadata_schema_c.attributes_ = metadata_schema->attributes_;
   metadata_schema_c.attribute_num_ = metadata_schema->attribute_num_;
@@ -1864,22 +1851,22 @@ std::string current_working_dir(const TileDB_CTX* tiledb_ctx) {
    return "";
 }
 
-size_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
+ssize_t file_size(const TileDB_CTX* tiledb_ctx, const std::string& file) {
   if (sanity_check_fs(tiledb_ctx)) {
     return file_size(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), file);
   }
-  return 0;
+  return TILEDB_ERR;
 }
 
-inline bool invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {
+inline int invoke_int_fs_fn(const TileDB_CTX* tiledb_ctx, const std::string& dir, int (*fn)(StorageFS*, const std::string&)) {
   if (sanity_check_fs(tiledb_ctx)) {
     tiledb_fs_errmsg.clear(); 
-    bool rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
+    int rc = fn(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dir);
     if (!tiledb_fs_errmsg.empty())
       strcpy(tiledb_errmsg, tiledb_fs_errmsg.c_str()); 
     return rc;
   }
-  return false;
+  return TILEDB_ERR;
 }
 
 int set_working_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {

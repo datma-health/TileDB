@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,21 @@
 #include <unistd.h>
 
 #define POSIX_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, MSG, PATH, tiledb_fs_errmsg)
+
+static int sync_kernel(int fd, bool locking_support, std::string filename);
+
+PosixFS::~PosixFS() {
+  for (auto it = write_map_.begin(); it != write_map_.end(); ++it) {
+    std::string filename = it->first;
+    int fd = it->second;
+    POSIX_ERROR("File does not seem to be closed", filename);
+    sync_kernel(fd, true, filename);
+    if (close(fd)) {
+      POSIX_ERROR("Could not close file from destructor", filename);
+    }
+  }
+  write_map_.clear();
+}
 
 std::string PosixFS::current_dir() {
   std::string dir = "";
@@ -299,7 +314,7 @@ int PosixFS::delete_file(const std::string& filename) {
   return TILEDB_FS_OK;
 }
 
-size_t PosixFS::file_size(const std::string& filename) {
+ssize_t PosixFS::file_size(const std::string& filename) {
   reset_errno();
   
   if (!is_file(filename)) {
@@ -325,11 +340,37 @@ size_t PosixFS::file_size(const std::string& filename) {
   return file_size;
 }
 
+static int get_fd(const std::string& filename, std::unordered_map<std::string, int>& map, std::mutex& mtx) {
+  std::lock_guard<std::mutex> lock(mtx);
+  auto search = map.find(filename);
+  if (search != map.end()) {
+    return search->second;
+  } else {
+    return -1;
+  }
+}
+
+static void set_fd(const std::string& filename, int fd, std::unordered_map<std::string, int>& map, std::mutex& mtx) {
+  std::unique_lock<std::mutex> lock(mtx);
+  map.emplace(filename, fd);
+}
+
+static void remove_fd(const std::string& filename, std::unordered_map<std::string, int>& map, std::mutex& mtx) {
+  std::unique_lock<std::mutex> lock(mtx);
+  map.erase(filename);
+}
+
 int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
   reset_errno();
 
   if (length == 0) {
     return TILEDB_FS_OK;
+  }
+
+  // Not supporting simultaneous read/writes.
+  if (keep_write_file_handles_open() && get_fd(filename, write_map_, write_map_mtx_) >= 0) {
+    POSIX_ERROR("Cannot open simultaneously for reads/writes", filename);
+    return TILEDB_FS_ERR;
   }
   
   // Open file
@@ -342,18 +383,20 @@ int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buf
   // Read in batches of TILEDB_UT_MAX_WRITE_COUNT
   size_t nbytes = 0;
   char *pbuf = reinterpret_cast<char *>(buffer);
+  int rc = TILEDB_FS_OK;
   do {
     ssize_t bytes_read = pread(fd, reinterpret_cast<void *>(pbuf), (length - nbytes) > TILEDB_UT_MAX_WRITE_COUNT?TILEDB_UT_MAX_WRITE_COUNT : length-nbytes, offset + nbytes);
     if (bytes_read < 0) {
       POSIX_ERROR("Cannot read from file; File reading error", filename);
-      return TILEDB_FS_ERR;
+      rc = TILEDB_FS_ERR;
     } else if (bytes_read == 0) {
       POSIX_ERROR("EOF reached; File reading error", filename);
-      return TILEDB_FS_ERR;
+      rc = TILEDB_FS_ERR;
+    } else {
+      nbytes += bytes_read;
+      pbuf += bytes_read;
     }
-    nbytes += bytes_read;
-    pbuf += bytes_read;
-  } while (nbytes < length);
+  } while (nbytes < length && rc == TILEDB_FS_OK);
   
   // Close file
   if (close(fd)) {
@@ -361,15 +404,57 @@ int PosixFS::read_from_file(const std::string& filename, off_t offset, void *buf
     return TILEDB_FS_ERR;
   }
 
-  // Success
+  return rc;
+}
+
+static int write_to_file_kernel(int fd, const void *buffer, size_t buffer_size) {
+  // Write in batches of TILEDB_UT_MAX_WRITE_COUNT
+  size_t nbytes = 0;
+  char *pbuf = reinterpret_cast<char *>(const_cast<void *>(buffer));
+  do {
+    size_t count = (buffer_size - nbytes) > TILEDB_UT_MAX_WRITE_COUNT ? TILEDB_UT_MAX_WRITE_COUNT : buffer_size - nbytes;
+    assert(count != 0);
+    ssize_t bytes_written = write(fd, reinterpret_cast<void *>(pbuf), count);
+    if(bytes_written < 0) {
+      return TILEDB_FS_ERR;
+    }
+    nbytes += bytes_written;
+    pbuf += bytes_written;
+  } while (nbytes < buffer_size);
+
+  return TILEDB_FS_OK;
+}
+
+int PosixFS::write_to_file_keep_file_handles_open(const std::string& filename, const void *buffer, size_t buffer_size) {
+  int fd = get_fd(filename, write_map_, write_map_mtx_);
+  if (fd == -1) {
+    // Open file
+    fd = open(filename.c_str(), O_WRONLY | O_APPEND | O_CREAT, S_IRWXU);
+    if(fd == -1) {
+      POSIX_ERROR("Cannot write to file; File opening error", filename);
+      return TILEDB_FS_ERR;
+    }
+    set_fd(filename, fd, write_map_, write_map_mtx_);
+  }
+
+  if (write_to_file_kernel(fd, buffer, buffer_size)) {
+    POSIX_ERROR("Cannot write to file; File writing error", filename);
+    close(fd);
+    return TILEDB_FS_ERR;
+  }
+
   return TILEDB_FS_OK;
 }
 
 int PosixFS::write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) {
   reset_errno();
-  
+
   if (buffer_size == 0) {
     return TILEDB_FS_OK;
+  }
+
+  if (keep_write_file_handles_open()) {
+    return write_to_file_keep_file_handles_open(filename, buffer, buffer_size);
   }
 
   // Open file
@@ -379,23 +464,14 @@ int PosixFS::write_to_file(const std::string& filename, const void *buffer, size
     return TILEDB_FS_ERR;
   }
 
-  // Write in batches of TILEDB_UT_MAX_WRITE_COUNT
-  size_t nbytes = 0;
-  char *pbuf = reinterpret_cast<char *>(const_cast<void *>(buffer));
-  do {
-    size_t count = (buffer_size - nbytes) > TILEDB_UT_MAX_WRITE_COUNT ? TILEDB_UT_MAX_WRITE_COUNT : buffer_size - nbytes;
-    assert(count != 0);
-    ssize_t bytes_written = write(fd, reinterpret_cast<void *>(pbuf), count);
-    if(bytes_written < 0) {
-      POSIX_ERROR("Cannot write to file; File writing error", filename);
-      return TILEDB_FS_ERR;
-    }
-    nbytes += bytes_written;
-    pbuf += bytes_written;
-  } while (nbytes < buffer_size);
+  if (write_to_file_kernel(fd, buffer, buffer_size)) {
+    POSIX_ERROR("Cannot write to file; File writing error", filename);
+    close(fd);
+    return TILEDB_FS_ERR;
+  }
 
   // Close file
-  if(close(fd)) {
+  if (close(fd)) {
     POSIX_ERROR("Cannot write to file; File closing error", filename);
     return TILEDB_FS_ERR;
   }
@@ -414,12 +490,28 @@ int PosixFS::move_path(const std::string& old_path, const std::string& new_path)
   
   return TILEDB_FS_OK;
 }
+
+static int sync_kernel(int fd, bool locking_support, std::string filename) {
+  // Sync
+  if(fsync(fd)) {
+    // Ignoring EINVAL errors on fsync that can show up on NFS/CIFS even if they are posix compilant"
+    if (errno != EINVAL && locking_support) {
+      POSIX_ERROR("Cannot sync file; File syncing error. Some network filesystems(NFS/CIFS) can have issues with fsync due to synchronization across machines. Try setting env \"export TILEDB_DISABLE_FILE_LOCKING=1\" and retry", filename);
+      return TILEDB_FS_ERR;
+    }
+  }
+  return TILEDB_FS_OK;
+}
     
 int PosixFS::sync_path(const std::string& filename) {
   reset_errno();
+
+  int fd = get_fd(filename, write_map_, write_map_mtx_);
+  if (fd != -1) {
+    return sync_kernel(fd, locking_support(), filename);
+  }
   
   // Open file
-  int fd;
   if(is_dir(filename)) {      // DIRECTORY 
     fd = open(filename.c_str(), O_RDONLY, S_IRWXU);
   } else if(is_file(filename)) { // FILE
@@ -435,13 +527,7 @@ int PosixFS::sync_path(const std::string& filename) {
   }
 
   // Sync
-  if(fsync(fd)) {
-    // Ignoring EINVAL errors on fsync that can show up on NFS/CIFS even if they are posix compilant"
-    if (errno != EINVAL && locking_support()) {
-      POSIX_ERROR("Cannot sync file; File syncing error. Some network filesystems(NFS/CIFS) can have issues with fsync due to synchronization across machines. Try setting env \"export TILEDB_DISABLE_FILE_LOCKING=1\" and retry", filename);
-      return TILEDB_FS_ERR;
-    }
-  }
+  sync_kernel(fd, locking_support(), filename);
 
   // Close file
   if(close(fd)) {
@@ -453,6 +539,51 @@ int PosixFS::sync_path(const std::string& filename) {
   return TILEDB_FS_OK;
 }
 
+int PosixFS::close_file(const std::string& filename) {
+  if (keep_write_file_handles_open()) {
+    int fd = get_fd(filename, write_map_, write_map_mtx_);
+    if (fd >= 0) {
+      int rc = close(fd);
+      remove_fd(filename, write_map_, write_map_mtx_);
+      if (rc) {
+        POSIX_ERROR("Cannot close file; File closing error", filename);
+        return TILEDB_FS_ERR;
+      }
+    }
+  }
+  return TILEDB_FS_OK;
+}
+
 bool PosixFS::locking_support() {
   return !disable_file_locking();
+}
+
+void PosixFS::set_keep_write_file_handles_open(const bool val) {
+  keep_write_file_handles_open_ = val;
+}
+
+bool PosixFS::keep_write_file_handles_open() {
+  if (keep_write_file_handles_open_set_) {
+    return keep_write_file_handles_open_;
+  }
+  if (getenv("TILEDB_KEEP_FILE_HANDLES_OPEN")) {
+    keep_write_file_handles_open_ = is_env_set("TILEDB_KEEP_FILE_HANDLES_OPEN");
+  }
+  keep_write_file_handles_open_set_ = true;
+  return keep_write_file_handles_open_;
+}
+
+void PosixFS::set_disable_file_locking(const bool val) {
+  disable_file_locking_ = val;
+}
+
+bool PosixFS::disable_file_locking() {
+  if (is_disable_file_locking_set) {
+    return disable_file_locking_;
+  }
+  if (getenv("TILEDB_DISABLE_FILE_LOCKING")) {
+    disable_file_locking_ = is_env_set("TILEDB_DISABLE_FILE_LOCKING");
+  }
+  is_disable_file_locking_set = true;
+  return disable_file_locking_;
 }

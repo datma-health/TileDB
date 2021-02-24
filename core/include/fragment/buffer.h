@@ -70,7 +70,7 @@ public:
    * @param buffer The buffer which contains the data.
    * @param size The size of the data in the buffer.
    */
-  Buffer(void *bytes, int64_t size);
+  Buffer(void *bytes, size_t size);
 
   /** Destructor. */
   ~Buffer();
@@ -79,6 +79,13 @@ public:
    * Get the buffer.
    */
   void *get_buffer();
+
+  /**
+   * Sets the buffer to the given buffer. In this case, it is a read-only buffer.
+   * @param buffer The buffer which contains the data.
+   * @param size The size of the data in the buffer.
+   */
+  void set_buffer(void *bytes, size_t size);
 
   /**
    * Get the size of the filled buffer size.
@@ -90,7 +97,7 @@ public:
    * @param bytes The buffer into which the data will be written.
    * @param length The size of the data to be read from the cached buffer.
    */
-  int read_buffer(void *bytes, int64_t size);
+  int read_buffer(void *bytes, size_t size);
 
   /**
    * Reads the data from the cached buffer from the offset into bytes.
@@ -98,7 +105,7 @@ public:
    * @param bytes The buffer into which the data will be written.
    * @param length The size of the data to be read from the cached buffer.
    */
-  int read_buffer(int64_t offset, void *bytes, int64_t size);
+  int read_buffer(off_t offset, void *bytes, size_t size);
 
   /**
    * Appends data from bytes into the cached buffer. This operation cannot be
@@ -106,27 +113,19 @@ public:
    * @param bytes The buffer for the data.
    * @param length The size of the data to be written into the cached buffer.
    */
-  int append_buffer(const void *bytes, int64_t size);
+  int append_buffer(const void *bytes, size_t size);
 
   /**
-   * Frees the allocated cached buffer and reinitializes all associated varaibles.
+   * Frees the allocated cached buffer and reinitializes all associated variables.
    */
   void free_buffer();
 
 protected:
-  /** 
-   * Sets the buffer to the given buffer. In this case, it is a read-only buffer.
-   * @param buffer The buffer which contains the data.
-   * @param size The size of the data in the buffer.
-   */
-  void set_buffer(void *bytes, int64_t size);
-
-private:
-  void *buffer = NULL;
-  int64_t buffer_size = 0;
-  int64_t buffer_offset = 0;
-  int64_t allocated_buffer_size = 0;
-  bool read_only = false;
+  void *buffer_ = NULL;
+  size_t buffer_size_ = 0;
+  off_t buffer_offset_ = 0;
+  size_t allocated_buffer_size_ = 0;
+  bool read_only_ = false;
 };
 
 #endif

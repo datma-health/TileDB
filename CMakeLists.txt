@@ -5,7 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
-# Copyright (c) 2018-2019 Omics Data Automation, Inc.
+# Copyright (c) 2018-2021 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 #
 
 project(TileDB)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.6)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 # Update git submodules
@@ -38,14 +38,17 @@ if(NOT(submodule_update_exit_code EQUAL 0))
   message(FATAL_ERROR "Failure to recursively update git submodules")
 endif()
 
-set(ENABLE_LZ4 False CACHE BOOL "Enable lz4 compression")
 set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
 set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(ENABLE_JPEG2K False CACHE BOOL "Enable JPEG-2000 compression")
 set(ENABLE_JPEG2K_RGB False CACHE BOOL "Enable JPEG-2000 RGB compression")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
+set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
+
+set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install" CACHE PATH "Path to aws sdk")
+set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.8.114.zip" CACHE STRING "URL to aws-sdk-cpp github release")
 
 # Set the following to true downstream when TileDB is added as a subdirectory 
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
@@ -54,7 +57,7 @@ set(TILEDB_DISABLE_UNINSTALL False CACHE BOOL "Disable TileDB Uninstall")
 # Only for Mac OS X
 if(APPLE)
   set(CMAKE_MACOSX_RPATH True CACHE BOOL "Set rpath on OSX")
-  set(CMAKE_FIND_FRAMEWORK NEVER CACHE STRING "Never try to find frameworks on Mac OS X")
+  set(CMAKE_FIND_FRAMEWORK LAST CACHE STRING "Find frameworks on Mac OS X last")
 endif()
 
 # Default user definitions
@@ -81,17 +84,19 @@ endif()
 # Find required library dependencies
 find_package(ZLIB REQUIRED)
 include_directories(${ZLIB_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZLIB_LIBRARIES})
 
 find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LIBUUID_LIBRARY})
 
-set(TILEDB_LIB_DEPENDENCIES ${ZLIB_LIBRARIES} ${LIBUUID_LIBRARY})
-if(ENABLE_LZ4)
-    find_package(LZ4 REQUIRED)
-    #include_directories(${LZ4_INCLUDE_DIR})
-    #set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
-    add_definitions(-DENABLE_LZ4)
-endif()
+# LZ4 source included
+#find_package(LZ4)
+#include_directories(${LZ4_INCLUDE_DIR})
+#if(LZ4_FOUND)
+#  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
+#endif()
+
 if(ENABLE_BLOSC)
     find_package(BLOSC REQUIRED)
     # include_directories(${BLOSC_INCLUDE_DIR})
@@ -120,12 +125,22 @@ if(ENABLE_ZSTD)
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZSTD_LIBRARIES})
     add_definitions(-DENABLE_ZSTD)
 endif()
-if(ENABLE_LZ4 OR ENABLE_BLOSC OR ENABLE_ZSTD OR ENABLE_JPEG2K OR ENABLE_JPEG2K_RGB)
+if(ENABLE_BLOSC OR ENABLE_ZSTD OR ENABLE_JPEG2K OR ENABLE_JPEG2K_RGB)
     set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_DL_LIBS})
 endif()
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
+
+# Build Azure cpp lite client added as a dependency
+include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include)
+add_subdirectory(${AZURE_FSCLIENT_SOURCE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite)
+
+# Build AWS S3 client static libraries
+find_package(S3Client REQUIRED)
+include_directories(${AWSSDK_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${AWSSDK_LINK_LIBRARIES})
 
 # Build MuParserX source code added as a dependency
 include_directories(${MUPARSERX_SOURCE_DIR}/parser)
@@ -134,6 +149,7 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} muparserx)
 
 # Find optional library dependencies
 find_package(Doxygen)
+
 if(USE_MPI)
   find_package(MPI REQUIRED)
   include_directories(${MPI_CXX_INCLUDE_PATH})
@@ -149,11 +165,17 @@ if(USE_HDFS)
   set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${JAVA_JVM_LIBRARY})
 endif()
 
-#Add pthreads as a dependency
+# Add pthreads as a dependency
 set(CMAKE_THREAD_PREFER_PTHREAD True)
 find_package(Threads REQUIRED)
 if(DEFINED CMAKE_THREAD_LIBS_INIT AND (CMAKE_USE_PTHREADS_INIT OR CMAKE_HP_PTHREADS_INIT))
   set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_THREAD_LIBS_INIT})
+endif()
+
+# TODO: Fix this - AWSSDK has some sort of transitive dependency on CoreFoundation,
+# add this explicitly for now even though CMAKE_FIND_FRAMEWORK is set to LAST
+if(APPLE)
+  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} "-framework CoreFoundation")
 endif()
 
 # Set C++ 2011 flag
@@ -173,6 +195,10 @@ endif()
 
 if(USE_OPENMP AND NOT APPLE)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
+if (NOT APPLE)
+  set(CMAKE_C_FLAGS "-std=gnu11")
 endif()
 
 # Add definitions

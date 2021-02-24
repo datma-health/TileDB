@@ -5,6 +5,8 @@
  *
  * The MIT License
  *
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -34,8 +36,13 @@
 
 #include "storage_fs.h"
 
+#include <mutex>
+#include <unordered_map>
+
 class PosixFS : public StorageFS {
  public:
+  ~PosixFS();
+
   std::string current_dir();
   int set_working_dir(const std::string& dir);
 
@@ -52,7 +59,7 @@ class PosixFS : public StorageFS {
   int create_file(const std::string& filename, int flags, mode_t mode);
   int delete_file(const std::string& filename);
 
-  size_t file_size(const std::string& filename);
+  ssize_t file_size(const std::string& filename);
 
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);
@@ -62,6 +69,28 @@ class PosixFS : public StorageFS {
   int sync_path(const std::string& path);
 
   bool locking_support();
+
+  int close_file(const std::string& filename);
+
+  void set_keep_write_file_handles_open(const bool val);
+
+  bool keep_write_file_handles_open();
+
+  void set_disable_file_locking(const bool val);
+
+  bool disable_file_locking();
+
+  private:
+  std::mutex write_map_mtx_;
+  std::unordered_map<std::string, int> write_map_;
+
+  bool keep_write_file_handles_open_set_ = false;
+  bool keep_write_file_handles_open_ = false;
+
+  bool is_disable_file_locking_set = false;
+  bool disable_file_locking_ = false;
+
+  int write_to_file_keep_file_handles_open(const std::string& filename, const void *buffer, size_t buffer_size);
 };
 
 #endif /* __STORAGE_POSIXFS_H__ */

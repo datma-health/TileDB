@@ -1,0 +1,136 @@
+name: build 
+
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+
+env:
+  CMAKE_BUILD_TYPE: Coverage
+  CMAKE_BUILD_DIR: ${{github.workspace}}/build
+  HADOOP_VER: 3.2.1
+  AWSSDK_VER: 1.8.114
+  AWSSDK_ROOT_DIR: ${{github.workspace}}/awssdk
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macOS-10.15]
+        # All supported types
+        # type: [basic, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        type: [basic, basic-codec, hdfs, azurite, aws, minio]
+        exclude:
+          - os: macos-10.15
+            type: basic-codec
+          - os: macos-10.15
+            type: hdfs
+          - os: macos-10.15
+            type: gcs
+          - os: macos-10.15
+            type: azure
+          - os: macos-10.15
+            type: azurite
+          - os: macos-10.15
+            type: aws
+          - os: macos-10.15
+            type: minio
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      shell: bash
+      run: |
+        mkdir -p $CMAKE_BUILD_DIR
+
+    - name: Install Prereqs and Configure CMake - Ubuntu
+      if: startsWith(matrix.os,'ubuntu')
+      shell: bash
+      working-directory: ${{env.CMAKE_BUILD_DIR}}
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install cmake lcov
+        sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
+        export ENABLE_ZSTD=0
+        export ENABLE_BLOSC=0
+        export ENABLE_JPEG2K=0
+        export ENABLE_JPEG2K_RGB=0
+        if [[ ${{matrix.type}} == "basic-codec" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/install_supported_codec.sh
+        fi
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
+               -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DAWSSDK_URL=$AWSSDK_URL
+      env:
+        AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
+
+    - name: Install Prereqs and Configure CMake - MacOS
+      if: startsWith(matrix.os, 'macOS')
+      shell: bash
+      working-directory: ${{env.CMAKE_BUILD_DIR}}
+      run: |
+        brew list cmake &>/dev/null || brew install cmake
+        brew list lcov &>/dev/null || brew install lcov
+        brew list openssl &>/dev/null || brew install openssl
+        brew list ossp-uuid &>/dev/null || brew install ossp-uuid
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL
+      env:
+        OPENSSL_ROOT_DIR: /usr/local/opt/openssl
+        AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
+
+    - name: Build and Test
+      if: startsWith(matrix.type, 'basic')
+      shell: bash
+      working-directory:  ${{env.CMAKE_BUILD_DIR}}
+      run: |
+        make -j4
+        make tests -j 4
+        export TILEDB_BENCHMARK=1
+        time test/test_sparse_array_benchmark
+        export TILEDB_DISABLE_FILE_LOCKING=1
+        time test/test_sparse_array_benchmark
+        export TILEDB_KEEP_FILE_HANDLES_OPEN=1
+        time test/test_sparse_array_benchmark
+
+    - name: Cache AWS SDK
+      uses: actions/cache@v2
+      with:
+        path: ${{env.AWSSDK_ROOT_DIR}}
+        key: aws-${{env.AWSSDK_VER}}-v2
+
+    - name: Cache Distributed FileSystems
+      if: matrix.type == 'hdfs' || matrix.type == 'gcs'
+      uses: actions/cache@v2
+      with:
+        path: ~/hadoop-${{env.HADOOP_VER}}
+        key: dfs-${{env.HADOOP_VER}}-v1
+        
+    - name: Build and Test - Distributed FileSystems
+      if: startsWith(matrix.type, 'basic') != true
+      shell: bash
+      working-directory:  ${{env.CMAKE_BUILD_DIR}}
+      run: |
+        if [[ ${{matrix.type}} == "azurite" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/install_azurite.sh
+        elif [[ ${{matrix.type}} == "minio" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/install_minio.sh
+        elif [[ ${{matrix.type}} == "aws" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/install_aws.sh
+        else
+          source $GITHUB_WORKSPACE/.github/scripts/install_hadoop.sh
+        fi
+        source $GITHUB_WORKSPACE/.github/scripts/run_dfs_tests.sh
+      env:
+        INSTALL_DIR: ${{runner.workspace}}
+        INSTALL_TYPE: ${{matrix.type}}
+        R_TAR: ${{secrets.R_TAR}}
+        AZURITE_TAR: ${{secrets.AZURITE_TAR}}
+        AWS_TAR: ${{secrets.AWS_TAR}}
+
+    - name: Upload Report to CodeCov
+      uses: codecov/codecov-action@v1

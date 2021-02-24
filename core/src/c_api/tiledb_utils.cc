@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2019-2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,15 +45,16 @@
 
 namespace TileDBUtils {
 
-static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home, const bool disable_file_locking=false)
+static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,
+                 const bool enable_shared_posixfs_optimizations=false)
 {
   int rc;
   TileDB_Config tiledb_config;
   memset(&tiledb_config, 0, sizeof(TileDB_Config));
   tiledb_config.home_ = strdup(home.c_str());
-  tiledb_config.disable_file_locking_ = disable_file_locking;
+  tiledb_config.enable_shared_posixfs_optimizations_ = enable_shared_posixfs_optimizations;
   rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
-  free((void *)tiledb_config.home_);
+  free(const_cast<char*>(tiledb_config.home_));
   return rc;
 }
 
@@ -76,11 +77,12 @@ bool is_cloud_path(const std::string& path) {
 #define NOT_DIR -1
 #define NOT_CREATED -2
 #define UNCHANGED 1
-int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool replace, const bool disable_file_locking)
+int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool replace,
+                         const bool enable_shared_posixfs_optimizations)
 {
   *ptiledb_ctx = NULL;
   int rc;
-  rc = setup(ptiledb_ctx, workspace, disable_file_locking);
+  rc = setup(ptiledb_ctx, workspace, enable_shared_posixfs_optimizations);
   if (rc) {
     return NOT_CREATED;
   }
@@ -91,15 +93,8 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
 
   if (is_workspace(*ptiledb_ctx, workspace)) {
     if (replace) {
-      rc = tiledb_delete(*ptiledb_ctx, workspace.c_str());
-      if (rc != TILEDB_OK) {
-        snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Workspace=%s may have non-tiledb artifacts. Deleting them all!!", workspace.c_str());
-#ifdef TILEDB_VERBOSE
-        std::cerr << "[TileDB::Utils] Warning:" << tiledb_errmsg << std::endl;
-#endif
-        if (!delete_dir(*ptiledb_ctx, workspace.c_str())) {
-          return NOT_CREATED;
-        }
+      if (is_dir(*ptiledb_ctx, workspace) && delete_dir(*ptiledb_ctx, workspace) ) {
+        return NOT_CREATED;
       }
     } else {
       return UNCHANGED;
@@ -116,16 +111,18 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
   return rc;
 }
 
+#define FINALIZE            \
+  do {                      \
+    if (tiledb_ctx) {       \
+      finalize(tiledb_ctx); \
+    }                       \
+  } while(false)
+
 int create_workspace(const std::string& workspace, bool replace)
 {
   TileDB_CTX *tiledb_ctx;
   int rc = initialize_workspace(&tiledb_ctx, workspace, replace);
-  if (rc >= 0 && tiledb_ctx != NULL) {
-    if (rc==1 && !replace) {
-      rc = TILEDB_ERR;
-    }
-    finalize(tiledb_ctx);
-  }
+  FINALIZE;
   return rc;
 }
 
@@ -135,7 +132,7 @@ bool workspace_exists(const std::string& workspace)
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
   exists = !rc && is_workspace(tiledb_ctx, workspace);
-  finalize(tiledb_ctx);
+  FINALIZE;
   return exists;
 }
 
@@ -145,7 +142,7 @@ bool array_exists(const std::string& workspace, const std::string& array_name)
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
   exists = !rc && is_array(tiledb_ctx, workspace + '/' + array_name);
-  finalize(tiledb_ctx);
+  FINALIZE;
   return exists;
 }
 
@@ -153,6 +150,7 @@ std::vector<std::string> get_array_names(const std::string& workspace)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, workspace)) {
+    FINALIZE;
     return std::vector<std::string>{};
   }
   std::vector<std::string> array_names;
@@ -178,6 +176,7 @@ std::vector<std::string> get_fragment_names(const std::string& workspace)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, workspace)) {
+    FINALIZE;
     return std::vector<std::string>{};
   }
   std::vector<std::string> fragment_names;
@@ -212,6 +211,7 @@ bool is_dir(const std::string& dirpath)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    FINALIZE;
     return false;
   }
   bool check = is_dir(tiledb_ctx, dirpath);
@@ -223,6 +223,7 @@ int create_dir(const std::string& dirpath)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    FINALIZE;
     return false;
   }
   int rc = create_dir(tiledb_ctx, dirpath);
@@ -234,6 +235,7 @@ int delete_dir(const std::string& dirpath)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    FINALIZE;
     return false;
   }
   int rc = delete_dir(tiledb_ctx, dirpath);
@@ -245,6 +247,7 @@ bool is_file(const std::string& filepath)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filepath))) {
+    FINALIZE;
     return false;
   }
   bool check = is_file(tiledb_ctx, filepath);
@@ -254,7 +257,6 @@ bool is_file(const std::string& filepath)
 
 static int check_file(TileDB_CTX *tiledb_ctx, std::string filename) {
   if (is_dir(tiledb_ctx, filename)) {
-    finalize(tiledb_ctx);
     snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "File path=%s exists as a directory\n", filename.c_str());
     return TILEDB_ERR;
   }
@@ -266,7 +268,6 @@ static int check_file_for_read(TileDB_CTX *tiledb_ctx, std::string filename) {
     return TILEDB_ERR;
   }
   if (!is_file(tiledb_ctx, filename) || file_size(tiledb_ctx, filename) == 0) {
-    finalize(tiledb_ctx);
     snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "File path=%s does not exist or is empty\n", filename.c_str());
     return TILEDB_ERR;
   }
@@ -278,9 +279,10 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file_for_read(tiledb_ctx, filename)) {
+    FINALIZE;
     return TILEDB_ERR;
   }
-  size_t size = file_size(tiledb_ctx, filename);
+  auto size = file_size(tiledb_ctx, filename);
   *length = size;
   *buffer = (char *)malloc(size+1);
   if (*buffer == NULL) {
@@ -299,6 +301,7 @@ int read_file(const std::string& filename, off_t offset, void *buffer, size_t le
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file_for_read(tiledb_ctx, filename)) {
+    FINALIZE;
     return TILEDB_ERR;
   }
   int rc = read_file(tiledb_ctx, filename, offset, buffer, length);
@@ -311,6 +314,7 @@ int write_file(const std::string& filename, const void *buffer, size_t length, c
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file(tiledb_ctx, filename)) {
+    FINALIZE;
     return TILEDB_ERR;
   }
   int rc = TILEDB_OK;
@@ -330,6 +334,7 @@ int delete_file(const std::string& filename)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filename)) || check_file(tiledb_ctx, filename)) {
+    FINALIZE;
     return TILEDB_ERR;
   }
   int rc = delete_file(tiledb_ctx, filename);
@@ -341,10 +346,16 @@ int move_across_filesystems(const std::string& src, const std::string& dest)
 {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(src)) || check_file_for_read(tiledb_ctx, src)) {
+    FINALIZE;
     return TILEDB_ERR;
   }
-  size_t size = file_size(tiledb_ctx, src);
+  auto size = file_size(tiledb_ctx, src);
   void *buffer = malloc(size);
+  if (buffer == NULL) {
+    FINALIZE;
+    snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Out-of-memory exception while allocating memory\n");
+    return TILEDB_ERR;
+  }
   int rc = read_file(tiledb_ctx, src, 0, buffer, size);
   rc |= close_file(tiledb_ctx, src);
   finalize(tiledb_ctx);
@@ -353,6 +364,7 @@ int move_across_filesystems(const std::string& src, const std::string& dest)
   }
 
   if (setup(&tiledb_ctx, parent_dir(dest)) || check_file(tiledb_ctx, dest)) {
+    FINALIZE;
     return TILEDB_ERR;
   }
   rc = write_file(tiledb_ctx, dest, buffer, size);

@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,10 @@
  *
  * This file implements the ReadState class.
  */
-#include "utils.h"
+
 #include "read_state.h"
+#include "utils.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -142,10 +144,21 @@ ReadState::ReadState(
   file_var_buffer_.resize(attribute_num_+1);
   reset_file_buffers();
 
-  // Get compression for tiles per attribute+coords from schema
+  // Get compression for tiles per attribute+coords+search_tile from schema
   codec_.resize(attribute_num_+2);
   for(int i=0; i<attribute_num_+2; ++i) {
     codec_[i] = Codec::create(array_schema_, i);
+  }
+
+  // Get offset compression for tiles per attribute.
+  // Only attributes that have variable number of cells are relevant.
+  offsets_codec_.resize(attribute_num_);
+  for(int i=0; i<attribute_num_; ++i) {
+    if (array_schema_->var_size(i)) {
+      offsets_codec_[i] = Codec::create(array_schema_, i, true);
+    } else {
+      offsets_codec_[i] = NULL;
+    }
   }
 }
 
@@ -154,6 +167,11 @@ ReadState::~ReadState() {
   for(auto i=0u; i<codec_.size(); ++i) {
     if (codec_[i]) {
       delete codec_[i];
+    }
+  }
+  for(auto i=0u; i<offsets_codec_.size(); ++i) {
+    if (offsets_codec_[i]) {
+      delete offsets_codec_[i];
     }
   }
 
@@ -1188,17 +1206,6 @@ void ReadState::reset_file_buffers() {
   }
 }
 
-Buffer *read_file(StorageFS *fs, std::string &filename) {
-  void *buf;
-  size_t size;
-  if (read_from_file_after_decompression(fs, filename, &buf, size, TILEDB_NO_COMPRESSION) == TILEDB_UT_ERR) {
-    std::string errmsg = "Cannot seem to read file " + filename + " into memory. Will try read directly from file";
-    PRINT_ERROR(errmsg);
-    return NULL;
-  }
-  return new Buffer(buf, size);
-}
-
 int ReadState::read_segment(int attribute_num, bool is_var, off_t offset, void *segment, size_t length) {
   int rc = TILEDB_RS_OK;
   StorageFS *fs = array_->config()->get_filesystem();
@@ -1211,24 +1218,24 @@ int ReadState::read_segment(int attribute_num, bool is_var, off_t offset, void *
   // Construct the attribute file name
   std::string filename = construct_filename(attribute_num, is_var);
 
-  // Experimental buffered reading to help with cloud performance
-  /*  if (is_hdfs_path(filename)) { 
-    Buffer *file_buffer;
+  // Buffered reading to help with distributed filesystem and cloud performance
+  if (fs->get_download_buffer_size() > 0) {
+    StorageBuffer *file_buffer;
     if (is_var) {
       assert((attribute_num < attribute_num_) && "Coords attribute cannot be variable");
       if (file_var_buffer_[attribute_num] == NULL) {
-        file_var_buffer_[attribute_num]= read_file(fs, filename);
+        file_var_buffer_[attribute_num]= new StorageBuffer(fs, filename);
       }
       file_buffer = file_var_buffer_[attribute_num];
     } else {
       if (file_buffer_[attribute_num] == NULL) {
-        file_buffer_[attribute_num] = read_file(fs, filename);
+        file_buffer_[attribute_num] = new StorageBuffer(fs, filename);
       }
       file_buffer = file_buffer_[attribute_num];
     }
 
     // Read from file buffers if possible
-    if (file_buffer != NULL && file_buffer->get_buffer() != NULL) {
+    if (file_buffer != NULL) {
       if (file_buffer->read_buffer(offset, segment, length) == TILEDB_BF_ERR) {
         std::string errmsg = "Cannot read attribute file " + filename + " from memory. Will try read directly from file";
         PRINT_ERROR(errmsg);
@@ -1238,7 +1245,6 @@ int ReadState::read_segment(int attribute_num, bool is_var, off_t offset, void *
       }
     }
   }
-  */
   
   // Read segment directly
   int read_method = array_->config()->read_method();
@@ -1602,8 +1608,20 @@ int ReadState::decompress_tile(
     unsigned char* tile_compressed,
     size_t tile_compressed_size,
     unsigned char* tile,
-    size_t tile_size) {
-  if(codec_[attribute_id]->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size) != TILEDB_CD_OK) {
+    size_t tile_size,
+    bool decompress_offsets) {
+  Codec* codec;
+  if (decompress_offsets) {
+    codec = offsets_codec_[attribute_id];
+    if (codec == NULL) {
+      tile = tile_compressed;
+      tile_size = tile_compressed_size;
+      return TILEDB_RS_OK;
+    }
+  } else {
+    codec = codec_[attribute_id];
+  }
+  if(codec->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size) != TILEDB_CD_OK) {
     std::string errmsg = "Cannot decompress tile";
     PRINT_ERROR(errmsg);
     tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
@@ -2264,7 +2282,7 @@ int ReadState::prepare_tile_for_reading_cmp(
 
   // Find file offset where the tile begins
   off_t file_offset = tile_offsets[attribute_id_real][tile_i];
-  off_t file_size = ::file_size(array_->config()->get_filesystem(), filename);
+  auto file_size = ::file_size(array_->config()->get_filesystem(), filename);
   size_t tile_compressed_size = 
       (tile_i == tile_num-1) 
           ? file_size - tile_offsets[attribute_id_real][tile_i] 
@@ -2410,7 +2428,7 @@ int ReadState::prepare_tile_for_reading_var_cmp(
 
   // Find file offset where the tile begins
   off_t file_offset = tile_offsets[attribute_id][tile_i];
-  off_t file_size = ::file_size(array_->config()->get_filesystem(), filename);
+  auto file_size = ::file_size(array_->config()->get_filesystem(), filename);
   size_t tile_compressed_size = 
       (tile_i == tile_num-1) ? file_size - tile_offsets[attribute_id][tile_i]
                              : tile_offsets[attribute_id][tile_i+1] - 
@@ -2459,7 +2477,8 @@ int ReadState::prepare_tile_for_reading_var_cmp(
          static_cast<unsigned char*>(tile_compressed_), 
          tile_compressed_size, 
          static_cast<unsigned char*>(tiles_[attribute_id]),
-         tile_size) != TILEDB_RS_OK)
+         tile_size,
+         true) != TILEDB_RS_OK)
     return TILEDB_RS_ERR;
 
   // Set the tile size

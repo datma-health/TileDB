@@ -89,6 +89,16 @@ typedef struct ArraySchemaC {
   int* compression_;
   /** The level of compression for each attribute */
   int* compression_level_;
+  /**
+   * The compression type for the offsets associated with the attribute. It is only relevant for
+   * attributes that have variable number of cells(TILEDB_VAR_NUM). Introduced in schema version "2".
+   */
+  int* offsets_compression_;
+   /**
+   * The compression level for the offsets associated with the attribute. It is only relevant for
+   * attributes that have variable number of cells(TILEDB_VAR_NUM). Introduced in schema version "2".
+   */
+  int* offsets_compression_level_;
   /** 
    * Specifies if the array is dense (1) or sparse (0). If the array is dense, 
    * then the user must specify tile extents (see below).

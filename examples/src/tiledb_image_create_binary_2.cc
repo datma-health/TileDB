@@ -93,6 +93,8 @@ int main(int argc, char *argv[]) {
       cell_val_num,               // Number of cell values per attribute  
       compression,                // Compression
       NULL,                       // Compression level, use defaults
+      NULL,                       // Offsets compression - none
+      NULL,                       // Offsets compression level - none
       1,                          // Dense array
       dimensions,                 // Dimensions
       1,                          // Number of dimensions
