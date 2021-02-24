@@ -44,13 +44,12 @@ if(EXISTS ${GCSSDK_PREFIX}/include AND EXISTS ${GCSSDK_PREFIX}/${CMAKE_INSTALL_L
   get_filename_component(GCSSDK_PREFIX ${GCSSDK_PREFIX} ABSOLUTE BASE_DIR ${PWD})
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${GCSSDK_PREFIX})
   message(STATUS "*nalini CMAKE_PREFIX_PATH=" ${CMAKE_PREFIX_PATH})
-  find_package(google_cloud_cpp_storage PATHS ${CMAKE_PREFIX_PATH})
   message(STATUS "*nalini we are here 11")
 else()
   message(STATUS "*nalini we are here 1")
-  find_package(storage_client PATHS ${CMAKE_PREFIX_PATH})
   message(STATUS "*nalini we are here 111")
 endif()
+find_package(google_cloud_cpp_storage PATHS ${CMAKE_PREFIX_PATH})
 
 if( ${google_cloud_cpp_storage_FOUND})
   message(ERROR "******TODO" ${google_cloud_cpp_storage_DIR})
@@ -127,14 +126,14 @@ set(_GCSSDK_LIBS "google_cloud_cpp_storage"
                  "google_cloud_cpp_common"
                  "crc32c"
                  "absl_bad_optional_access"
-                 "absl_int128"
-                 "absl_raw_logging_internal"
                  "absl_strings_internal"
                  "absl_str_format_internal"
                  "absl_strings"
                  "absl_throw_delegate"
                  "absl_time"
                  "absl_time_zone"
+                 "absl_raw_logging_internal"
+                 "absl_int128"
                  )
 set(GCSSSDK_LINK_LIBRARIES)
 file(MAKE_DIRECTORY ${GCSSDK_INCLUDE_DIR})
