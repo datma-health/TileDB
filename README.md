@@ -9,7 +9,7 @@ Wiki](https://github.com/OmicsDataAutomation/TileDB/wiki).
 
 This alternate implementation is based on the original fork from [Intel-HLS](https://github.com/Intel-HLS/TileDB/tree/genomicsdb_req) and is specifically optimized for [GenomicsDB](https://github.com/GenomicsDB/GenomicsDB) among other things.
 
-Check out [TileDB tutorials](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials).
+Check out [TileDB tutorials](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials) -
  * [TileDB Mechanics](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials#tiledb-mechanics)
  * [TileDB C API](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials#tiledb-c-api)
  * [TileDB Examples](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials#tiledb-examples)
