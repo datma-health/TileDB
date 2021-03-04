@@ -105,10 +105,12 @@ int get_filter_level(const ArraySchema* array_schema, const int attribute_id,
   }
 }
 
+static std::mutex registered_codecs_mutex_;
 static std::map<int, Codec::create_fn_t> registered_codecs_;
 int Codec::register_codec(int compression_type, Codec::create_fn_t create_fn) {
+  const std::lock_guard<std::mutex> lock(registered_codecs_mutex_);
   if (is_registered_codec(compression_type)) {
-    std::cerr << "Codec for compression type=" << compression_type << " has already been registered" << std::endl;
+    PRINT_ERROR("Codec for compression type=" + std::to_string(compression_type) + " has already been registered");
     return TILEDB_CD_ERR;
   }
   registered_codecs_.insert({compression_type, create_fn});
@@ -120,6 +122,7 @@ bool Codec::is_registered_codec(int compression_type) {
 }
 
 Codec::create_fn_t Codec::get_registered_codec(int compression_type) {
+  const std::lock_guard<std::mutex> lock(registered_codecs_mutex_);
   auto registered_codec = registered_codecs_.find(compression_type);
   if (registered_codec != registered_codecs_.end()) {
     return registered_codec->second;
@@ -134,9 +137,9 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
   }
 
   // Check if there is an external creator registered first
-  auto codec_creator = registered_codecs_.find(compression_type);
-  if (codec_creator != registered_codecs_.end()) {
-    return codec_creator->second(array_schema, attribute_id, is_offsets_compression);
+  auto codec_creator = get_registered_codec(compression_type);
+  if (codec_creator != nullptr) {
+    return codec_creator(array_schema, attribute_id, is_offsets_compression);
   }
   
   int compression_level = get_filter_level(array_schema, attribute_id, is_offsets_compression);
