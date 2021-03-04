@@ -34,8 +34,8 @@ jobs:
             type: azure
           - os: macos-10.15
             type: azurite
-            # - os: macos-10.15
-            #   type: aws
+          - os: macos-10.15
+            type: aws
           - os: macos-10.15
             type: minio
 
