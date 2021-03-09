@@ -40,6 +40,11 @@
 class TestCodecBasic : public Codec {
  public:
   using Codec::Codec;
+
+  static Codec* createTestCodecBasic(const ArraySchema* array_schema, const int attribute_id, const bool is_offsets_compression) {
+    return new TestCodecBasic(/*compression_level*/1);
+  }
+  
   int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
     return TILEDB_CD_OK;
   }
@@ -133,5 +138,18 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
   free(lz4);
 
   free(decompressed_string);
+}
+
+TEST_CASE("Test plugin", "[codec-plugin]") {
+  int compression_type = 15;
+  CHECK(Codec::register_codec(compression_type, &TestCodecBasic::createTestCodecBasic) == TILEDB_CD_OK);
+  CHECK(Codec::register_codec(compression_type, &TestCodecBasic::createTestCodecBasic) == TILEDB_CD_ERR);
+  
+  ArraySchema array_schema(NULL);
+  const char* attributes[1] = {"this_attribute"};
+  array_schema.set_attributes(const_cast<char **>(attributes), 1);
+  const int compression[2] = {compression_type, TILEDB_GZIP};
+  array_schema.set_compression(const_cast<int *>(compression));
+  CHECK(Codec::create(&array_schema, 0, false));
 }
 
