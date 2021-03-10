@@ -202,7 +202,7 @@ int StorageManager::ls_workspaces(
   }
 
   workspace_num = 0;
-  for (auto const dir: workspace_dirs) {
+  for (auto dir: workspace_dirs) {
     strncpy(workspaces[workspace_num++], relative_dir(dir, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
   }
 

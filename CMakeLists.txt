@@ -113,9 +113,14 @@ endif()
 if(ENABLE_BLOSC OR ENABLE_ZSTD)
     set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_DL_LIBS})
 endif()
+
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
+
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CURL_LIBRARIES})
 
 # Build Azure cpp lite client added as a dependency
 include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include)
