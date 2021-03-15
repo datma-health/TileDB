@@ -82,13 +82,13 @@ class AzureBlob : public StorageFS {
   bool locking_support();
 
  protected:
-  std::shared_ptr<blob_client> bC = nullptr;
-  std::shared_ptr<blob_client_wrapper> bc_wrapper = nullptr;
-  blob_client_wrapper *bc = nullptr;
+  std::shared_ptr<blob_client> blob_client_ = nullptr;
+  std::shared_ptr<blob_client_wrapper> bc_wrapper_ = nullptr;
+  blob_client_wrapper *blob_client_wrapper_ = nullptr;
 
-  std::string account_name;
-  std::string container_name;
-  std::string working_dir;
+  std::string account_name_;
+  std::string container_name_;
+  std::string working_dir_;
 
   std::mutex write_map_mtx_;
   std::unordered_map<std::string, std::vector<put_block_list_request_base::block_item>> write_map_;
