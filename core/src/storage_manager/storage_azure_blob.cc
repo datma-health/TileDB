@@ -90,7 +90,7 @@ static std::string get_account_key(const std::string& account_name) {
 
   if (keys.length() > 1) {
     // Get the first key available
-    std::string first_key("key1\tFull\t");
+    std::string first_key("key1\tFULL\t");
     auto start_pos = first_key.length();
     auto end_pos = keys.find("\n");
     if (keys.find(first_key) != std::string::npos) {
@@ -164,7 +164,7 @@ AzureBlob::AzureBlob(const std::string& home) {
   azure_uri path_uri(home);
 
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
-  // e.g. wasbs://test@mytest.blob.core.windows.net/ws
+  // e.g. az://test@mytest.blob.core.windows.net/ws
   if (path_uri.protocol().compare("az") != 0) {
     throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// URI protocols");
   }
@@ -186,6 +186,8 @@ AzureBlob::AzureBlob(const std::string& home) {
       cred = std::make_shared<shared_access_signature_credential>(azure_sas_token);
     } else {
       // Last ditch effort, try getting an access token directly from CLI.
+      AZ_BLOB_ERROR("Could not authenticate via AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN env vars. " +
+               "Trying to get access token directly via CLI", home);
       std::string token = get_access_token(azure_account, home);
       if (token.size() > 0) {
         cred = std::make_shared<token_credential>(token);
@@ -195,15 +197,14 @@ AzureBlob::AzureBlob(const std::string& home) {
   
   if (cred == nullptr) {
     throw std::system_error(EIO, std::generic_category(), "Could not get credentials for azure storage account=" + azure_account + ". " +
-                            "Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
+                            "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
   }
 
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
   if (account == nullptr) {
     throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". " +
-                            "Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
+                            "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
   }
-
 
   blob_client_ = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
   bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
