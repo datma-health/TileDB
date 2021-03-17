@@ -58,7 +58,6 @@
 #endif
 #endif
 
-#define AZ_ERROR(MSG) TILEDB_ERROR_WITH_ERRNO(TILEDB_FS_ERRMSG, MSG, tiledb_fs_errmsg)
 #define AZ_BLOB_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, "Azure: "+MSG, PATH, tiledb_fs_errmsg)
 
 using namespace azure::storage_lite;
@@ -78,7 +77,7 @@ static std::string run_command(const std::string& command) {
 static std::string get_account_key(const std::string& account_name) {
   // Try environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY first
   char *az_storage_ac_name = getenv("AZURE_STORAGE_ACCOUNT");
-  if (az_storage_ac_name && account_name.compare(az_storage_ac_name) == 0) {
+  if (!az_storage_ac_name || (az_storage_ac_name && account_name.compare(az_storage_ac_name) == 0)) {
     char *key = getenv("AZURE_STORAGE_KEY");
     if (key) {
       return key;
@@ -91,7 +90,7 @@ static std::string get_account_key(const std::string& account_name) {
 
   if (keys.length() > 1) {
     // Get the first key available
-    std::string first_key("key1\tFull\t");
+    std::string first_key("key1\tFULL\t");
     auto start_pos = first_key.length();
     auto end_pos = keys.find("\n");
     if (keys.find(first_key) != std::string::npos) {
@@ -105,6 +104,19 @@ static std::string get_account_key(const std::string& account_name) {
 
   return account_key;
 }
+
+static std::string get_sas_token(const std::string& account_name) {
+  // Try environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY first
+  char *az_storage_ac_name = getenv("AZURE_STORAGE_ACCOUNT");
+  if (!az_storage_ac_name || (az_storage_ac_name && account_name.compare(az_storage_ac_name) == 0)) {
+    char *key = getenv("AZURE_STORAGE_SAS_TOKEN");
+    if (key) {
+      return key;
+    }
+  }
+  return "";
+}
+
 
 static std::string get_blob_endpoint() {
   // Get enviroment variable for AZURE_BLOB_ENDPOINT
@@ -139,12 +151,12 @@ std::string AzureBlob::get_path(const std::string& path) {
     return pathname.substr(1);
   }
   if (pathname.empty()) {
-    return working_dir;
-  } else if (starts_with(pathname, working_dir)) {
+    return working_dir_;
+  } else if (starts_with(pathname, working_dir_)) {
     // TODO: this is a hack for now, but should work fine with GenomicsDB.
     return pathname;
   } else {
-    return working_dir + '/' + pathname;
+    return working_dir_ + '/' + pathname;
   }
 }
 
@@ -152,7 +164,7 @@ AzureBlob::AzureBlob(const std::string& home) {
   azure_uri path_uri(home);
 
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
-  // e.g. wasbs://test@mytest.blob.core.windows.net/ws
+  // e.g. az://test@mytest.blob.core.windows.net/ws
   if (path_uri.protocol().compare("az") != 0) {
     throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// URI protocols");
   }
@@ -161,40 +173,52 @@ AzureBlob::AzureBlob(const std::string& home) {
     throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI does not seem to have either an account or a container");
   }
 
+  // Algorithm to get azure storage credentials. Try AZURE_STORAGE_ACCOUNT_KEY first, followed by AZURE_STORAGE_SAS_TOKEN and last
+  // try getting an access token directly from CLI
   std::shared_ptr<storage_credential> cred = nullptr;
   std::string azure_account = path_uri.account();
   std::string azure_account_key = get_account_key(azure_account);
-  if (azure_account_key.size() > 0) {
+  if (!azure_account_key.empty()) {
     cred = std::make_shared<shared_key_credential>(azure_account, azure_account_key);
   } else {
-    std::string token = get_access_token(azure_account, home);
-    if (token.size() > 0) {
-      cred = std::make_shared<token_credential>(token);
+    std::string azure_sas_token = get_sas_token(azure_account);
+    if (!azure_sas_token.empty()) {
+      cred = std::make_shared<shared_access_signature_credential>(azure_sas_token);
+    } else {
+      // Last ditch effort, try getting an access token directly from CLI.
+      AZ_BLOB_ERROR("Could not authenticate via AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN env vars. " +
+               "Trying to get access token directly via CLI", home);
+      std::string token = get_access_token(azure_account, home);
+      if (token.size() > 0) {
+        cred = std::make_shared<token_credential>(token);
+      }
     }
   }
   
   if (cred == nullptr) {
-    throw std::system_error(EIO, std::generic_category(), "Could not get credentials for azure storage account=" + azure_account + ". Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
+    throw std::system_error(EIO, std::generic_category(), "Could not get credentials for azure storage account=" + azure_account + ". " +
+                            "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
   }
 
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
   if (account == nullptr) {
-    throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". Try setting environment variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY before restarting operation");
+    throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". " +
+                            "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
   }
 
-  bC = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
-  bc_wrapper = std::make_shared<blob_client_wrapper>(bC);
-  bc = reinterpret_cast<blob_client_wrapper *>(bc_wrapper.get());
+  blob_client_ = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
+  bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
+  blob_client_wrapper_ = reinterpret_cast<blob_client_wrapper *>(bc_wrapper_.get());
 
-  auto outcome = bC->get_container_properties(container_name).get();
-  if (outcome.success() || !bc->container_exists(path_uri.container())) {
-    throw std::system_error(EIO, std::generic_category(), "Azure Blob FS only supports already existing containers. Create container from either the az CLI or the storage portal before restarting operation");
+  if (!blob_client_wrapper_->container_exists(path_uri.container())) {
+      AZ_BLOB_ERROR("Container does not seem to exist", path_uri.container());
+      throw std::system_error(EIO, std::generic_category(), "AzureBlobFS only supports accessible and already existing containers");
   }
 
-  account_name = path_uri.account();
-  container_name = path_uri.container();
+  account_name_ = path_uri.account();
+  container_name_ = path_uri.container();
 
-  working_dir = get_path(path_uri.path());
+  working_dir_ = get_path(path_uri.path());
 
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
@@ -202,11 +226,11 @@ AzureBlob::AzureBlob(const std::string& home) {
 }
 
 std::string AzureBlob::current_dir() {
-  return working_dir;
+  return working_dir_;
 }
 
 int AzureBlob::set_working_dir(const std::string& dir) {
-  working_dir = get_path(dir);
+  working_dir_ = get_path(dir);
   return TILEDB_FS_OK;
 }
 
@@ -217,18 +241,18 @@ bool AzureBlob::is_dir(const std::string& dir) {
     return true;
   }
   std::string path=slashify(get_path(dir));
-  list_blobs_segmented_response response = bc->list_blobs_segmented(container_name, "/", "", path, 1);
+  list_blobs_segmented_response response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/", "", path, 1);
   return response.blobs.size() > 0;
 }
 
 bool AzureBlob::is_file(const std::string& file) {
-  return bc->blob_exists(container_name, get_path(file));
+  return blob_client_wrapper_->blob_exists(container_name_, get_path(file));
 }
 
 std::string AzureBlob::real_dir(const std::string& dir) {
   if (dir.find("://") != std::string::npos) {
     azure_uri path_uri(dir);
-    if (path_uri.account().compare(account_name) || path_uri.container().compare(container_name)) {
+    if (path_uri.account().compare(account_name_) || path_uri.container().compare(container_name_)) {
       throw std::runtime_error("Credentialed account during instantiation does not match the uri passed to real_dir. Aborting");
     }
     // This is absolute path, so return the entire path
@@ -253,7 +277,7 @@ int AzureBlob::create_dir(const std::string& dir) {
       return TILEDB_FS_OK;
     }
   }
-  if (working_dir.compare(dir) && !is_dir(parent_dir(NULL, dir))) {
+  if (working_dir_.compare(dir) && !is_dir(parent_dir(NULL, dir))) {
     AZ_BLOB_ERROR("Parent directory to path does not exist", dir);
     return TILEDB_FS_ERR;
   }
@@ -274,14 +298,14 @@ int AzureBlob::delete_dir(const std::string& dir) {
 
   int rc = TILEDB_FS_OK;
   std::string continuation_token = "";
-  auto response = bc->list_blobs_segmented(container_name, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
+  auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
   do {
     for (auto i=0u; i<response.blobs.size(); i++) {
       if (response.blobs[i].is_directory) {
         delete_dir(response.blobs[i].name);
       } else {
-        bc->delete_blob(container_name, response.blobs[i].name);
-        if (bc->blob_exists(container_name, response.blobs[i].name)) {
+        blob_client_wrapper_->delete_blob(container_name_, response.blobs[i].name);
+        if (blob_client_wrapper_->blob_exists(container_name_, response.blobs[i].name)) {
           AZ_BLOB_ERROR("File still exists after deletion", response.blobs[i].name);
         }
       }
@@ -294,7 +318,7 @@ std::vector<std::string> AzureBlob::get_dirs(const std::string& dir) {
   std::vector<std::string> dirs;
   if (is_dir(dir)) {
     std::string continuation_token = "";
-    auto response = bc->list_blobs_segmented(container_name, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
+    auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
     do {
       for (auto i=0u; i<response.blobs.size(); i++) {
         if (response.blobs[i].is_directory) {
@@ -310,7 +334,7 @@ std::vector<std::string> AzureBlob::get_files(const std::string& dir) {
   std::vector<std::string> files;
   if (is_dir(dir)) {
     std::string continuation_token = "";
-    auto response = bc->list_blobs_segmented(container_name, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
+    auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
     do {
       for (auto i=0u; i<response.blobs.size(); i++) {
         if (!response.blobs[i].is_directory) {
@@ -337,12 +361,12 @@ int AzureBlob::delete_file(const std::string& filename) {
     AZ_BLOB_ERROR("Cannot delete non-existent or non-file path", filename);
     return TILEDB_FS_ERR;
   }
-  bc->delete_blob(container_name, get_path(filename));
+  blob_client_wrapper_->delete_blob(container_name_, get_path(filename));
   return TILEDB_FS_OK;
 }
 
 ssize_t AzureBlob::file_size(const std::string& filename) {
-  auto blob_property = bc->get_blob_property(container_name, get_path(filename));
+  auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(filename));
   if (blob_property.valid()) {
     return blob_property.size;
   } else {
@@ -358,14 +382,14 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
     return TILEDB_FS_OK; // Nothing to read
   }
   std::string path = get_path(filename);
-  auto bclient = reinterpret_cast<blob_client *>(bC.get());
+  auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   storage_outcome<void> read_result;
   // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
   if (length < GRAIN_SIZE) {
     omemstream os_buf(buffer, length);
-    read_result = bclient->download_blob_to_stream(container_name, path, offset, length, os_buf).get();
+    read_result = bclient->download_blob_to_stream(container_name_, path, offset, length, os_buf).get();
   } else {
-    read_result = bclient->download_blob_to_buffer(container_name, path, offset, length, reinterpret_cast<char *>(buffer), std::thread::hardware_concurrency()/2).get();
+    read_result = bclient->download_blob_to_buffer(container_name_, path, offset, length, reinterpret_cast<char *>(buffer), std::thread::hardware_concurrency()/2).get();
   }
   if (!read_result.success()) {
     AZ_BLOB_ERROR(read_result.error().message, filename);
@@ -378,7 +402,7 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
 // This method is based on upload_block_blob_from_buffer from the SDK except for the put_block_list stage which happens in commit_path() now
 std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::string &blob, uint64_t block_size, int num_blocks, std::vector<std::string> block_ids,
                                                                 const char* buffer, uint64_t bufferlen, uint parallelism) {
-  auto bclient = reinterpret_cast<blob_client *>(bC.get());
+  auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   parallelism = std::min(parallelism, bclient->concurrency());
 
   struct concurrent_task_info {
@@ -412,7 +436,7 @@ std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::strin
       }
       const char* block_buffer = info->buffer + info->block_size * i;
       uint64_t block_size = std::min(info->block_size, info->blob_size - info->block_size * i);
-      auto result = this->bC.get()->upload_block_from_buffer(container_name, info->blob, block_ids[i], block_buffer, block_size).get();
+      auto result = this->blob_client_.get()->upload_block_from_buffer(container_name_, info->blob, block_ids[i], block_buffer, block_size).get();
 
       if (!result.success() && !context->failed.exchange(true)) {
         context->failed_reason = result.error();
@@ -433,11 +457,11 @@ std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::strin
 
 int AzureBlob::write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) {
   std::string path = get_path(filename);
-  auto bclient = reinterpret_cast<blob_client *>(bC.get());
+  auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   if (buffer_size == 0) {
     const std::lock_guard<std::mutex> lock(write_map_mtx_);
-    if (!bc->blob_exists(container_name, path)) {
-      auto result = bclient->create_append_blob(container_name, path).get();
+    if (!blob_client_wrapper_->blob_exists(container_name_, path)) {
+      auto result = bclient->create_append_blob(container_name_, path).get();
       if (!result.success()) {
         AZ_BLOB_ERROR("Could not create zero length file", path);
         return TILEDB_FS_ERR;
@@ -478,7 +502,7 @@ int AzureBlob::move_path(const std::string& old_path, const std::string& new_pat
 }
 
 int AzureBlob::commit_file(const std::string& path) {
-  auto bclient = reinterpret_cast<blob_client *>(bC.get());
+  auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   int rc = TILEDB_FS_OK;
   std::string filepath = get_path(path);
 
@@ -487,7 +511,7 @@ int AzureBlob::commit_file(const std::string& path) {
   auto search = write_map_.find(filepath);
   if (search != write_map_.end()) {
     std::vector<std::pair<std::string, std::string>> empty_metadata;
-    auto put_result = bclient->put_block_list(container_name, filepath, search->second, empty_metadata).get();
+    auto put_result = bclient->put_block_list(container_name_, filepath, search->second, empty_metadata).get();
     if (!put_result.success()) {
       AZ_BLOB_ERROR("Could not sync path with put_block_list", filepath);
       rc = TILEDB_FS_ERR;

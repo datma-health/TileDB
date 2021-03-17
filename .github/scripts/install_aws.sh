@@ -7,11 +7,13 @@ gpg --quiet --batch --yes --decrypt --passphrase=$AWS_TAR --output ${HOME}/aws.t
 tar xvf ${HOME}/aws.tar -C $HOME
 
 # Install aws cli for sanity checking
-pushd /tmp
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -s -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-popd
+if [[ ! -n $(which aws) ]]; then
+  pushd /tmp
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -s -o "awscliv2.zip"
+  unzip awscliv2.zip
+  sudo ./aws/install
+  popd
+fi
 
 # Sanity check
 echo "aws version=`aws --version`"
