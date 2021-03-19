@@ -1224,12 +1224,12 @@ int ReadState::read_segment(int attribute_num, bool is_var, off_t offset, void *
     if (is_var) {
       assert((attribute_num < attribute_num_) && "Coords attribute cannot be variable");
       if (file_var_buffer_[attribute_num] == NULL) {
-        file_var_buffer_[attribute_num]= new StorageBuffer(fs, filename);
+        file_var_buffer_[attribute_num]= new StorageBuffer(fs, filename, true);
       }
       file_buffer = file_var_buffer_[attribute_num];
     } else {
       if (file_buffer_[attribute_num] == NULL) {
-        file_buffer_[attribute_num] = new StorageBuffer(fs, filename);
+        file_buffer_[attribute_num] = new StorageBuffer(fs, filename, true);
       }
       file_buffer = file_buffer_[attribute_num];
     }

@@ -41,6 +41,9 @@ class StorageBuffer : public Buffer {
     fs_ = fs;
     filename_ = filename;
     read_only_ = is_read;
+    if (read_only_) {
+      filesize_ = fs_->file_size(filename);
+    }
   }
 
   /**
@@ -60,6 +63,5 @@ class StorageBuffer : public Buffer {
   
   StorageFS *fs_ = NULL;
   std::string filename_;
-  uint32_t num_blocks_ = 0;
-  std::vector<bool> blocks_read_;
+  ssize_t filesize_; // Relevant for only read_only
 };
