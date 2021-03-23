@@ -332,7 +332,7 @@ int GCS::read_from_file(const std::string& filename, off_t offset, void *buffer,
   }
   
   stream.read(static_cast<char *>(buffer), length);
-  if (stream.gcount() < length) {
+  if ((size_t)stream.gcount() < length) {
     GCS_ERROR("Could not read the file for bytes of length=" + std::to_string(length) + " from offset=" + std::to_string(offset), filename);
     return TILEDB_FS_ERR;
   }
