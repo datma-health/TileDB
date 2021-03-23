@@ -38,6 +38,7 @@
 #include "tiledb_constants.h"
 
 #include <string>
+#include <unordered_map>
 
 hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir);
 
@@ -49,6 +50,8 @@ hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir);
 #include <iostream>
 
 namespace gcs = google::cloud::storage;
+using ::google::cloud::StatusOr;
+
 class GCS : public StorageCloudFS {
 
  public:
@@ -81,6 +84,22 @@ class GCS : public StorageCloudFS {
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);
 
   int commit_file(const std::string& filename);
+
+ protected:
+  std::string bucket_name_;
+  StatusOr<gcs::Client> client_;
+
+  std::mutex write_map_mtx_;
+  typedef struct multipart_upload_info_t {
+   public:
+    size_t part_number_ = 0;
+    size_t last_uploaded_size_ = 0;
+  } multipart_upload_info_t;
+  std::unordered_map<std::string, multipart_upload_info_t> write_map_;
+
+  bool path_exists(const std::string& path);
+  int create_path(const std::string& path);
+  int delete_path(const std::string& path);
 };
 
 #endif /* __STORAGE_GCS_H__ */
