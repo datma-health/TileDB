@@ -37,6 +37,7 @@
 #include "hdfs.h"
 #include "tiledb_constants.h"
 
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
