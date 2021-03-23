@@ -130,16 +130,16 @@ ReadState::ReadState(
 
   compute_tile_search_range();
 
-  std::string fragment_name = fragment_->fragment_name();
-  std::string filename;
-  // Check empty attributes
-  is_empty_attribute_.resize(attribute_num_+1);
+  // Cache file sizes per attribute+coords
+  file_size_.resize(attribute_num_+1);
+  file_var_size_.resize(attribute_num_+1);
+  StorageFS *fs = array_->config()->get_filesystem();
   for(int i=0; i<attribute_num_+1; ++i) {
-    filename = 
-        fragment_name + "/" + array_schema_->attribute(i) + TILEDB_FILE_SUFFIX;
-    is_empty_attribute_[i] = !is_file(array_->config()->get_filesystem(), filename);
+    file_size_[i] = fs->file_size(construct_filename(i));
+    file_var_size_[i] = fs->file_size(construct_filename(i, /*is_var*/true));
   }
 
+  // Setup file buffers for buffered reading per attribute+coords
   file_buffer_.resize(attribute_num_+1);
   file_var_buffer_.resize(attribute_num_+1);
   reset_file_buffers();
@@ -1224,12 +1224,12 @@ int ReadState::read_segment(int attribute_num, bool is_var, off_t offset, void *
     if (is_var) {
       assert((attribute_num < attribute_num_) && "Coords attribute cannot be variable");
       if (file_var_buffer_[attribute_num] == NULL) {
-        file_var_buffer_[attribute_num]= new StorageBuffer(fs, filename);
+        file_var_buffer_[attribute_num]= new StorageBuffer(fs, filename, true);
       }
       file_buffer = file_var_buffer_[attribute_num];
     } else {
       if (file_buffer_[attribute_num] == NULL) {
-        file_buffer_[attribute_num] = new StorageBuffer(fs, filename);
+        file_buffer_[attribute_num] = new StorageBuffer(fs, filename, true);
       }
       file_buffer = file_buffer_[attribute_num];
     }
@@ -1797,7 +1797,7 @@ bool ReadState::is_empty_attribute(int attribute_id) const {
   if(attribute_id == attribute_num_ + 1) 
     attribute_id = attribute_num_;
 
-  return is_empty_attribute_[attribute_id];
+  return file_size_[attribute_id] == TILEDB_FS_ERR;
 }
 
 int ReadState::map_tile_from_file_cmp(
@@ -2275,14 +2275,10 @@ int ReadState::prepare_tile_for_reading_cmp(
   if(tiles_[attribute_id] == NULL) 
     tiles_[attribute_id] = malloc(full_tile_size);
 
-  // Prepare attribute file name
-  std::string filename = fragment_->fragment_name() + "/" +
-                         array_schema_->attribute(attribute_id_real) +
-                         TILEDB_FILE_SUFFIX;
-
   // Find file offset where the tile begins
   off_t file_offset = tile_offsets[attribute_id_real][tile_i];
-  auto file_size = ::file_size(array_->config()->get_filesystem(), filename);
+  auto file_size = file_size_[attribute_id_real];
+  assert(file_size != TILEDB_FS_ERR);
   size_t tile_compressed_size = 
       (tile_i == tile_num-1) 
           ? file_size - tile_offsets[attribute_id_real][tile_i] 
@@ -2421,14 +2417,10 @@ int ReadState::prepare_tile_for_reading_var_cmp(
 
   // ========== Get tile with variable cell offsets ========== //
 
-  // Prepare attribute file name
-  std::string filename = fragment_->fragment_name() + "/" +
-             array_schema_->attribute(attribute_id) +
-             TILEDB_FILE_SUFFIX;
-
   // Find file offset where the tile begins
   off_t file_offset = tile_offsets[attribute_id][tile_i];
-  auto file_size = ::file_size(array_->config()->get_filesystem(), filename);
+  auto file_size = file_size_[attribute_id];
+  assert(file_size != TILEDB_FS_ERR);
   size_t tile_compressed_size = 
       (tile_i == tile_num-1) ? file_size - tile_offsets[attribute_id][tile_i]
                              : tile_offsets[attribute_id][tile_i+1] - 
@@ -2489,14 +2481,10 @@ int ReadState::prepare_tile_for_reading_var_cmp(
 
   // ========== Get variable tile ========== //
 
-  // Prepare variable attribute file name
-  filename = fragment_->fragment_name() + "/" +
-             array_schema_->attribute(attribute_id) + "_var" +
-             TILEDB_FILE_SUFFIX;
-
   // Calculate offset and compressed tile size
   file_offset = tile_var_offsets[attribute_id][tile_i];
-  file_size = ::file_size(array_->config()->get_filesystem(), filename);
+  file_size = file_var_size_[attribute_id];
+  assert(file_size != TILEDB_FS_ERR);
   tile_compressed_size = 
       (tile_i == tile_num-1) ? file_size-tile_var_offsets[attribute_id][tile_i]
                           : tile_var_offsets[attribute_id][tile_i+1] - 
@@ -2631,16 +2619,16 @@ int ReadState::prepare_tile_for_reading_var_cmp_none(
   off_t end_tile_var_offset = 0;
   size_t tile_var_size;
   
-  if(tile_i != tile_num - 1) { // Not the last tile
+  if(tile_i != tile_num - 1) {
+    // Not the last tile
     if (read_segment(attribute_id, false, file_offset + full_tile_size, 
              &end_tile_var_offset, TILEDB_CELL_VAR_OFFSET_SIZE) == TILEDB_RS_ERR) {
       return TILEDB_RS_ERR;
     }
     tile_var_size = end_tile_var_offset - tile_s[0];
-  } else {                  // Last tile
-    // Prepare variable attribute file name
-    std::string filename = fragment_->fragment_name() + "/" + array_schema_->attribute(attribute_id) + "_var" + TILEDB_FILE_SUFFIX;
-    tile_var_size = file_size(array_->config()->get_filesystem(), filename) - tile_s[0];
+  } else {
+    // Last tile
+    tile_var_size = file_var_size_[attribute_id] - tile_s[0];
   }
 
   // Read tile from file

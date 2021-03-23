@@ -38,6 +38,8 @@
 
 #include <errno.h>
 #include <dlfcn.h>
+#include <functional>
+#include <map>
 #include <mutex>
 #include <string>
 #include <system_error>
@@ -67,9 +69,17 @@ class Codec {
  public:
 
   /* ****************************** */
-  /*        STATIC METHODS         */
+  /*        STATIC METHODS          */
   /* ****************************** */
-  
+
+  typedef std::function<Codec*(const ArraySchema*, const int, const bool)> create_fn_t;
+
+  static int register_codec(int compression_type, Codec::create_fn_t create_fn);
+
+  static bool is_registered_codec(int compression_type);
+
+  static Codec::create_fn_t get_registered_codec(int compression_type);
+
   static Codec* create(const ArraySchema* array_schema, const int attribute_id, const bool is_offsets_compression=false);
 
   static int get_default_level(const int compression_type);

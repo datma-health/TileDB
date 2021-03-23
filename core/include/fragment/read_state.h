@@ -416,6 +416,10 @@ class ReadState {
   /** Internal buffers associated with the attribute files */
   std::vector<StorageBuffer *> file_buffer_;
   std::vector<StorageBuffer *> file_var_buffer_;
+
+  /** Cache attribute filesizes for fragment */
+  std::vector<ssize_t> file_size_;
+  std::vector<ssize_t> file_var_size_;
   
   /** Compression per attribute */
   std::vector<Codec *> codec_;
@@ -427,8 +431,7 @@ class ReadState {
   std::vector<int64_t> fetched_tile_;
   /** The fragment the read state belongs to. */
   const Fragment* fragment_;
-  /** Keeps track of whether each attribute is empty or not. */
-  std::vector<bool> is_empty_attribute_;
+
   /** 
    * Last investigated tile coordinates. Applicable only to **sparse** fragments
    * for **dense** arrays.
@@ -521,7 +524,10 @@ class ReadState {
   /*          PRIVATE METHODS          */
   /* ********************************* */
 
-  std::string construct_filename(int attribute_id, bool is_var);
+  /**
+   * Helper method to construct filename for given attribute
+   */
+  std::string construct_filename(int attribute_id, bool is_var=false);
 
   /**
    * Resets all internal buffers associated with attribute files.

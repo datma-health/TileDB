@@ -111,6 +111,11 @@ elseif(NOT AWSSDK_FOUND)
                 INTERFACE_INCLUDE_DIRECTORIES ${AWSSDK_INCLUDE_DIR})
     list(APPEND AWSSDK_LINK_LIBRARIES ${_AWSSDK_TARGET_NAME})
   endforeach()
+  if(APPLE)
+    # AWSSDK has some sort of transitive dependency on CoreFoundation,
+    # add this explicitly even though CMAKE_FIND_FRAMEWORK is set to LAST
+    list(APPEND AWSSDK_LINK_LIBRARIES "-framework CoreFoundation")
+  endif()
   add_dependencies(aws-cpp-sdk-s3 awssdk-ep)
   message(STATUS "To be built AWS SDK headers: ${AWSSDK_INCLUDE_DIR}")
   message(STATUS "To be built AWS SDK libraries: ${AWSSDK_LINK_LIBRARIES}")

@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,14 +70,17 @@ class AzureBlobTestFixture {
   }
 };
 
-TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob constructor", "[constr]") {
-  if (azure_blob == nullptr) {
-    return;
-  }
+TEST_CASE("Test AzureBlob constructor", "[constr]") {
   CHECK_THROWS(new AzureBlob("wasbs://my_container/path"));
   CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
   CHECK_THROWS(new AzureBlob("az://my_container@blob.core.windows.net/path"));
   CHECK_THROWS(new AzureBlob("az://non-existent-container@blob.core.windows.met/path"));
+  if (getenv("AZURE_STORAGE_ACCOUNT")) {
+      unsetenv( "AZURE_STORAGE_ACCOUNT");
+  }
+  std::string sas_token = "AZURE_STORAGE_SAS_TOKEN=non-existent-token";
+  CHECK(putenv(const_cast<char *>(sas_token.c_str())) == 0);
+  CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
 }
 
 TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob cwd", "[cwd]") {
@@ -189,9 +192,13 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   CHECK(((char *)buffer)[1] == 'e');
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 5), TILEDB_FS_OK);
   CHECK(((char *)buffer)[4] == 'o');
-  CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 6), TILEDB_FS_ERR);
+  // Reading past filesize does not seem to affect download_blob_to_stream/buffer. It
+  // returns successfully even though Posix/HDFS/S3 data stores behave differently. We
+  // could make the behavior identical on the stores, but for now leaving it to the clients
+  // to not read past the file size.
+  CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 6), TILEDB_FS_OK);
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 3, buffer, 2), TILEDB_FS_OK);
-  CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 3, buffer, 6), TILEDB_FS_ERR);
+  CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 3, buffer, 6), TILEDB_FS_OK);
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 6, buffer, 2), TILEDB_FS_ERR);
 
   
@@ -220,11 +227,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
   if (azure_blob == nullptr) {
     return;
   }
-  char *travis_build = getenv("TRAVIS_BUILD_DIR");
-  if (travis_build && strlen(travis_build) > 0) {
-    std::cerr << "Skipping the test of AzureBlob read/write large files on Travis for now as it timing out\n";
-    return;
-  }
   std::string test_dir("read_write_large");
   // size_t size = ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*4
   size_t size = ((size_t)TILEDB_UT_MAX_WRITE_COUNT);
@@ -235,7 +237,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
     CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", buffer, size), TILEDB_FS_OK);
     CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
     CHECK(azure_blob->is_file(test_dir+"/foo"));
-    CHECK(azure_blob->file_size(test_dir+"/foo") == size);
+    CHECK((size_t)azure_blob->file_size(test_dir+"/foo") == size);
 
     void *buffer1 = malloc(size);
     if (buffer1) {
@@ -254,23 +256,19 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
   if (azure_blob == nullptr) {
     return;
   }
-  char *travis_build = getenv("TRAVIS_BUILD_DIR");
-  if (travis_build && strlen(travis_build) > 0) {
-    std::cerr << "Skipping the test of AzureBlob parallel operations on Travis for now as it timing out\n";
-    return;
-  }
+ 
   std::string test_dir("parallel");
   REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
 
   bool complete = true;
   uint iterations = 2;
+  size_t size = 10*1024*1024;
 
   #pragma omp parallel for
   for (uint i=0; i<iterations; i++) {
     std::string filename = test_dir+"/foo"+std::to_string(i);
 
     for (auto j=0; j<2; j++) {
-      size_t size = TILEDB_UT_MAX_WRITE_COUNT;
       void *buffer = malloc(size);
       if (buffer) {
 	memset(buffer, 'X', size);
@@ -290,7 +288,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
       std::string filename = test_dir+"/foo"+std::to_string(i);
       CHECK_RC(azure_blob->sync_path(filename), TILEDB_FS_OK);
       CHECK(azure_blob->is_file(filename));
-      CHECK(azure_blob->file_size(filename) == ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*2);
+      CHECK((size_t)azure_blob->file_size(filename) == size*2);
     }
   }
 

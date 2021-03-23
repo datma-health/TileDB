@@ -46,19 +46,15 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
   // Nothing to do
   if (bytes == NULL || size == 0) {
     return TILEDB_BF_OK;
+  } else if (filesize_ == TILEDB_FS_ERR) {
+    return TILEDB_BF_ERR;
   }
 
-  size_t filesize = fs_->file_size(filename_);
+  size_t filesize = (size_t)filesize_;
   size_t chunk_size = fs_->get_download_buffer_size();
   if (offset + size > filesize) {
     BUFFER_PATH_ERROR("Cannot read past the filesize from buffer", filename_);
     return TILEDB_BF_ERR;  
-  }
-
-  if (buffer_ == NULL) {
-    num_blocks_ = filesize/chunk_size+1;
-    blocks_read_.resize(num_blocks_);
-    std::fill(blocks_read_.begin(), blocks_read_.end(), false);
   }
 
   if (buffer_ == NULL || !(offset>=buffer_offset_ && size<=buffer_size_)) {
