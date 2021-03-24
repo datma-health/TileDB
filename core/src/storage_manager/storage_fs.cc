@@ -84,6 +84,8 @@ int StorageCloudFS::commit_file(const std::string& file) {
 }
 
 int StorageCloudFS::sync_path(const std::string& path) {
+  // S3 and GCS allow for only write-once semantics, so committing the file will
+  // happen only when the file is closed or when commit_file() is explicitly called
   return TILEDB_FS_OK;
 }
 
