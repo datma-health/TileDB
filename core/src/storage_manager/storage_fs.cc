@@ -84,7 +84,7 @@ int StorageCloudFS::commit_file(const std::string& file) {
 }
 
 int StorageCloudFS::sync_path(const std::string& path) {
-  return commit_file(path);
+  return TILEDB_FS_OK;
 }
 
 int StorageCloudFS::close_file(const std::string& filename) {

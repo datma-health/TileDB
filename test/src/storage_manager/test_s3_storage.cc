@@ -183,6 +183,7 @@ TEST_CASE_METHOD(S3TestFixture, "Test S3 read/write file", "[read-write]") {
   CHECK_RC(s3_instance->write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
 
   CHECK_RC(s3_instance->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(s3_instance->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   auto files = s3_instance->get_files(test_dir);
   for(auto f: files) {
     std::cerr << "file=" << f << std::endl;
@@ -245,7 +246,7 @@ TEST_CASE_METHOD(S3TestFixture, "Test S3 large read/write file", "[read-write-la
     memset(buffer, 'B', size);
     REQUIRE(s3_instance->create_dir(test_dir) == TILEDB_FS_OK);
     CHECK_RC(s3_instance->write_to_file(test_dir+"/foo", buffer, size), TILEDB_FS_OK);
-    CHECK_RC(s3_instance->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+    CHECK_RC(s3_instance->close_file(test_dir+"/foo"), TILEDB_FS_OK);
     CHECK(s3_instance->is_file(test_dir+"/foo"));
     CHECK((size_t)s3_instance->file_size(test_dir+"/foo") == size);
 
@@ -290,13 +291,14 @@ TEST_CASE_METHOD(S3TestFixture, "Test S3 operations", "[parallel]") {
     }
   }
 
-  CHECK_RC(s3_instance->sync_path(test_dir), TILEDB_FS_OK);
+  CHECK_RC(s3_instance->close_file(test_dir), TILEDB_FS_OK);
 
   if (complete) {
     #pragma omp parallel for
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"/foo"+std::to_string(i);
-      CHECK_RC(s3_instance->sync_path(filename), TILEDB_FS_OK);
+      CHECK_RC(s3_instance->close_file(filename), TILEDB_FS_OK);
+      sleep(10);
       CHECK(s3_instance->is_file(filename));
       CHECK((size_t)s3_instance->file_size(filename) == size*2);
     }

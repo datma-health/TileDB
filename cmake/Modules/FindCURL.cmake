@@ -34,14 +34,7 @@
 find_path(CURL_INCLUDE_DIR NAMES curl/curl.h HINTS ${CURL_PREFIX_DIR} ${CURL_PREFIX_DIR}/include)
 mark_as_advanced(CURL_INCLUDE_DIR)
 
-if(BUILD_DISTRIBUTABLE_LIBRARY AND NOT APPLE)
-  find_library(CURL_LIBRARY NAMES libcurl.a
-    HINTS ${CURL_PREFIX_DIR} ${CURL_PREFIX_DIR}/lib64 ${CURL_PREFIX_DIR}/lib)
-else()
-  find_library(CURL_LIBRARY NAMES curl libcurl
-    HINTS ${CURL_PREFIX_DIR} ${CURL_PREFIX_DIR}/lib64 ${CURL_PREFIX_DIR}/lib
-    )
-endif()
+find_library(CURL_LIBRARY NAMES curl libcurl)
 mark_as_advanced(CURL_LIBRARY)
 
 if(CURL_INCLUDE_DIR)
