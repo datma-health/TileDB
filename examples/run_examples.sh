@@ -78,18 +78,24 @@ run_example ./tiledb_array_create_sparse $1 4
 run_example ./tiledb_array_primitive $1 5
 run_example ./tiledb_array_write_dense_1 $1 6
 run_example ./tiledb_array_write_sparse_1 $1 7
+sleep 5
 run_example ./tiledb_ls $1 8
 run_example ./tiledb_array_read_dense_1 $1 9
 run_example ./tiledb_array_write_dense_2 $1 10
+sleep 5
 run_example ./tiledb_array_read_dense_1 $1 11
 run_example ./tiledb_array_read_dense_2 $1 12
 run_example ./tiledb_array_write_dense_sorted $1 13
+sleep 5
 run_example ./tiledb_array_read_dense_1 $1 14
 run_example ./tiledb_array_update_dense_1 $1 15
+sleep 5
 run_example ./tiledb_array_read_dense_1 $1 16
 run_example ./tiledb_array_update_dense_2 $1 17
+sleep 5
 run_example ./tiledb_array_read_dense_1 $1 18
 run_example ./tiledb_array_write_sparse_1 $1 19
+sleep 5
 run_example ./tiledb_array_read_sparse_1 $1 20
 run_example ./tiledb_array_read_sparse_filter_1 $1 21
 run_example ./tiledb_array_iterator_sparse $1 22
@@ -97,10 +103,12 @@ run_example ./tiledb_array_iterator_sparse_filter $1 23
 run_example ./tiledb_array_read_sparse_2 $1 24
 run_example ./tiledb_array_read_sparse_filter_2 $1 25
 run_example ./tiledb_array_write_sparse_2 $1 26
+sleep 5
 run_example ./tiledb_array_read_sparse_1 $1 27
 run_example ./tiledb_array_read_sparse_2 $1 28
 run_example ./tiledb_array_read_sparse_filter_2 $1 29
 run_example ./tiledb_array_update_sparse_1 $1 30
+sleep 5
 run_example ./tiledb_array_read_sparse_1 $1 31
 run_example ./tiledb_array_read_sparse_filter_1 $1 32
 run_example ./tiledb_array_read_sparse_filter_2 $1 33
@@ -108,6 +116,7 @@ run_example ./tiledb_array_iterator_sparse $1 34
 run_example ./tiledb_array_iterator_sparse_filter $1 35
 run_example ./tiledb_array_read_sparse_2 $1 36
 run_example ./tiledb_array_consolidate $1 37
+sleep 5
 run_example ./tiledb_array_read_dense_1 $1 38
 run_example ./tiledb_array_read_sparse_1 $1 39
 run_example ./tiledb_array_read_dense_2 $1 40

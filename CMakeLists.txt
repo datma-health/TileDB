@@ -48,6 +48,9 @@ set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install" CACHE PATH "Path to aws sdk")
 set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.8.114.zip" CACHE STRING "URL to aws-sdk-cpp github release")
 
+set(GCSSDK_ROOT_DIR "$ENV{HOME}/gcssdk-install" CACHE PATH "Path to gcs sdk")
+set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/v1.24.0.zip" CACHE STRING "URL to google-cloud-cpp github release")
+
 # Set the following to true downstream when TileDB is added as a subdirectory 
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
 set(TILEDB_DISABLE_UNINSTALL False CACHE BOOL "Disable TileDB Uninstall")
@@ -110,9 +113,14 @@ endif()
 if(ENABLE_BLOSC OR ENABLE_ZSTD)
     set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_DL_LIBS})
 endif()
+
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
+
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CURL_LIBRARIES})
 
 # Build Azure cpp lite client added as a dependency
 include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include)
@@ -123,6 +131,11 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite)
 find_package(S3Client REQUIRED)
 include_directories(${AWSSDK_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${AWSSDK_LINK_LIBRARIES})
+
+# Build GCS Storage client static libraries
+find_package(GCSClient REQUIRED)
+include_directories(${GCSSDK_INCLUDE_DIR})
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${GCSSDK_LINK_LIBRARIES})
 
 # Build MuParserX source code added as a dependency
 include_directories(${MUPARSERX_SOURCE_DIR}/parser)

@@ -76,5 +76,13 @@ struct s3_uri : uri {
   std::string bucket_;
 };
 
+struct gcs_uri : uri {
+  gcs_uri(const std::string& uri_s);
+  std::string bucket();
+
+ private:
+  std::string bucket_;
+};
+
 
 #endif /* URI_HH_ */

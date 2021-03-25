@@ -44,6 +44,7 @@ add_library(TILEDB_CORE_OBJECTS OBJECT ${TILEDB_CORE_SOURCES})
 set_property(TARGET TILEDB_CORE_OBJECTS PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_dependencies(TILEDB_CORE_OBJECTS awssdk-ep)
+add_dependencies(TILEDB_CORE_OBJECTS gcssdk-ep)
 
 # Create static and shared libraries
 if(USE_HDFS)
@@ -57,7 +58,7 @@ endif()
 set_target_properties(tiledb_static PROPERTIES OUTPUT_NAME "tiledb")
 set_target_properties(tiledb_shared PROPERTIES OUTPUT_NAME "tiledb")
 
-target_link_libraries(tiledb_static azure-storage-lite muparserx ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(tiledb_static muparserx azure-storage-lite ${AWSSDK_LINK_LIBRARIES} ${GCSSDK_LINK_LIBRARIES})
 target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 
 # Install libraries

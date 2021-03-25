@@ -157,4 +157,11 @@ s3_uri::s3_uri(const std::string& uri_s) : uri(uri_s) {
 std::string s3_uri::bucket() {
   return bucket_;
 }
+gcs_uri::gcs_uri(const std::string& uri_s) : uri(uri_s) {
+  bucket_ = this->host();
+}
+
+std::string gcs_uri::bucket() {
+  return bucket_;
+}
 

@@ -456,7 +456,7 @@ int WriteState::write_file_buffers() {
     }
 
     if (rc) {
-      std::string errmsg = "Could not finalize files from storage buffers";
+      std::string errmsg = "Could not finalize files from storage buffers for attribute " + fragment_->fragment_name() + construct_filename(i, false);
       PRINT_ERROR(errmsg);
       tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
       return TILEDB_WS_ERR;
