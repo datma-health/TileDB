@@ -36,6 +36,8 @@
 #include "storage_gcs.h"
 #include "storage_posixfs.h"
 
+#include "google/cloud/storage/client_options.h"
+
 #include <cerrno>
 #include <cstring>
 #include <clocale>
@@ -157,8 +159,26 @@ GCS::GCS(const std::string& home) {
   if (path_uri.bucket().size() == 0) {
     throw std::system_error(EPROTO, std::generic_category(), "GS URI does not seem to have a bucket specified");
   }
+
+#ifdef __linux__
+  gcs::ChannelOptions channel_options;
+  std::string ca_certs_location = locate_ca_certs();
+  if (ca_certs_location.empty()) {
+    std::cerr << "CA Certs path not located" << std::endl;
+  } else {
+    channel_options.set_ssl_root_path(ca_certs_location);
+  }
+  std::cerr << "CA Certs path=" << ca_certs_location << std::endl;
+  auto client_options = gcs::ClientOptions::CreateDefaultClientOptions(channel_options);
+#else
+  auto client_options = gcs::ClientOptions::CreateDefaultClientOptions();
+#endif
+  if (!client_options) {
+    std::system_error(EIO, std::generic_category(), "Failed to create default GCS Client Options"+
+		      client_options.status().message());
+  }
   
-  client_ = gcs::Client::CreateDefaultClient();
+  client_ = gcs::Client(*client_options, gcs::StrictIdempotencyPolicy(), gcs::AlwaysRetryIdempotencyPolicy(), gcs::LimitedErrorCountRetryPolicy(20));
   if (!client_) {
     throw std::system_error(EIO, std::generic_category(), "Failed to create GCS Client"+client_.status().message());
   }
