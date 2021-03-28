@@ -111,7 +111,7 @@ class StorageFS {
     }
   }
 
-  std::string slashify(const std::string& path) const {
+  static inline std::string slashify(const std::string& path) {
     if (path.empty()) {
       return "/";
     } else if (path.back() != '/') {
@@ -121,12 +121,16 @@ class StorageFS {
     }
   }
 
-  std::string unslashify(const std::string& path) const {
+  static inline std::string unslashify(const std::string& path) {
     if (!path.empty() && path.back() == '/') {
       return path.substr(0, path.size()-1);
     } else {
       return path;
     }
+  }
+
+  static inline std::string append_paths(const std::string& path1, const std::string& path2) {
+    return slashify(path1) + path2;
   }
 
  protected:

@@ -115,6 +115,7 @@ int tiledb_ctx_init(
         tiledb_config->read_method_, 
         tiledb_config->write_method_,
         tiledb_config->enable_shared_posixfs_optimizations_) == TILEDB_SMC_ERR) {
+      delete config;
       strcpy(tiledb_errmsg, tiledb_smc_errmsg.c_str());
       return TILEDB_ERR;
     }

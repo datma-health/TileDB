@@ -74,7 +74,7 @@ std::string StorageCloudFS::get_path(const std::string& path) {
     // TODO: this is a hack for now, but should work fine with GenomicsDB.
     return pathname;
   } else {
-    return working_dir_ + '/' + pathname;
+    return append_paths(working_dir_, pathname);
   }
 }
 

@@ -35,6 +35,7 @@
 
 #include "tiledb_utils.h"
 #include "tiledb_storage.h"
+#include "storage_fs.h"
 
 #include <cstring>
 #include <error.h>
@@ -141,7 +142,7 @@ bool array_exists(const std::string& workspace, const std::string& array_name)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_array(tiledb_ctx, workspace + '/' + array_name);
+  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(workspace, array_name));
   FINALIZE;
   return exists;
 }

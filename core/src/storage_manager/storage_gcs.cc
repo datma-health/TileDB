@@ -150,7 +150,7 @@ hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) 
 
 
 GCS::GCS(const std::string& home) {
-   gcs_uri path_uri(home);
+  gcs_uri path_uri(home);
 
   if (path_uri.protocol().compare("gs") != 0) {
     throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "GCS FS only supports gs:// URI protocols");
@@ -174,11 +174,14 @@ GCS::GCS(const std::string& home) {
   auto client_options = gcs::ClientOptions::CreateDefaultClientOptions();
 #endif
   if (!client_options) {
-    std::system_error(EIO, std::generic_category(), "Failed to create default GCS Client Options"+
-		      client_options.status().message());
+    throw std::system_error(EIO, std::generic_category(), "Failed to create default GCS Client Options. "+
+                            client_options.status().message());
   }
-  
-  client_ = gcs::Client(*client_options, gcs::StrictIdempotencyPolicy(), gcs::AlwaysRetryIdempotencyPolicy(), gcs::LimitedErrorCountRetryPolicy(20));
+  // TODO: All the Policies seem to be internal with internal visibility. Leaving them as defaults for now
+  // client_ = gcs::Client(*client_options, gcs::StrictIdempotencyPolicy(),
+  //                                        gcs::AlwaysRetryIdempotencyPolicy(),
+  //                                        gcs::LimitedErrorCountRetryPolicy(20));
+  client_ = gcs::Client(*client_options);
   if (!client_) {
     throw std::system_error(EIO, std::generic_category(), "Failed to create GCS Client"+client_.status().message());
   }

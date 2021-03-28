@@ -451,7 +451,7 @@ int StorageManager::array_load_schema(
     return TILEDB_SM_ERR;
   }
 
-  std::string filename = real_array_dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME;
+  std::string filename = fs_->append_paths(real_array_dir, TILEDB_ARRAY_SCHEMA_FILENAME);
 
   // Initialize buffer
   ssize_t buffer_size =  file_size(fs_, filename);
@@ -839,7 +839,7 @@ int StorageManager::metadata_create(const ArraySchema* array_schema) const {
     return TILEDB_SM_ERR;
   }
 
-  std::string filename = dir + "/" + TILEDB_METADATA_SCHEMA_FILENAME;
+  std::string filename = fs_->append_paths(dir, TILEDB_METADATA_SCHEMA_FILENAME);
 
   // Serialize metadata schema
   void* array_schema_bin;
@@ -888,8 +888,7 @@ int StorageManager::metadata_load_schema(
   }
 
   // Open array schema file 
-  std::string filename = 
-      real_metadata_dir + "/" + TILEDB_METADATA_SCHEMA_FILENAME;
+  std::string filename = fs_->append_paths(real_metadata_dir, TILEDB_METADATA_SCHEMA_FILENAME);
 
   // Initialize buffer
   ssize_t buffer_size = file_size(fs_, filename);
@@ -1494,7 +1493,7 @@ int StorageManager::array_store_schema(
     const std::string& dir, 
     const ArraySchema* array_schema) const {
   // Array schema file
-  std::string filename = dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME;
+  std::string filename = fs_->append_paths(dir, TILEDB_ARRAY_SCHEMA_FILENAME);
   if (is_file(fs_, filename) && delete_file(fs_, filename) == TILEDB_UT_ERR) {
     std::string errmsg = 
         std::string("Cannot store schema as existing file cannot be deleted");
@@ -1668,8 +1667,7 @@ int StorageManager::consolidation_finalize(
   int fragment_num = old_fragment_names.size();
   for(int i=0; i<fragment_num; ++i) {
     // Delete special fragment file inside the fragment directory
-    std::string old_fragment_filename = 
-        old_fragment_names[i] + "/" + TILEDB_FRAGMENT_FILENAME;
+    std::string old_fragment_filename = fs_->append_paths(old_fragment_names[i], TILEDB_FRAGMENT_FILENAME);
     if(delete_file(fs_, old_fragment_filename)) {
       std::string errmsg = 
           std::string("Cannot remove fragment file during "
@@ -1691,7 +1689,7 @@ int StorageManager::consolidation_finalize(
 
 int StorageManager::create_group_file(const std::string& group) const {
   // Create file
-  std::string filename = group + "/" + TILEDB_GROUP_FILENAME;
+  std::string filename = fs_->append_paths(group, TILEDB_GROUP_FILENAME);
   if(create_file(fs_, filename,  O_WRONLY | O_CREAT | O_SYNC, S_IRWXU) == TILEDB_FS_ERR) {
     std::string errmsg = std::string("Failed to create group file");
     PRINT_ERROR(errmsg);
@@ -1705,7 +1703,7 @@ int StorageManager::create_group_file(const std::string& group) const {
 
 int StorageManager::create_workspace_file(const std::string& workspace) const {
   // Create file
-  std::string filename = workspace + "/" + TILEDB_WORKSPACE_FILENAME;
+  std::string filename = fs_->append_paths(workspace, TILEDB_WORKSPACE_FILENAME);
   if(create_file(fs_, filename,  O_WRONLY | O_CREAT | O_SYNC, S_IRWXU) == TILEDB_UT_ERR) {
     std::string errmsg = std::string("Failed to create workspace file; ");
     PRINT_ERROR(errmsg);

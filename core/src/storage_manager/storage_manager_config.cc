@@ -92,8 +92,10 @@ int StorageManagerConfig::init(
     const bool enable_shared_posixfs_optimizations) {
   // Initialize home
   if (home !=  NULL && strstr(home, "://")) {
-     if (fs_ != NULL)
-       delete fs_;
+     if (fs_ != NULL) {
+        delete fs_;
+        fs_ = NULL;
+     }
      home_ = std::string(home, strlen(home));
      if (is_azure_blob_storage_path(home_)) {
        try {
