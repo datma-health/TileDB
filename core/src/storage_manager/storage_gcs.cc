@@ -164,11 +164,12 @@ GCS::GCS(const std::string& home) {
   gcs::ChannelOptions channel_options;
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
-    std::cerr << "CA Certs path not located" << std::endl;
+#ifdef DEBUG
+    std::cerr << "CA Certs path not located. Using defaults" << std::endl;
+#endif
   } else {
     channel_options.set_ssl_root_path(ca_certs_location);
   }
-  std::cerr << "CA Certs path=" << ca_certs_location << std::endl;
   auto client_options = gcs::ClientOptions::CreateDefaultClientOptions(channel_options);
 #else
   auto client_options = gcs::ClientOptions::CreateDefaultClientOptions();
@@ -223,9 +224,7 @@ int GCS::create_path(const std::string& path) {
   StatusOr<gcs::ObjectMetadata> object_metadata =
       client_->InsertObject(bucket_name_, get_path(path), "");
   if (!object_metadata) {
-    std::cerr << "Error inserting object " << path << " in bucket "
-              << bucket_name_ << ", status=" << object_metadata.status()
-              << std::endl;
+    GCS_ERROR1("Error inserting object into bucket", object_metadata.status(), path);
     return TILEDB_FS_ERR;
   } else {
     return TILEDB_FS_OK;

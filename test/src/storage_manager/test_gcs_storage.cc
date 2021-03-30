@@ -123,6 +123,14 @@ TEST_CASE_METHOD(GCSTestFixture, "Test GCS dir", "[dir]") {
   CHECK(gcs_instance->get_dirs("non-existent-dir").size() == 0);
   CHECK(gcs_instance->get_files("non-existent-dir").size() == 0);
 
+  // Try directories with trailing slash
+  std::string test_dir1 = test_dir + "1/";
+  CHECK_RC(gcs_instance->create_dir(test_dir1), TILEDB_FS_OK);
+  CHECK(gcs_instance->is_dir(test_dir1));
+  CHECK(gcs_instance->is_dir(test_dir + "1"));
+  CHECK(!gcs_instance->is_file(test_dir1));
+  CHECK(!gcs_instance->is_file(test_dir1 + "1"));
+
   // TBD: move_path
   std::string new_dir = test_dir+"-new";
   CHECK_THROWS(gcs_instance->move_path(test_dir, new_dir));

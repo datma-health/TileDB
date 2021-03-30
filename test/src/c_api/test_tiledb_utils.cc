@@ -68,9 +68,10 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path+".new") == -1); // NOT_DIR
 
   // Try paths with trailing slashes
-  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path+"1/") == 0); // OK
-  CHECK(TileDBUtils::is_dir(workspace_path+"/"));
-  CHECK(TileDBUtils::is_file(workspace_path+"/"+TILEDB_WORKSPACE_FILENAME));
+  workspace_path = workspace_path+"1/";
+  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path) == 0); // OK
+  CHECK(TileDBUtils::is_dir(workspace_path));
+  CHECK(TileDBUtils::is_file(workspace_path+TILEDB_WORKSPACE_FILENAME));
 }
 
 TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
@@ -106,9 +107,10 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
 
   // Try paths with trailing slashes
-  CHECK(TileDBUtils::create_workspace(workspace_path+"1/") == TILEDB_OK);
-  CHECK(TileDBUtils::is_dir(workspace_path+"/"));
-  CHECK(TileDBUtils::is_file(workspace_path+"/"+TILEDB_WORKSPACE_FILENAME));
+  workspace_path = workspace_path + "1/";
+  CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
+  CHECK(TileDBUtils::is_dir(workspace_path));
+  CHECK(TileDBUtils::is_file(workspace_path+TILEDB_WORKSPACE_FILENAME));
 }
 
 TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
@@ -137,7 +139,7 @@ TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
   CHECK(TileDBUtils::array_exists(input_ws, arrays[0]));
 
   // Try paths with trailing slashes
-  input_ws = std::string(TILEDB_TEST_DIR)+"/inputs/compatibility_gdb_pre100_ws/";
+  input_ws = input_ws + "/";
   CHECK(TileDBUtils::workspace_exists(input_ws));
   CHECK(TileDBUtils::array_exists(input_ws, array_name));
 }
