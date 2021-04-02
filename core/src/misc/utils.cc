@@ -307,7 +307,7 @@ int delete_file(StorageFS *fs, const std::string& filename) {
 
 int create_fragment_file(StorageFS *fs, const std::string& dir) {
   // Create the special fragment file
-  std::string filename = std::string(dir) + "/" + TILEDB_FRAGMENT_FILENAME;
+  std::string filename = fs->append_paths(dir, TILEDB_FRAGMENT_FILENAME);
   if (fs->create_file(filename, O_WRONLY | O_CREAT | O_SYNC,  S_IRWXU) == TILEDB_UT_ERR) {
     UTILS_PATH_ERROR("Failed to create fragment file", dir);
     return TILEDB_UT_ERR;
@@ -613,7 +613,7 @@ bool intersect(const std::vector<T>& v1, const std::vector<T>& v2) {
 
 bool is_array(StorageFS *fs, const std::string& dir) {
   // Check existence
-  return is_file(fs, dir + "/" + TILEDB_ARRAY_SCHEMA_FILENAME);
+  return fs->is_file(fs->append_paths(dir, TILEDB_ARRAY_SCHEMA_FILENAME));
 }
 
 template<class T>
@@ -638,17 +638,17 @@ bool is_file(StorageFS *fs, const std::string& file) {
 
 bool is_fragment(StorageFS *fs, const std::string& dir) {
   // Check existence
-  return fs->is_file(dir + '/' + TILEDB_FRAGMENT_FILENAME);
+  return fs->is_file(fs->append_paths(dir, TILEDB_FRAGMENT_FILENAME));
 }
 
 bool is_group(StorageFS *fs, const std::string& dir) {
   // Check existence
-  return fs->is_file(dir + '/' + TILEDB_GROUP_FILENAME);
+  return fs->is_file(fs->append_paths(dir, TILEDB_GROUP_FILENAME));
 }
 
 bool is_metadata(StorageFS *fs, const std::string& dir) {
   // Check existence
-  return fs->is_file(dir + '/' + TILEDB_METADATA_SCHEMA_FILENAME);
+  return fs->is_file(fs->append_paths(dir, TILEDB_METADATA_SCHEMA_FILENAME));
 }
 
 bool is_positive_integer(const char* s) {
@@ -683,7 +683,7 @@ bool is_unary_subarray(const T* subarray, int dim_num) {
 
 bool is_workspace(StorageFS *fs, const std::string& dir) {
   // Check existence
-  return fs->is_file(dir + '/' + TILEDB_WORKSPACE_FILENAME);
+  return fs->is_file(fs->append_paths(dir, TILEDB_WORKSPACE_FILENAME));
 }
 
 #ifdef HAVE_MPI

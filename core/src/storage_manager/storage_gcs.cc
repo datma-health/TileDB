@@ -36,6 +36,8 @@
 #include "storage_gcs.h"
 #include "storage_posixfs.h"
 
+#include "google/cloud/storage/client_options.h"
+
 #include <cerrno>
 #include <cstring>
 #include <clocale>
@@ -148,7 +150,7 @@ hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) 
 
 
 GCS::GCS(const std::string& home) {
-   gcs_uri path_uri(home);
+  gcs_uri path_uri(home);
 
   if (path_uri.protocol().compare("gs") != 0) {
     throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "GCS FS only supports gs:// URI protocols");
@@ -157,8 +159,30 @@ GCS::GCS(const std::string& home) {
   if (path_uri.bucket().size() == 0) {
     throw std::system_error(EPROTO, std::generic_category(), "GS URI does not seem to have a bucket specified");
   }
-  
-  client_ = gcs::Client::CreateDefaultClient();
+
+#ifdef __linux__
+  gcs::ChannelOptions channel_options;
+  std::string ca_certs_location = locate_ca_certs();
+  if (ca_certs_location.empty()) {
+#ifdef DEBUG
+    std::cerr << "CA Certs path not located. Using defaults" << std::endl;
+#endif
+  } else {
+    channel_options.set_ssl_root_path(ca_certs_location);
+  }
+  auto client_options = gcs::ClientOptions::CreateDefaultClientOptions(channel_options);
+#else
+  auto client_options = gcs::ClientOptions::CreateDefaultClientOptions();
+#endif
+  if (!client_options) {
+    throw std::system_error(EIO, std::generic_category(), "Failed to create default GCS Client Options. "+
+                            client_options.status().message());
+  }
+  // TODO: All the Policies seem to be internal with internal visibility. Leaving them as defaults for now
+  // client_ = gcs::Client(*client_options, gcs::StrictIdempotencyPolicy(),
+  //                                        gcs::AlwaysRetryIdempotencyPolicy(),
+  //                                        gcs::LimitedErrorCountRetryPolicy(20));
+  client_ = gcs::Client(*client_options);
   if (!client_) {
     throw std::system_error(EIO, std::generic_category(), "Failed to create GCS Client"+client_.status().message());
   }
@@ -200,9 +224,7 @@ int GCS::create_path(const std::string& path) {
   StatusOr<gcs::ObjectMetadata> object_metadata =
       client_->InsertObject(bucket_name_, get_path(path), "");
   if (!object_metadata) {
-    std::cerr << "Error inserting object " << path << " in bucket "
-              << bucket_name_ << ", status=" << object_metadata.status()
-              << std::endl;
+    GCS_ERROR1("Error inserting object into bucket", object_metadata.status(), path);
     return TILEDB_FS_ERR;
   } else {
     return TILEDB_FS_OK;

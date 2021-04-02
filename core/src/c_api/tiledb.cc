@@ -96,18 +96,19 @@ int tiledb_ctx_init(
   // Initialize context
   *tiledb_ctx = (TileDB_CTX*) malloc(sizeof(struct TileDB_CTX));
   if(*tiledb_ctx == NULL) {
-    std::string errmsg = 
+    std::string errmsg =
         "Cannot initialize TileDB context; Failed to allocate memory "
         "space for the context";
     PRINT_ERROR(errmsg);
     strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
     return TILEDB_ERR;
   }
+  memset(*tiledb_ctx, 0, sizeof(struct TileDB_CTX));
 
   // Initialize a Config object
-  StorageManagerConfig* config = new StorageManagerConfig();
-  if(tiledb_config != NULL)
-    if (config->init(
+  StorageManagerConfig* storage_manager_config = new StorageManagerConfig();
+  if(tiledb_config != NULL) {
+    if (storage_manager_config->init(
         tiledb_config->home_, 
 #ifdef HAVE_MPI
         tiledb_config->mpi_comm_, 
@@ -115,34 +116,44 @@ int tiledb_ctx_init(
         tiledb_config->read_method_, 
         tiledb_config->write_method_,
         tiledb_config->enable_shared_posixfs_optimizations_) == TILEDB_SMC_ERR) {
+      delete storage_manager_config;
+      free(*tiledb_ctx);
+      *tiledb_ctx = NULL;
       strcpy(tiledb_errmsg, tiledb_smc_errmsg.c_str());
       return TILEDB_ERR;
     }
+  }
 
   // Create storage manager
-  (*tiledb_ctx)->storage_manager_ = new StorageManager();
-  if((*tiledb_ctx)->storage_manager_->init(config) != TILEDB_SM_OK) {
+  StorageManager* storage_manager = new StorageManager();
+  if(storage_manager->init(storage_manager_config) != TILEDB_SM_OK) {
+    // No need to delete storage_manager_config as StorageManager owns it at this point
+    // See StorageManager::config_set().
+    delete storage_manager;
+    free(*tiledb_ctx);
+    *tiledb_ctx = NULL;
     strcpy(tiledb_errmsg, tiledb_sm_errmsg.c_str());
     return TILEDB_ERR;
   }
+  (*tiledb_ctx)->storage_manager_ = storage_manager;
 
   // Success
   return TILEDB_OK;
 }
 
 int tiledb_ctx_finalize(TileDB_CTX* tiledb_ctx) {
-
   // Trivial case
   if(tiledb_ctx == NULL)
     return TILEDB_OK;
 
   // Finalize storage manager
   int rc = TILEDB_OK;
-  if(tiledb_ctx->storage_manager_ != NULL)
+  if(tiledb_ctx->storage_manager_ != NULL) {
     rc = tiledb_ctx->storage_manager_->finalize();
+    delete tiledb_ctx->storage_manager_;
+  }
 
   // Clean up
-  delete tiledb_ctx->storage_manager_;
   free(tiledb_ctx);
 
   // Error

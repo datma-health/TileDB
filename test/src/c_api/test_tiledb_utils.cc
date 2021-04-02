@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +66,12 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path+".new", true) == -1); // NOT_DIR
   
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path+".new") == -1); // NOT_DIR
+
+  // Try paths with trailing slashes
+  workspace_path = workspace_path+"1/";
+  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path) == 0); // OK
+  CHECK(TileDBUtils::is_dir(workspace_path));
+  CHECK(TileDBUtils::is_file(workspace_path+TILEDB_WORKSPACE_FILENAME));
 }
 
 TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
@@ -99,6 +105,12 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::delete_dir(workspace_path) == TILEDB_OK);
 
   CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
+
+  // Try paths with trailing slashes
+  workspace_path = workspace_path + "1/";
+  CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
+  CHECK(TileDBUtils::is_dir(workspace_path));
+  CHECK(TileDBUtils::is_file(workspace_path+TILEDB_WORKSPACE_FILENAME));
 }
 
 TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
@@ -125,6 +137,11 @@ TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
   arrays = TileDBUtils::get_array_names(input_ws+"/");
   CHECK(arrays.size()==1);
   CHECK(TileDBUtils::array_exists(input_ws, arrays[0]));
+
+  // Try paths with trailing slashes
+  input_ws = input_ws + "/";
+  CHECK(TileDBUtils::workspace_exists(input_ws));
+  CHECK(TileDBUtils::array_exists(input_ws, array_name));
 }
 
 TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {

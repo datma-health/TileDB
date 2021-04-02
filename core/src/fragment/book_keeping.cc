@@ -280,9 +280,9 @@ int BookKeeping::finalize(StorageFS *fs) {
     return TILEDB_BK_ERR;
 
   // Prepare file name 
-  std::string filename = fragment_name_ + "/" +
-                         TILEDB_BOOK_KEEPING_FILENAME + 
-                         TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX;
+  std::string filename = fs->append_paths(fragment_name_,
+                                          std::string(TILEDB_BOOK_KEEPING_FILENAME) + 
+                                          TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX);
 
   if(write_to_file_after_compression(fs, filename.c_str(), buffer_.get_buffer(), buffer_.get_buffer_size(), TILEDB_GZIP) == TILEDB_UT_ERR) {
     std::string errmsg =
@@ -368,9 +368,9 @@ int BookKeeping::init(const void* non_empty_domain) {
  */
 int BookKeeping::load(StorageFS *fs) {
   // Prepare file name
-  std::string filename = fragment_name_ + "/" +
-                         TILEDB_BOOK_KEEPING_FILENAME + 
-                         TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX;
+  std::string filename = fs->append_paths(fragment_name_,
+                                          std::string(TILEDB_BOOK_KEEPING_FILENAME) + 
+                                          TILEDB_FILE_SUFFIX + TILEDB_GZIP_SUFFIX);
 
   // Open book-keeping file
   size_t size;

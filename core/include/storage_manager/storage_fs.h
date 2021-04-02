@@ -37,6 +37,7 @@
 
 #include "uri.h"
 
+#include <cstring>
 #include <string>
 #include <sys/stat.h>
 #include <system_error>
@@ -110,7 +111,7 @@ class StorageFS {
     }
   }
 
-  std::string slashify(const std::string& path) const {
+  static inline std::string slashify(const std::string& path) {
     if (path.empty()) {
       return "/";
     } else if (path.back() != '/') {
@@ -120,12 +121,16 @@ class StorageFS {
     }
   }
 
-  std::string unslashify(const std::string& path) const {
+  static inline std::string unslashify(const std::string& path) {
     if (!path.empty() && path.back() == '/') {
       return path.substr(0, path.size()-1);
     } else {
       return path;
     }
+  }
+
+  static inline std::string append_paths(const std::string& path1, const std::string& path2) {
+    return slashify(path1) + path2;
   }
 
  protected:
@@ -155,6 +160,30 @@ class StorageCloudFS : public virtual StorageFS {
 
  protected:
   std::string get_path(const std::string& path);
+
+#ifdef __linux__
+  // Possible certificate files; stop after finding one.
+  // https://github.com/golang/go/blob/f0e940ebc985661f54d31c8d9ba31a553b87041b/src/crypto/x509/root_linux.go#L7
+  const std::vector<std::string> possible_ca_certs_locations = {
+    "/etc/ssl/certs/ca-certificates.crt",                // Debian/Ubuntu/Gentoo etc.
+    "/etc/pki/tls/certs/ca-bundle.crt",                  // Fedora/RHEL 6
+    "/etc/ssl/ca-bundle.pem",                            // OpenSUSE
+    "/etc/pki/tls/cacert.pem",                           // OpenELEC
+    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
+    "/etc/ssl/cert.pem",                                 // Alpine Linux
+  };
+
+  std::string locate_ca_certs() {
+    for (const std::string& location : possible_ca_certs_locations) {
+      struct stat st;
+      memset(&st, 0, sizeof(struct stat));
+      if (!stat(location.c_str(), &st) && S_ISREG(st.st_mode)) {
+	return location;
+      }
+    }
+    return "";
+  }
+#endif
 
  protected:
   std::string working_dir_;
