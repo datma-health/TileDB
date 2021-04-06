@@ -112,8 +112,6 @@ char *parse_json(char *filename, const char *key) {
   return NULL;
 }
 
-#define GCS_PREFIX "gs://"
-
 hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir) {
   char *value = NULL;
 
@@ -178,11 +176,14 @@ GCS::GCS(const std::string& home) {
     throw std::system_error(EIO, std::generic_category(), "Failed to create default GCS Client Options. "+
                             client_options.status().message());
   }
-  // TODO: All the Policies seem to be internal with internal visibility. Leaving them as defaults for now
-  // client_ = gcs::Client(*client_options, gcs::StrictIdempotencyPolicy(),
-  //                                        gcs::AlwaysRetryIdempotencyPolicy(),
-  //                                        gcs::LimitedErrorCountRetryPolicy(20));
-  client_ = gcs::Client(*client_options);
+  // Policy defaults are from <gatk>/src/main/java/org/broadinstitute/hellbender/utils/gcs/BucketUtils.java.
+  client_ = gcs::Client(*client_options,
+                        gcs::StrictIdempotencyPolicy(),
+                        gcs::AlwaysRetryIdempotencyPolicy(),
+                        gcs::LimitedErrorCountRetryPolicy(15),
+                        gcs::LimitedTimeRetryPolicy(std::chrono::milliseconds(4000000)),
+                        gcs::ExponentialBackoffPolicy(std::chrono::milliseconds(1000), std::chrono::milliseconds(256000), 2.0));
+
   if (!client_) {
     throw std::system_error(EIO, std::generic_category(), "Failed to create GCS Client"+client_.status().message());
   }

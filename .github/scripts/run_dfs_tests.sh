@@ -43,6 +43,7 @@ if [[ $INSTALL_TYPE == hdfs ]]; then
 elif [[ $INSTALL_TYPE == gcs ]]; then
   tiledb_utils_tests "gs://$GS_BUCKET/$TEST" &&
     time  $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$TEST"
+  time  $GITHUB_WORKSPACE/examples/run_examples.sh "gsa://$GS_BUCKET/$TEST/gsa"
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
