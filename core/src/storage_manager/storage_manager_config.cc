@@ -89,7 +89,8 @@ int StorageManagerConfig::init(
 #endif
     int read_method,
     int write_method,
-    const bool enable_shared_posixfs_optimizations) {
+    const bool enable_shared_posixfs_optimizations,
+    const bool use_gcs_hdfs_connector) {
   // Initialize home
   if (home !=  NULL && strstr(home, "://")) {
      if (fs_ != NULL) {
@@ -113,7 +114,7 @@ int StorageManagerConfig::init(
 	 tiledb_smc_errmsg = "S3 Storage intialization failed for home=" + home_;
 	 return TILEDB_SMC_ERR;
        }
-     } else if (is_gcs_path(home_)) {
+     } else if (is_gcs_path(home_) && !is_env_set("TILEDB_USE_GCS_HDFS_CONNECTOR") && !use_gcs_hdfs_connector) {
        try {
           fs_ = new GCS(home_);
        } catch(std::system_error& ex) {
