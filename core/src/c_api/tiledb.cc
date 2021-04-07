@@ -115,7 +115,8 @@ int tiledb_ctx_init(
 #endif
         tiledb_config->read_method_, 
         tiledb_config->write_method_,
-        tiledb_config->enable_shared_posixfs_optimizations_) == TILEDB_SMC_ERR) {
+        tiledb_config->enable_shared_posixfs_optimizations_,
+        tiledb_config->use_gcs_hdfs_connector_) == TILEDB_SMC_ERR) {
       delete storage_manager_config;
       free(*tiledb_ctx);
       *tiledb_ctx = NULL;

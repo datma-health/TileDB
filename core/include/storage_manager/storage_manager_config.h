@@ -108,6 +108,7 @@ class StorageManagerConfig {
    *        - TILEDB_IO_MPI
    *          TileDB will use MPI-IO write.
    * @param enable_shared_posixfs_optimizations in POSIX fs if set
+   * @param use_gcs_hdfs_connector use google cloud connector if set
    * @return void. 
    */
   int init(
@@ -115,7 +116,8 @@ class StorageManagerConfig {
       MPI_Comm* mpi_comm,
       int read_method,
       int write_methods,
-      const bool enable_shared_posixfs_optimizations);
+      const bool enable_shared_posixfs_optimizations,
+      const bool use_gcs_hdfs_connector);
 #else
   /**
    * Initializes the configuration parameters.
@@ -142,7 +144,8 @@ class StorageManagerConfig {
       const char* home,
       int read_method,
       int write_method,
-      const bool enable_shared_posixfs_optimizations);
+      const bool enable_shared_posixfs_optimizations,
+      const bool use_gcs_hdfs_connector);
 #endif
  
   /* ********************************* */
