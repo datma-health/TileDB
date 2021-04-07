@@ -110,7 +110,7 @@ hdfsFS hdfs_connect(uri path_uri, const std::string& name_node) {
     hdfsBuilderSetNameNodePort(builder, path_uri.nport());
   }
   
-  if (path_uri.protocol().compare("gsa") == 0) {
+  if (path_uri.protocol().compare("gs") == 0) {
     hdfs_handle = gcs_connect(builder, path_uri.path());
   } else {
     hdfs_handle = hdfsBuilderConnect(builder);
