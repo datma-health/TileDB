@@ -35,6 +35,7 @@
 #include "uri.h"
 #include "utils.h"
 
+#include <aws/core/client/DefaultRetryStrategy.h>
 #include <aws/s3/model/Bucket.h>
 #include <aws/s3/model/AbortMultipartUploadRequest.h>
 #include <aws/s3/model/CreateMultipartUploadRequest.h>
@@ -59,6 +60,7 @@ std::once_flag awssdk_init_api_flag;
 std::shared_ptr<Aws::SDKOptions> awssdk_options;
 void awssdk_init_api() {
   awssdk_options = std::make_shared<Aws::SDKOptions>();
+  //  awssdk_options->loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
   Aws::InitAPI(*awssdk_options.get());
 }
 
@@ -84,6 +86,8 @@ S3::S3(const std::string& home) {
     client_config.endpointOverride = Aws::String(env_var);
     useVirtualAddressing = false;
   }
+  std::shared_ptr<Aws::Client::DefaultRetryStrategy> retryStrategy = std::make_shared<Aws::Client::DefaultRetryStrategy>(15, 2);
+  client_config.retryStrategy = retryStrategy;
   client_ = std::make_shared<Aws::S3::S3Client>(client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAddressing);
 
   bool bucket_exists = false;
@@ -92,11 +96,16 @@ S3::S3(const std::string& home) {
     Aws::Vector<Aws::S3::Model::Bucket> buckets = outcome.GetResult().GetBuckets();
     for (Aws::S3::Model::Bucket& bucket : buckets) {
       if (bucket.GetName().compare(path_uri.bucket()) == 0) {
-        bucket_exists = true;
-        break;
+	bucket_exists = true;
+	break;
       }
     }
+  } else {
+    throw std::system_error(EIO, std::generic_category(),
+			    std::string("S3 FS error while trying to locate bucket for ")+
+			    home+"\n"+ outcome.GetError().GetMessage());
   }
+
   if (!bucket_exists) {
     throw std::system_error(EIO, std::generic_category(), "S3 FS only supports already existing buckets. Create bucket from either the aws CLI or the aws storage portal before restarting operation");
   }
