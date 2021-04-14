@@ -50,16 +50,26 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
     return TILEDB_BF_ERR;
   }
 
+  if (fs_->get_download_buffer_size() == 0) {
+    BUFFER_PATH_ERROR("Cannot perform buffered reads as there is no download buffer size set", filename_);
+    return TILEDB_BF_ERR;
+  }
+
   size_t filesize = (size_t)filesize_;
+  if (filesize == TILEDB_BF_ERR) {
+    BUFFER_PATH_ERROR("File does not seem to exist", filename_);
+    return TILEDB_BF_ERR;
+  }
+
   size_t chunk_size = fs_->get_download_buffer_size();
   if (offset + size > filesize) {
     BUFFER_PATH_ERROR("Cannot read past the filesize from buffer", filename_);
     return TILEDB_BF_ERR;  
   }
 
-  if (buffer_ == NULL || !(offset>=buffer_offset_ && size<=buffer_size_)) {
-    buffer_offset_ = offset - offset%chunk_size;
-    buffer_size_ = ((buffer_offset_%chunk_size+size)/chunk_size+1)*chunk_size;
+  if (buffer_ == NULL || !(offset>=buffer_offset_ && (offset+size)<=(buffer_offset_+buffer_size_))) {
+    buffer_offset_ = offset;
+    buffer_size_ = ((size/chunk_size)+1)*chunk_size;
     // Factor in last chunk
     if (buffer_offset_+buffer_size_ > filesize) {
       buffer_size_ = filesize-buffer_offset_;
@@ -72,7 +82,6 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
       }
       allocated_buffer_size_ = buffer_size_;
     }
-    
     if (fs_->read_from_file(filename_, buffer_offset_, (char *)buffer_, buffer_size_)) {
       free_buffer();
       BUFFER_PATH_ERROR("Cannot read to buffer", filename_);
@@ -82,6 +91,7 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
   
   assert(offset >= buffer_offset_);
   assert(size <= buffer_size_);
+  assert(offset-buffer_offset_ <= buffer_size_);
   
   void *pmem = memcpy(bytes, (char *)buffer_+offset-buffer_offset_, size);
   assert(pmem == bytes);
@@ -99,6 +109,11 @@ int StorageBuffer::append_buffer(const void *bytes, size_t size) {
   // Nothing to do
   if (bytes == NULL || size == 0) {
     return TILEDB_BF_OK;
+  }
+
+  if (fs_->get_upload_buffer_size() == 0) {
+    BUFFER_PATH_ERROR("Cannot perform buffered writes as there is no upload buffer size set", filename_);
+    return TILEDB_BF_ERR;
   }
 
   size_t chunk_size = fs_->get_upload_buffer_size();
