@@ -133,7 +133,6 @@ class StorageFS {
     return slashify(path1) + path2;
   }
 
- protected:
   size_t download_buffer_size_ = 0;
   size_t upload_buffer_size_ = 0;
 };

@@ -277,7 +277,7 @@ int Codec::decompress_tile(unsigned char* tile_compressed, size_t tile_compresse
     buffer = pre_compression_filter_->buffer();
   }
   if (do_decompress_tile(tile_compressed, tile_compressed_size, buffer, tile_size)) {
-    return print_errmsg("Could not compress with " + name());
+    return print_errmsg("Could not decompress with " + name());
   }
   if (pre_compression_filter_) {
     if (pre_compression_filter_->decode(tile, tile_size) != 0) {
