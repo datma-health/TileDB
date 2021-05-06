@@ -72,6 +72,23 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path) == 0); // OK
   CHECK(TileDBUtils::is_dir(workspace_path));
   CHECK(TileDBUtils::is_file(workspace_path+TILEDB_WORKSPACE_FILENAME));
+
+  // Check out real dir
+  auto real_workspace_path = TileDBUtils::real_dir(workspace_path);
+  if (TileDBUtils::is_cloud_path(workspace_path)) {
+    CHECK(real_workspace_path == workspace_path);
+  } else {
+    CHECK(real_workspace_path.find("//") == std::string::npos);
+    CHECK(real_workspace_path.find("../") == std::string::npos);
+  }
+  auto non_existent_path = workspace_path+"2";
+  auto real_non_existent_path = TileDBUtils::real_dir(non_existent_path);
+  if (TileDBUtils::is_cloud_path(workspace_path)) {
+    CHECK(real_non_existent_path == non_existent_path);
+  } else {
+    CHECK(real_non_existent_path.find("//") == std::string::npos);
+    CHECK(real_non_existent_path.find("../") == std::string::npos);
+  }
 }
 
 TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {

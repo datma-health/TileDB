@@ -1848,6 +1848,13 @@ bool is_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir) {
   return invoke_bool_fs_fn(tiledb_ctx, dir, &is_dir);
 }
 
+std::string real_dir(const TileDB_CTX* tiledb_ctx, const std::string& dirpath) {
+   if (sanity_check_fs(tiledb_ctx)) {
+    return real_dir(tiledb_ctx->storage_manager_->get_config()->get_filesystem(), dirpath);
+  }
+  return dirpath;
+}
+
 bool is_file(const TileDB_CTX* tiledb_ctx, const std::string& file) {
   return invoke_bool_fs_fn(tiledb_ctx, file, &is_file);
 }

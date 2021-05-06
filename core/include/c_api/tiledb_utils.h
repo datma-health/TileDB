@@ -58,6 +58,8 @@ std::vector<std::string> get_fragment_names(const std::string& workspace);
 
 bool is_dir(const std::string& dirpath);
 
+std::string real_dir(const std::string& dirpath);
+
 int create_dir(const std::string& dirpath);
 
 int delete_dir(const std::string& dirpath);

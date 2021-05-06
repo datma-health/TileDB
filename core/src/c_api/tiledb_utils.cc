@@ -220,6 +220,21 @@ bool is_dir(const std::string& dirpath)
   return check;
 }
 
+std::string real_dir(const std::string& dirpath) {
+  if (is_cloud_path(dirpath)) {
+    return dirpath;
+  } else {
+    TileDB_CTX *tiledb_ctx;
+    if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+      FINALIZE;
+      return dirpath;
+    }
+    std::string real_dirpath = real_dir(tiledb_ctx, dirpath);
+    finalize(tiledb_ctx);
+    return real_dirpath;
+  }
+}
+
 int create_dir(const std::string& dirpath)
 {
   TileDB_CTX *tiledb_ctx;

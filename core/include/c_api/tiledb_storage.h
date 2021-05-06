@@ -94,6 +94,16 @@ bool is_metadata(const TileDB_CTX* tiledb_ctx, const std::string& dir);
  */ 
 bool is_dir(const TileDB_CTX* tiledb_ctx, const std::string& dir);
 
+/**
+ * Returns absolute path for given path only for posix filesystems.
+ * For cloud data stores, this is a noop and returns the given path.
+ *
+ * @param tiledb_ctx TileDB Context
+ * @param dir The directory to be checked.
+ * @return *true* if *dir* is an existing directory, and *false* otherwise.
+ */
+std::string real_dir(const TileDB_CTX* tiledb_ctx, const std::string& dirpath);
+
 /** 
  * Checks if the input is an existing file. 
  *
