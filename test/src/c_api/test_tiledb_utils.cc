@@ -95,9 +95,13 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   std::string workspace_path = get_temp_dir()+"/"+workspace;
 
   REQUIRE(!TileDBUtils::workspace_exists(workspace_path));
+  REQUIRE(TileDBUtils::get_dirs(workspace_path).size() == 0);
+  REQUIRE(TileDBUtils::get_files(workspace_path).size() == 0);
   
   REQUIRE(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
   CHECK(TileDBUtils::workspace_exists(workspace_path));
+  REQUIRE(TileDBUtils::get_dirs(workspace_path).size() == 0);
+  REQUIRE(TileDBUtils::get_files(workspace_path).size() == 1);
   
   CHECK(TileDBUtils::create_workspace(workspace_path, false) == 1); // EXISTS not REPLACED
   CHECK(TileDBUtils::workspace_exists(workspace_path));
@@ -147,6 +151,8 @@ TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
   std::string array_name("t0_1_2");
   CHECK(TileDBUtils::workspace_exists(input_ws));
   CHECK(TileDBUtils::array_exists(input_ws, array_name));
+  REQUIRE(TileDBUtils::get_dirs(input_ws).size() == 1);
+  REQUIRE(TileDBUtils::get_files(input_ws).size() == 1);
 
   std::vector<std::string> arrays = TileDBUtils::get_array_names(input_ws);
   CHECK(arrays.size()==1);
