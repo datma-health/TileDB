@@ -101,7 +101,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   REQUIRE(TileDBUtils::create_workspace(workspace_path, false) == TILEDB_OK);
   CHECK(TileDBUtils::workspace_exists(workspace_path));
   REQUIRE(TileDBUtils::get_dirs(workspace_path).size() == 0);
-  REQUIRE(TileDBUtils::get_files(workspace_path).size() == 1 || TileDBUtils::get_files(workspace_path).size() == 2/*az keeps marker files for dirs*/);
+  REQUIRE(TileDBUtils::get_files(workspace_path).size() >= 1);
   
   CHECK(TileDBUtils::create_workspace(workspace_path, false) == 1); // EXISTS not REPLACED
   CHECK(TileDBUtils::workspace_exists(workspace_path));
