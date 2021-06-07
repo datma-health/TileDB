@@ -271,6 +271,28 @@ bool is_file(const std::string& filepath)
   return check;
 }
 
+std::vector<std::string> get_dirs(const std::string& dirpath) {
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    FINALIZE;
+    return {};
+  }
+  auto dirs = get_dirs(tiledb_ctx, dirpath);
+  finalize(tiledb_ctx);
+  return dirs;
+}
+
+std::vector<std::string> get_files(const std::string& dirpath) {
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(dirpath))) {
+    FINALIZE;
+    return {};
+  }
+  auto files = get_files(tiledb_ctx, dirpath);;
+  finalize(tiledb_ctx);
+  return files;
+}
+
 static int check_file(TileDB_CTX *tiledb_ctx, std::string filename) {
   if (is_dir(tiledb_ctx, filename)) {
     snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "File path=%s exists as a directory\n", filename.c_str());

@@ -66,6 +66,10 @@ int delete_dir(const std::string& dirpath);
 
 bool is_file(const std::string& filepath);
 
+std::vector<std::string> get_dirs(const std::string& dirpath);
+
+std::vector<std::string> get_files(const std::string& dirpath);
+
 /**
  * buffer is malloc'ed and has to be freed by calling function
  */
