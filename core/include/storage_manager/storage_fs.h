@@ -180,6 +180,13 @@ class StorageCloudFS : public virtual StorageFS {
 	return location;
       }
     }
+#ifdef DEBUG
+    std::cerr << "CA Certs path not located. Using system defaults" << std::endl;
+#endif
+    return "";
+  }
+#else
+  std::string locate_ca_certs() {
     return "";
   }
 #endif

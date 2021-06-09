@@ -88,6 +88,10 @@ S3::S3(const std::string& home) {
   }
   std::shared_ptr<Aws::Client::DefaultRetryStrategy> retryStrategy = std::make_shared<Aws::Client::DefaultRetryStrategy>(15, 2);
   client_config.retryStrategy = retryStrategy;
+  std::string ca_certs_location = locate_ca_certs();
+  if (!ca_certs_location.empty()) {
+    client_config.caFile = ca_certs_location.c_str();
+  }
   client_ = std::make_shared<Aws::S3::S3Client>(client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAddressing);
 
   bool bucket_exists = false;

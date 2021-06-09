@@ -158,20 +158,12 @@ GCS::GCS(const std::string& home) {
     throw std::system_error(EPROTO, std::generic_category(), "GS URI does not seem to have a bucket specified");
   }
 
-#ifdef __linux__
   gcs::ChannelOptions channel_options;
   std::string ca_certs_location = locate_ca_certs();
-  if (ca_certs_location.empty()) {
-#ifdef DEBUG
-    std::cerr << "CA Certs path not located. Using defaults" << std::endl;
-#endif
-  } else {
+  if (!ca_certs_location.empty()) {
     channel_options.set_ssl_root_path(ca_certs_location);
   }
   auto client_options = gcs::ClientOptions::CreateDefaultClientOptions(channel_options);
-#else
-  auto client_options = gcs::ClientOptions::CreateDefaultClientOptions();
-#endif
   if (!client_options) {
     throw std::system_error(EIO, std::generic_category(), "Failed to create default GCS Client Options. "+
                             client_options.status().message());

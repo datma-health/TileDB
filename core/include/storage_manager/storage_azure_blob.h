@@ -48,7 +48,7 @@
 
 using namespace azure::storage_lite;
 
-class AzureBlob : public StorageFS {
+class AzureBlob : public StorageCloudFS {
  public:
   AzureBlob(const std::string& home);
 
@@ -73,11 +73,7 @@ class AzureBlob : public StorageFS {
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);
   
-  int move_path(const std::string& old_path, const std::string& new_path);
-    
   int sync_path(const std::string& path);
-
-  int close_file(const std::string& filename);
 
   bool locking_support();
 
