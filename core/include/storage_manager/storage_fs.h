@@ -38,6 +38,7 @@
 #include "uri.h"
 
 #include <cstring>
+#include <iostream>
 #include <string>
 #include <sys/stat.h>
 #include <system_error>
