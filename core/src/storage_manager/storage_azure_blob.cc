@@ -117,7 +117,6 @@ static std::string get_sas_token(const std::string& account_name) {
   return "";
 }
 
-
 static std::string get_blob_endpoint() {
   // Get enviroment variable for AZURE_BLOB_ENDPOINT
   std::string az_blob_endpoint("");
@@ -206,7 +205,13 @@ AzureBlob::AzureBlob(const std::string& home) {
                             "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
   }
 
-  blob_client_ = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
+  std::string ca_certs_location = locate_ca_certs();
+  if (ca_certs_location.empty()) {
+    blob_client_ = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
+  } else {
+    blob_client_ = std::make_shared<blob_client>(account, std::thread::hardware_concurrency(), ca_certs_location);
+  }
+  
   bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
   blob_client_wrapper_ = reinterpret_cast<blob_client_wrapper *>(bc_wrapper_.get());
 
@@ -497,10 +502,6 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
   return TILEDB_FS_OK;
 }
 
-int AzureBlob::move_path(const std::string& old_path, const std::string& new_path) {
-  throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TBD: No support for moving path");
-}
-
 int AzureBlob::commit_file(const std::string& path) {
   auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   int rc = TILEDB_FS_OK;
@@ -523,10 +524,6 @@ int AzureBlob::commit_file(const std::string& path) {
 
 int AzureBlob::sync_path(const std::string& path) {
   return commit_file(path);
-}
-
-int AzureBlob::close_file(const std::string& filename) {
-  return commit_file(filename);
 }
 
 bool AzureBlob::locking_support() {
