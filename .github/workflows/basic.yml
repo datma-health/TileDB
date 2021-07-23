@@ -11,7 +11,7 @@ on:
 env:
   CMAKE_BUILD_TYPE: Coverage
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
-  HADOOP_VER: 3.2.1
+  HADOOP_VER: 3.2.2
   AWSSDK_VER: 1.8.114
   AWSSDK_ROOT_DIR: ${{github.workspace}}/awssdk
 
