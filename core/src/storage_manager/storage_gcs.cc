@@ -30,8 +30,6 @@
  * GCS Support for StorageFS
  */
 
-#ifdef USE_HDFS
-
 #include "error.h"
 #include "storage_gcs.h"
 #include "storage_posixfs.h"
@@ -51,6 +49,8 @@
 
 #define GCS_ERROR(MSG, PATH) PATH_ERROR(TILEDB_FS_ERRMSG, "GCS: "+MSG, PATH, tiledb_fs_errmsg)
 #define GCS_ERROR1(MSG, STATUS, PATH) PATH_ERROR(TILEDB_FS_ERRMSG, "GCS: "+MSG+" "+STATUS.message(), PATH, tiledb_fs_errmsg)
+
+#ifdef USE_HDFS
 
 char *trim(char *value) {
   while (value[0] == '\"' || value[0] == ' ' || value[0] == '\n') {
