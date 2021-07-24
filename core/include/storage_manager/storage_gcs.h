@@ -32,14 +32,15 @@
 #ifndef __STORAGE_GCS_H__
 #define  __STORAGE_GCS_H__
 
-#ifdef USE_HDFS
-
-#include "hdfs.h"
 #include "tiledb_constants.h"
 
 #include <mutex>
 #include <string>
 #include <unordered_map>
+
+#ifdef USE_HDFS
+
+#include "hdfs.h"
 
 hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir);
 

@@ -11,7 +11,7 @@ on:
 env:
   CMAKE_BUILD_TYPE: Coverage
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
-  HADOOP_VER: 3.2.1
+  HADOOP_VER: 3.2.2
   AWSSDK_VER: 1.8.114
   AWSSDK_ROOT_DIR: ${{github.workspace}}/awssdk
 
@@ -21,8 +21,10 @@ jobs:
       matrix:
         os: [ubuntu-18.04, macOS-10.15]
         # All supported types
-        type: [basic, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
         exclude:
+          - os: macos-10.15
+            type: basic-no-hdfs
           - os: macos-10.15
             type: basic-codec
           - os: macos-10.15
@@ -58,11 +60,14 @@ jobs:
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         export ENABLE_ZSTD=0
         export ENABLE_BLOSC=0
+        if [[ ${{matrix.type}} == "basic-no-hdfs" ]]; then
+          export USE_HDFS="-DUSE_HDFS=0"
+        fi
         if [[ ${{matrix.type}} == "basic-codec" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_supported_codec.sh
         fi
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
-               -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DAWSSDK_URL=$AWSSDK_URL
+               -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DAWSSDK_URL=$AWSSDK_URL $USE_HDFS
       env:
         AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
 
