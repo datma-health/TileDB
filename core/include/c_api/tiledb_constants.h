@@ -216,17 +216,4 @@
 #endif
 /**@}*/
 
-/**@{*/
-/** MAC address interface. */
-#if defined(__APPLE__) && defined(__MACH__)
-  #ifndef TILEDB_MAC_ADDRESS_INTERFACE
-    #define TILEDB_MAC_ADDRESS_INTERFACE                       en0
-  #endif
-#else
-  #ifndef TILEDB_MAC_ADDRESS_INTERFACE
-    #define TILEDB_MAC_ADDRESS_INTERFACE                      eth0
-  #endif
-#endif
-/**@}*/
-
 #endif
