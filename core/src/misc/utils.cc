@@ -408,64 +408,6 @@ std::vector<std::string> get_fragment_dirs(StorageFS *fs, const std::string& dir
   return fragment_dirs;
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
-std::string get_mac_addr() {
-  int  mib[6];
-  char mac[13];
-  size_t len;
-  char *buf;
-  unsigned char *ptr;
-  struct if_msghdr *ifm;
-  struct sockaddr_dl *sdl;
-
-  mib[0] = CTL_NET;
-  mib[1] = AF_ROUTE;
-  mib[2] = 0;
-  mib[3] = AF_LINK;
-  mib[4] = NET_RT_IFLIST;
-  if(((mib[5] = if_nametoindex(XSTR(TILEDB_MAC_ADDRESS_INTERFACE))) == 0) ||
-     (sysctl(mib, 6, NULL, &len, NULL, 0) < 0)) {
-    UTILS_ERROR( "Cannot get MAC address");
-    return "";
-  }
-
-  buf = (char*) malloc(len);
-  if(sysctl(mib, 6, buf, &len, NULL, 0) < 0) {
-    UTILS_ERROR( "Cannot get MAC address");
-    return "";
-  }
-
-  ifm = (struct if_msghdr *)buf;
-  sdl = (struct sockaddr_dl *)(ifm + 1);
-  ptr = (unsigned char *)LLADDR(sdl);
-  for(int i=0; i<6; ++i)
-    sprintf(mac + 2*i, "%02x", *(ptr+i));
-  mac[12] ='\0';
-
-  free(buf);
-  return mac;
-}
-#else
-std::string get_mac_addr() {
-  struct ifreq s;
-  int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
-  char mac[13];
-
-  strcpy(s.ifr_name, XSTR(TILEDB_MAC_ADDRESS_INTERFACE));
-  if (0 == ioctl(fd, SIOCGIFHWADDR, &s)) {
-    for (int i = 0; i < 6; ++i)
-      sprintf(mac + 2*i, "%02x", (unsigned char) s.ifr_addr.sa_data[i]);
-    mac[12] = '\0';
-    close(fd);
-    return mac;
-  } else { // Error
-    close(fd);
-    UTILS_ERROR("Cannot get MAC address");
-    return "";
-  }
-}
-#endif
-
 void gzip_handle_error(int rc, const std::string& message) {
   // Just listing all Z errors here for completion sake.
   // Note that deflate() and inflate() should not throw errors technically
