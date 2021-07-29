@@ -2,17 +2,9 @@
 
 INSTALL_DIR=${INSTALL_DIR:-/usr}
 
-# Install Zstandard - Not enabled - Seg faults when Code Coverage is ON
-# echo "Installing ZStd..."
-# pushd `pwd`
-# wget https://github.com/facebook/zstd/archive/v1.0.0.tar.gz &&
-#	tar xf v1.0.0.tar.gz &&
-#	cd zstd-1.0.0 &&
-#	sudo make install PREFIX=$INSTALL_DIR &&
-#	export ENABLE_ZSTD=1
-# popd
-# echo "Installing ZStd DONE"
-export ENABLE_ZSTD=0
+# Install ZStd 
+sudo apt-get install -y libzstd-dev &&
+export ENABLE_ZSTD=1
 
 # Install Blosc
 echo "Installing Blosc..."
