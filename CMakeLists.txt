@@ -88,21 +88,20 @@ find_package(libuuid REQUIRED)
 include_directories(${LIBUUID_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LIBUUID_LIBRARY})
 
-# LZ4 source included
-#find_package(LZ4)
-#include_directories(${LZ4_INCLUDE_DIR})
-#if(LZ4_FOUND)
-#  set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
-#endif()
+# LZ4 source is directly included in source see <TileDB>/codec/external
+# find_package(LZ4)
+# include_directories(${LZ4_INCLUDE_DIR})
+# set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
 
+# Blosc and ZStd are dynamically loaded, so no need to perform find_package
 if(ENABLE_BLOSC)
-    find_package(BLOSC REQUIRED)
+    # find_package(BLOSC REQUIRED)
     # include_directories(${BLOSC_INCLUDE_DIR})
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${BLOSC_LIBRARIES})
     add_definitions(-DENABLE_BLOSC)
 endif()
 if(ENABLE_ZSTD)
-    find_package(ZSTD REQUIRED)
+    # find_package(ZSTD REQUIRED)
     # include_directories(${ZSTD_INCLUDE_DIR})
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZSTD_LIBRARIES})
     add_definitions(-DENABLE_ZSTD)
