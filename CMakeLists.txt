@@ -93,7 +93,7 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LIBUUID_LIBRARY})
 # include_directories(${LZ4_INCLUDE_DIR})
 # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
 
-# Blosc and ZStd are dynamically loaded, so need to perform find_package
+# Blosc and ZStd are dynamically loaded, so no need to perform find_package
 if(ENABLE_BLOSC)
     # find_package(BLOSC REQUIRED)
     # include_directories(${BLOSC_INCLUDE_DIR})
