@@ -36,6 +36,8 @@ if(BLOSC_SEARCH_HEADER_PATHS)
       PATHS ${BLOSC_SEARCH_HEADER_PATHS}   
       NO_DEFAULT_PATH
   )
+  message("header")
+  message(${BLOSC_INCLUDE_DIR})
 else()
   find_path(BLOSC_INCLUDE_DIR blosc.h)
 endif()
@@ -44,9 +46,11 @@ endif()
 if(BLOSC_SEARCH_LIB_PATH)
   find_library(
       BLOSC_LIBRARIES NAMES blosc
-      PATHS ${BLOSC_SEARCH_LIB_PATH}$
+      PATHS ${BLOSC_SEARCH_LIB_PATH}
       NO_DEFAULT_PATH
   )
+  message("library")
+  message(${BLOSC_LIBRARIES})
 else()
   find_library(BLOSC_LIBRARIES NAMES blosc)
 endif()
