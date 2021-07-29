@@ -58,7 +58,7 @@ class CodecZStandard : public Codec {
       loading.lock();
 
       if (!loaded) {
-        dl_handle_ = get_dlopen_handle("zstd");
+        dl_handle_ = get_dlopen_handle("zstd", "1");
         if (dl_handle_ != NULL) {
 	  BIND_SYMBOL(dl_handle_, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
 	  BIND_SYMBOL(dl_handle_, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
