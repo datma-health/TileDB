@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,44 +43,47 @@
 
 ZSTD_EXTERN_DECL size_t(*ZSTD_compressBound)(size_t);
 ZSTD_EXTERN_DECL int(*ZSTD_isError)(size_t);
+ZSTD_EXTERN_DECL char *(*ZSTD_getErrorName)(size_t);
 ZSTD_EXTERN_DECL int(*ZSTD_maxCLevel)(void);
 ZSTD_EXTERN_DECL size_t(*ZSTD_compress)(void *, size_t, const void *, size_t, int);
 ZSTD_EXTERN_DECL size_t(*ZSTD_decompress)(void *, size_t, const void *, size_t);
+
+ZSTD_EXTERN_DECL char *(*ZSTD_createCCtx)(void);
+ZSTD_EXTERN_DECL size_t(*ZSTD_freeCCtx)(char *);
+ZSTD_EXTERN_DECL size_t(*ZSTD_compressCCtx)(char *, void *, size_t, const void *, size_t, int);
+
+ZSTD_EXTERN_DECL char *(*ZSTD_createDCtx)(void);
+ZSTD_EXTERN_DECL size_t(*ZSTD_freeDCtx)(char *);
+ZSTD_EXTERN_DECL size_t(*ZSTD_decompressDCtx)(char *, void *, size_t, const void *, size_t);
 
 class CodecZStandard : public Codec {
  public:
 
   CodecZStandard(int compression_level):Codec(compression_level) {
-    static bool loaded = false;
-    static std::mutex loading;
+    static std::once_flag loaded;
+    static void *dl_handle = NULL;
 
-     if (!loaded) {
-      loading.lock();
+    std::call_once(loaded, [this]() {
+        dl_handle = get_dlopen_handle("zstd", "1");
+        if (dl_handle) {
+	  BIND_SYMBOL(dl_handle, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
+	  BIND_SYMBOL(dl_handle, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
+	  BIND_SYMBOL(dl_handle, ZSTD_getErrorName, "ZSTD_getErrorName", (char *(*)(size_t)));
+	  BIND_SYMBOL(dl_handle, ZSTD_maxCLevel, "ZSTD_maxCLevel", (int(*)(void)));
+	  BIND_SYMBOL(dl_handle, ZSTD_compress, "ZSTD_compress", (size_t(*)(void *, size_t, const void *, size_t, int)));
+	  BIND_SYMBOL(dl_handle, ZSTD_decompress, "ZSTD_decompress", (size_t(*)(void *, size_t, const void *, size_t)));
 
-      if (!loaded) {
-        dl_handle_ = get_dlopen_handle("zstd", "1");
-        if (dl_handle_ != NULL) {
-	  BIND_SYMBOL(dl_handle_, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
-	  BIND_SYMBOL(dl_handle_, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
-	  BIND_SYMBOL(dl_handle_, ZSTD_maxCLevel, "ZSTD_maxCLevel", (int(*)(void)));
-	  BIND_SYMBOL(dl_handle_, ZSTD_compress, "ZSTD_compress", (size_t(*)(void *, size_t, const void *, size_t, int)));
-	  BIND_SYMBOL(dl_handle_, ZSTD_decompress, "ZSTD_decompress", (size_t(*)(void *, size_t, const void *, size_t)));
-	  loaded = true;
+	  BIND_SYMBOL(dl_handle, ZSTD_createCCtx, "ZSTD_createCCtx", (char*(*)(void)));
+	  BIND_SYMBOL(dl_handle, ZSTD_freeCCtx, "ZSTD_freeCCtx", (size_t(*)(char*)));
+	  BIND_SYMBOL(dl_handle, ZSTD_compressCCtx, "ZSTD_compressCCtx", (size_t(*)(char *, void *, size_t, const void *, size_t, int)));
+
+	  BIND_SYMBOL(dl_handle, ZSTD_createDCtx, "ZSTD_createDCtx", (char*(*)(void)));
+	  BIND_SYMBOL(dl_handle, ZSTD_freeDCtx, "ZSTD_freeDCtx", (size_t(*)(char*)));
+	  BIND_SYMBOL(dl_handle, ZSTD_decompressDCtx, "ZSTD_decompressDCtx", (size_t(*)(char *, void *, size_t, const void *, size_t)));
+	} else {
+	  throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " ZStd library not found. Install ZStandard and/or setup library paths.");
 	}
-      }
-
-      loading.unlock();
-
-      if (dl_handle_ == NULL || !loaded) {
-	  if (dl_handle_ == NULL) {
-	    char *error = dlerror();
-	    if (error) {
-	      std::cerr << dlerror() << std::endl << std::flush;
-	    }
-	  }
-	  throw std::system_error(ECANCELED, std::generic_category(), "ZStd library not found. Install ZStandard and setup library paths.");
-        }
-     }
+      });
   }
   
   int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;

@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -124,7 +124,10 @@ class Codec {
   }
 
   void set_dlerror() {
-    dl_error_ = dlerror();
+    char *errmsg = dlerror();
+    if (errmsg) {
+      dl_error_.empty()?(dl_error_=errmsg):(dl_error_+=std::string("\n")+errmsg);
+    }
   }
 
   std::string& get_dlerror() {
@@ -146,25 +149,26 @@ class Codec {
 #  error Platform not supported
 #endif
     
+    clear_dlerror();
     for (std::string dl_path : dl_paths_) {
-      clear_dlerror();
+      std::string path = dl_path+prefix+name;
       if (version.empty()) {
-        handle = dlopen((dl_path+prefix+name+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+        handle = dlopen((path+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
       } else {
 #ifdef __APPLE__
-        handle = dlopen((dl_path+prefix+name+"."+version+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+        handle = dlopen((path+"."+version+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
 #else
-        handle = dlopen((dl_path+prefix+name+suffix+"."+version).c_str(), RTLD_GLOBAL|RTLD_NOW);
+        handle = dlopen((path+suffix+"."+version).c_str(), RTLD_GLOBAL|RTLD_NOW);
 #endif
       }
       if (handle) {
+	clear_dlerror();
         return handle;
+      } else {
+	set_dlerror();
       }
     }
 
-    if (!handle) {
-      set_dlerror();
-    }
     return handle;
   }
 
@@ -220,12 +224,11 @@ class Codec {
   /** Allocated size for internal buffer used in the case of compression. */
   size_t tile_compressed_allocated_size_ = 0;
 
-  void *dl_handle_ = NULL;
   std::string dl_error_;
 #ifdef __APPLE__
-  std::vector<std::string> dl_paths_ = {"/usr/local/Cellar/lib", "/usr/local/lib", "/usr/lib", ""};
+  std::vector<std::string> dl_paths_ = {"/usr/local/Cellar/lib/", "/usr/local/lib/", "/usr/lib/", ""};
 #elif __linux__
-  std::vector<std::string> dl_paths_ = {"/usr/lib64", "/usr/lib", ""};
+  std::vector<std::string> dl_paths_ = {"/usr/lib64/", "/usr/lib/", ""};
 #else
 #  error Platform not supported
 #endif
