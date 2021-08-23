@@ -151,7 +151,6 @@ class AzureBlob : public StorageCloudFS {
     } else {
       existing_num_blocks = search->second.size();
     }
-    std::cerr << "Nalini path=" << path <<  " existing_num_blocks=" << existing_num_blocks << std::endl;
 
     for (int i = existing_num_blocks; i < existing_num_blocks+num_blocks; i++) {
       std::string block_id = std::to_string(i);
@@ -161,8 +160,6 @@ class AzureBlob : public StorageCloudFS {
       block_ids.emplace_back(block_id);
       search->second.push_back(std::move(block));
     }
-    std::cerr <<  "Nalini path=" << path <<  " existing_num_blocks+num_blocks=" << existing_num_blocks+num_blocks << std::endl;
-    std::cerr << "Nalini path=" << path <<  " updated num_blocks=" <<  search->second.size() << std::endl;
 
     if (existing_num_blocks+num_blocks > 50000) {
       // https://docs.microsoft.com/en-us/rest/api/storageservices/understanding-block-blobs--append-blobs--and-page-blobs - A block blob can include up to 50,000 blocks

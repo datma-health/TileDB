@@ -487,7 +487,9 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
     return TILEDB_FS_ERR;
   }
 
+#ifdef DEBUG
   update_expected_filesizes_map(path, buffer_size);
+#endif
 
   uint64_t block_size = buffer_size/constants::max_num_blocks;
   block_size = (block_size + GRAIN_SIZE-1)/GRAIN_SIZE*GRAIN_SIZE;
@@ -527,6 +529,7 @@ int AzureBlob::commit_file(const std::string& path) {
       rc = TILEDB_FS_ERR;
     }
     write_map_.erase(search->first);
+#ifdef DEBUG
     if (!rc) {
       // Checks after commit, should we wait for propogation?
       if (!is_file(filepath)) {
@@ -545,6 +548,7 @@ int AzureBlob::commit_file(const std::string& path) {
     }
     filesizes_map_.erase(filepath);
   }
+#endif
   
   return rc;
 }

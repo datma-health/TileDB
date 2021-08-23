@@ -24,7 +24,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * @section DESCRIPTION
  *
  * CodecZstd derived from Codec for Zstandard support
@@ -66,32 +66,32 @@ class CodecZStandard : public Codec {
     std::call_once(loaded, [this]() {
         dl_handle = get_dlopen_handle("zstd", "1");
         if (dl_handle) {
-	  BIND_SYMBOL(dl_handle, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
-	  BIND_SYMBOL(dl_handle, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
-	  BIND_SYMBOL(dl_handle, ZSTD_getErrorName, "ZSTD_getErrorName", (char *(*)(size_t)));
-	  BIND_SYMBOL(dl_handle, ZSTD_maxCLevel, "ZSTD_maxCLevel", (int(*)(void)));
-	  BIND_SYMBOL(dl_handle, ZSTD_compress, "ZSTD_compress", (size_t(*)(void *, size_t, const void *, size_t, int)));
-	  BIND_SYMBOL(dl_handle, ZSTD_decompress, "ZSTD_decompress", (size_t(*)(void *, size_t, const void *, size_t)));
+          BIND_SYMBOL(dl_handle, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
+          BIND_SYMBOL(dl_handle, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
+          BIND_SYMBOL(dl_handle, ZSTD_getErrorName, "ZSTD_getErrorName", (char *(*)(size_t)));
+          BIND_SYMBOL(dl_handle, ZSTD_maxCLevel, "ZSTD_maxCLevel", (int(*)(void)));
+          BIND_SYMBOL(dl_handle, ZSTD_compress, "ZSTD_compress", (size_t(*)(void *, size_t, const void *, size_t, int)));
+          BIND_SYMBOL(dl_handle, ZSTD_decompress, "ZSTD_decompress", (size_t(*)(void *, size_t, const void *, size_t)));
 
-	  BIND_SYMBOL(dl_handle, ZSTD_createCCtx, "ZSTD_createCCtx", (char*(*)(void)));
-	  BIND_SYMBOL(dl_handle, ZSTD_freeCCtx, "ZSTD_freeCCtx", (size_t(*)(char*)));
-	  BIND_SYMBOL(dl_handle, ZSTD_compressCCtx, "ZSTD_compressCCtx", (size_t(*)(char *, void *, size_t, const void *, size_t, int)));
+          BIND_SYMBOL(dl_handle, ZSTD_createCCtx, "ZSTD_createCCtx", (char*(*)(void)));
+          BIND_SYMBOL(dl_handle, ZSTD_freeCCtx, "ZSTD_freeCCtx", (size_t(*)(char*)));
+          BIND_SYMBOL(dl_handle, ZSTD_compressCCtx, "ZSTD_compressCCtx", (size_t(*)(char *, void *, size_t, const void *, size_t, int)));
 
-	  BIND_SYMBOL(dl_handle, ZSTD_createDCtx, "ZSTD_createDCtx", (char*(*)(void)));
-	  BIND_SYMBOL(dl_handle, ZSTD_freeDCtx, "ZSTD_freeDCtx", (size_t(*)(char*)));
-	  BIND_SYMBOL(dl_handle, ZSTD_decompressDCtx, "ZSTD_decompressDCtx", (size_t(*)(char *, void *, size_t, const void *, size_t)));
-	} else {
-	  throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " ZStd library not found. Install ZStandard and/or setup library paths.");
-	}
+          BIND_SYMBOL(dl_handle, ZSTD_createDCtx, "ZSTD_createDCtx", (char*(*)(void)));
+          BIND_SYMBOL(dl_handle, ZSTD_freeDCtx, "ZSTD_freeDCtx", (size_t(*)(char*)));
+          BIND_SYMBOL(dl_handle, ZSTD_decompressDCtx, "ZSTD_decompressDCtx", (size_t(*)(char *, void *, size_t, const void *, size_t)));
+        } else {
+          throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " ZStd library not found. Install ZStandard and/or setup library paths.");
+        }
       });
 
     name_ = "ZSTD";
   }
-  
+
   int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;
 
   int do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) override;
-  
+
 };
 
 #endif /*__CODEC_ZSTD_H__*/
