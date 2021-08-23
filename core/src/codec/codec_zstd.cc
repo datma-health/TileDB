@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,30 +35,37 @@
 #define ZSTD_EXTERN_DECL extern
 #include "codec_zstd.h"
 
+#include <memory>
+
 int CodecZStandard::do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
-   // Allocate space to store the compressed tile
+  // create zstd context per thread 
+  thread_local std::unique_ptr<char, size_t(*)(char *)> zstd_cctx(ZSTD_createCCtx(), ZSTD_freeCCtx);
+
+  if (zstd_cctx.get() == nullptr) {
+    return print_errmsg("Failed to create ZStd context for compression");
+  }
+
+  // Allocate space to store the compressed tile
   size_t compress_bound = ZSTD_compressBound(tile_size);
   if(tile_compressed_ == NULL) {
     tile_compressed_allocated_size_ = compress_bound; 
     tile_compressed_ = malloc(compress_bound); 
   }
 
-  // Expand comnpressed tile if necessary
+  // Expand compressed tile if necessary
   if(compress_bound > tile_compressed_allocated_size_) {
     tile_compressed_allocated_size_ = compress_bound; 
     tile_compressed_ = realloc(tile_compressed_, compress_bound);
   }
 
   // Compress tile
-  size_t zstd_size = 
-      ZSTD_compress(
-           static_cast<unsigned char*>(tile_compressed_), 
-          tile_compressed_allocated_size_,
-          tile, 
-          tile_size,
-          compression_level_);
+  size_t zstd_size = ZSTD_compressCCtx(zstd_cctx.get(),
+				       static_cast<unsigned char*>(tile_compressed_), tile_compressed_allocated_size_, // input buffer
+				       tile, tile_size, // output buffer
+				       compression_level_);
   if(ZSTD_isError(zstd_size)) {
-    return print_errmsg("Failed compressing with Zstandard");
+    std::string msg = ZSTD_getErrorName(zstd_size);
+    return print_errmsg("Failed compressing with Zstandard: " + msg);
   }
 
   *tile_compressed = tile_compressed_;
@@ -69,15 +76,19 @@ int CodecZStandard::do_compress_tile(unsigned char* tile, size_t tile_size, void
 }
 
 int CodecZStandard::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
-    // Decompress tile 
-  size_t zstd_size = 
-      ZSTD_decompress(
-          tile,
-          tile_size,
-          tile_compressed, 
-          tile_compressed_size);
+  // create zstd context per thread
+  thread_local std::unique_ptr<char, size_t(*)(char *)> zstd_dctx(ZSTD_createDCtx(), ZSTD_freeCCtx);
+  if (zstd_dctx.get() == nullptr) {
+    return print_errmsg("Failed to create ZStd context for decompression");
+  }
+
+  // Decompress tile 
+  size_t zstd_size = ZSTD_decompressDCtx(zstd_dctx.get(),
+					 tile, tile_size,
+					 tile_compressed, tile_compressed_size);
   if(ZSTD_isError(zstd_size)) {
-    return print_errmsg("Zstandard decompression failed");
+    std::string msg = ZSTD_getErrorName(zstd_size);
+    return print_errmsg("Zstandard decompression failed: " + msg);
   }
 
   // Success
