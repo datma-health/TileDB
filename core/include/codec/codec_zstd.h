@@ -84,6 +84,8 @@ class CodecZStandard : public Codec {
 	  throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " ZStd library not found. Install ZStandard and/or setup library paths.");
 	}
       });
+
+    name_ = "ZSTD";
   }
   
   int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;

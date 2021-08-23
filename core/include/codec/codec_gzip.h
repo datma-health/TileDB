@@ -39,6 +39,10 @@
 class CodecGzip : public Codec {
  public:
   using Codec::Codec;
+
+  CodecGzip(int compression_level):Codec(compression_level) {
+    name_ = "GZIP";
+  }
   
   int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;
 

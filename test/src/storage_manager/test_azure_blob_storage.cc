@@ -180,7 +180,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   CHECK_RC(azure_blob->create_dir(test_dir), TILEDB_FS_OK);
   REQUIRE(azure_blob->is_dir(test_dir));
   CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
-  CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   REQUIRE(azure_blob->is_file(test_dir+"/foo"));
   CHECK(azure_blob->file_size(test_dir+"/foo") == 5);
 
@@ -209,7 +209,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 11), TILEDB_FS_OK);
   CHECK(((char *)buffer)[10] == 'e');
 
-  CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(azure_blob->delete_file(test_dir+"/foo"), TILEDB_FS_OK);
 
   CHECK_RC(azure_blob->sync_path(test_dir), TILEDB_FS_OK);
@@ -235,7 +235,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
     memset(buffer, 'B', size);
     REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
     CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", buffer, size), TILEDB_FS_OK);
-    CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+    CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
     CHECK(azure_blob->is_file(test_dir+"/foo"));
     CHECK((size_t)azure_blob->file_size(test_dir+"/foo") == size);
 
@@ -286,7 +286,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     #pragma omp parallel for
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"/foo"+std::to_string(i);
-      CHECK_RC(azure_blob->sync_path(filename), TILEDB_FS_OK);
+      CHECK_RC(azure_blob->close_file(filename), TILEDB_FS_OK);
       CHECK(azure_blob->is_file(filename));
       CHECK((size_t)azure_blob->file_size(filename) == size*2);
     }

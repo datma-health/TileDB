@@ -595,7 +595,7 @@ int WriteState::compress_tile(
    codec = codec_[attribute_id];
   }
   if(codec->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size) != TILEDB_CD_OK) {
-    std::string errmsg = "Cannot compress tile";
+    std::string errmsg = "Cannot compress tile for " + construct_filename(attribute_id, compress_offsets);
     PRINT_ERROR(errmsg);
     tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
     return TILEDB_WS_ERR;

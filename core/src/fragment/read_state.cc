@@ -1622,7 +1622,7 @@ int ReadState::decompress_tile(
     codec = codec_[attribute_id];
   }
   if(codec->decompress_tile(tile_compressed, tile_compressed_size, tile, tile_size) != TILEDB_CD_OK) {
-    std::string errmsg = "Cannot decompress tile";
+    std::string errmsg = "Cannot decompress tile for " + construct_filename(attribute_id, decompress_offsets);
     PRINT_ERROR(errmsg);
     tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
     return TILEDB_RS_ERR;

@@ -227,7 +227,7 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
-  upload_buffer_size_ = constants::max_block_size; // 100M
+  upload_buffer_size_ = 10*1024*1024; // 10M
 }
 
 std::string AzureBlob::current_dir() {
@@ -405,7 +405,8 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
 }
 
 // This method is based on upload_block_blob_from_buffer from the SDK except for the put_block_list stage which happens in commit_path() now
-std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::string &blob, uint64_t block_size, int num_blocks, std::vector<std::string> block_ids,
+std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::string &blob, uint64_t block_size,
+                                                                int num_blocks, std::vector<std::string> block_ids,
                                                                 const char* buffer, uint64_t bufferlen, uint parallelism) {
   auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   parallelism = std::min(parallelism, bclient->concurrency());
@@ -486,14 +487,22 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
     return TILEDB_FS_ERR;
   }
 
+  update_expected_filesizes_map(path, buffer_size);
+
   uint64_t block_size = buffer_size/constants::max_num_blocks;
   block_size = (block_size + GRAIN_SIZE-1)/GRAIN_SIZE*GRAIN_SIZE;
   block_size = std::min(block_size, constants::max_block_size);
   block_size = std::max(block_size, constants::default_block_size);
   int num_blocks = int((buffer_size + block_size-1)/block_size);
 
-  auto res = upload_block_blob(path, block_size, num_blocks, generate_block_ids(path, num_blocks),
-                               reinterpret_cast<const char *>(buffer), buffer_size, std::thread::hardware_concurrency()/2).get();
+  auto block_ids = generate_block_ids(path, num_blocks);
+  if (block_ids.size() == 0) {
+    AZ_BLOB_ERROR("Could not get block_ids for upload_block_blob", path);
+    return TILEDB_FS_ERR;
+  } 
+  auto res = upload_block_blob(path, block_size, num_blocks, block_ids,
+                               reinterpret_cast<const char *>(buffer), buffer_size,
+                               std::thread::hardware_concurrency()/2).get();
   if (!res.success()) {
     AZ_BLOB_ERROR(res.error().message, path);
     return TILEDB_FS_ERR;
@@ -518,15 +527,25 @@ int AzureBlob::commit_file(const std::string& path) {
       rc = TILEDB_FS_ERR;
     }
     write_map_.erase(search->first);
+    if (!rc) {
+      // Checks after commit, should we wait for propogation?
+      if (!is_file(filepath)) {
+        AZ_BLOB_ERROR("Could not find file after commit", path);
+        rc = TILEDB_FS_ERR;
+      } else {
+        ssize_t expected = expected_filesize_from_map(filepath);
+        ssize_t actual = file_size(path);
+        if (expected != actual) {
+          AZ_BLOB_ERROR("filesize after commit does not match with the expected filesize", path);
+          std::string msg = std::string("expected=") + std::to_string(expected) + " actual=" + std::to_string(actual);
+          AZ_BLOB_ERROR(msg, path);
+          rc = TILEDB_FS_ERR;
+        }
+      }
+    }
+    filesizes_map_.erase(filepath);
   }
+  
   return rc;
 }
 
-int AzureBlob::sync_path(const std::string& path) {
-  return commit_file(path);
-}
-
-bool AzureBlob::locking_support() {
-  // No file locking available for distributed file systems
-  return false;
-}
