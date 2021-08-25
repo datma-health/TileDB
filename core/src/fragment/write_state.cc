@@ -215,6 +215,11 @@ int WriteState::finalize() {
 }
 
 int WriteState::sync() {
+  // No sync needed for storage classes derived from StorageCloudFS
+  if (dynamic_cast<StorageCloudFS *>(fs_)) {
+    return TILEDB_FS_OK;
+  }
+
   // For easy reference
   const ArraySchema* array_schema = fragment_->array()->array_schema();
   const std::vector<int>& attribute_ids = fragment_->array()->attribute_ids();
@@ -326,6 +331,11 @@ int WriteState::sync() {
 }
 
 int WriteState::sync_attribute(const std::string& attribute) {
+  // No sync needed for storage classes derived from StorageCloudFS
+  if (dynamic_cast<StorageCloudFS *>(fs_)) {
+    return TILEDB_FS_OK;
+  }
+
   // For easy reference
   const ArraySchema* array_schema = fragment_->array()->array_schema();
   int write_method = fragment_->array()->config()->write_method();

@@ -227,7 +227,7 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
-  upload_buffer_size_ = 10*1024*1024; // 10M
+  upload_buffer_size_ = constants::default_block_size; // 8M
 }
 
 std::string AzureBlob::current_dir() {
@@ -239,19 +239,8 @@ int AzureBlob::set_working_dir(const std::string& dir) {
   return TILEDB_FS_OK;
 }
 
-#define MARKER ".dir.marker"
-
-bool AzureBlob::is_dir(const std::string& dir) {
-  if (dir.empty() || get_path(dir).empty() || is_file(slashify(dir)+MARKER)) {
-    return true;
-  }
-  std::string path=slashify(get_path(dir));
-  list_blobs_segmented_response response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/", "", path, 1);
-  return response.blobs.size() > 0;
-}
-
-bool AzureBlob::is_file(const std::string& file) {
-  return blob_client_wrapper_->blob_exists(container_name_, get_path(file));
+bool AzureBlob::path_exists(const std::string& path) {
+  return blob_client_wrapper_->blob_exists(container_name_, get_path(path));
 }
 
 std::string AzureBlob::real_dir(const std::string& dir) {
@@ -260,39 +249,20 @@ std::string AzureBlob::real_dir(const std::string& dir) {
     if (path_uri.account().compare(account_name_) || path_uri.container().compare(container_name_)) {
       throw std::runtime_error("Credentialed account during instantiation does not match the uri passed to real_dir. Aborting");
     }
-    // This is absolute path, so return the entire path
-    return get_path(path_uri.path());
   }
   return get_path(dir);
 }
+
+int AzureBlob::create_path(const std::string& path) {
+  return write_to_file(path, NULL, 0);
+}
   
 int AzureBlob::create_dir(const std::string& dir) {
-  if (get_path(dir).empty()) {
-    return TILEDB_FS_OK;
-  }
-  if (is_dir(dir)) {
-    AZ_BLOB_ERROR("Directory already exists", dir);
+  if (is_dir(dir) || is_file(dir)) {
+    AZ_BLOB_ERROR("Path already exists", dir);
     return TILEDB_FS_ERR;
   }
-  std::string slashified_dir = slashify(dir);
-  if (slashified_dir.find("://") != std::string::npos) {
-    azure_uri dir_uri(slashified_dir);
-    if (dir_uri.path().empty()) {
-      // This is the container and assuming it is already created for now
-      return TILEDB_FS_OK;
-    }
-  }
-  if (working_dir_.compare(dir) && !is_dir(parent_dir(NULL, dir))) {
-    AZ_BLOB_ERROR("Parent directory to path does not exist", dir);
-    return TILEDB_FS_ERR;
-  }
-  if (write_to_file(slashified_dir+MARKER, NULL, 0) == TILEDB_FS_OK) {
-    if (is_dir(dir)) {
-      return TILEDB_FS_OK;
-    }
-  }
-  AZ_BLOB_ERROR("Cannot create directory", dir);
-  return TILEDB_FS_ERR;
+  return create_path(slashify(dir));
 }
 
 int AzureBlob::delete_dir(const std::string& dir) {
@@ -343,9 +313,7 @@ std::vector<std::string> AzureBlob::get_files(const std::string& dir) {
     do {
       for (auto i=0u; i<response.blobs.size(); i++) {
         if (!response.blobs[i].is_directory) {
-          if (response.blobs[i].name.compare(MARKER) != 0) {
             files.push_back(response.blobs[i].name);
-          }
         }
       }
     } while (!continuation_token.empty());
@@ -358,7 +326,7 @@ int AzureBlob::create_file(const std::string& filename, int flags, mode_t mode) 
     AZ_BLOB_ERROR("Cannot create path as it already exists", filename);
     return TILEDB_FS_ERR;
   }
-  return write_to_file(filename, NULL, 0);
+  return create_path(filename);
 }
 
 int AzureBlob::delete_file(const std::string& filename) {
@@ -529,7 +497,7 @@ int AzureBlob::commit_file(const std::string& path) {
       rc = TILEDB_FS_ERR;
     }
     write_map_.erase(search->first);
-#ifdef DEBUG
+ #ifdef DEBUG
     if (!rc) {
       // Checks after commit, should we wait for propogation?
       if (!is_file(filepath)) {
@@ -547,8 +515,8 @@ int AzureBlob::commit_file(const std::string& path) {
       }
     }
     filesizes_map_.erase(filepath);
-  }
 #endif
+  }
   
   return rc;
 }

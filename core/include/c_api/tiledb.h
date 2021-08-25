@@ -130,6 +130,11 @@ typedef struct TileDB_Config {
    * can be overridden to use the HDFS Google Cloud Connector.
    */
   bool use_gcs_hdfs_connector_;
+
+  TileDB_Config() {
+    memset(this, 0, sizeof(struct TileDB_Config));
+  }
+
 } TileDB_Config; 
 
 

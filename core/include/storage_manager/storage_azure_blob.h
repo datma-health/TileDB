@@ -55,8 +55,6 @@ class AzureBlob : public StorageCloudFS {
   std::string current_dir();
   int set_working_dir(const std::string& dir);
   
-  bool is_dir(const std::string& dir);
-  bool is_file(const std::string& file);
   std::string real_dir(const std::string& dir);
                
   int create_dir(const std::string& dir);
@@ -72,8 +70,6 @@ class AzureBlob : public StorageCloudFS {
 
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);
-
-  int commit_file(const std::string& filename);
   
  protected:
   std::shared_ptr<blob_client> blob_client_ = nullptr;
@@ -194,6 +190,9 @@ class AzureBlob : public StorageCloudFS {
       return search->second;
     }
   }
-  
+
+  bool path_exists(const std::string& path);
+  int create_path(const std::string& path);
+  int commit_file(const std::string& filename);
 };
 #endif /* __STORAGE_AZURE_BLOB_H__ */
