@@ -240,7 +240,12 @@ int AzureBlob::set_working_dir(const std::string& dir) {
 }
 
 bool AzureBlob::path_exists(const std::string& path) {
-  return blob_client_wrapper_->blob_exists(container_name_, get_path(path));
+  bool exists = blob_client_wrapper_->blob_exists(container_name_, get_path(path));
+  if (!exists && path[path.size()-1] == '/') {
+    auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  "", get_path(path), 1);
+    exists = response.blobs.size() > 0;
+  }
+  return exists;
 }
 
 std::string AzureBlob::real_dir(const std::string& dir) {
@@ -258,19 +263,15 @@ int AzureBlob::create_path(const std::string& path) {
 }
   
 int AzureBlob::create_dir(const std::string& dir) {
-  if (is_dir(dir) || is_file(dir)) {
+  if (is_file(dir)) {
     AZ_BLOB_ERROR("Path already exists", dir);
     return TILEDB_FS_ERR;
   }
-  return create_path(slashify(dir));
+  //  return create_path(slashify(dir));
+  return TILEDB_FS_OK;
 }
 
 int AzureBlob::delete_dir(const std::string& dir) {
-  if (!is_dir(dir)) {
-    AZ_BLOB_ERROR("Cannot delete non-existent dir", dir);
-    return TILEDB_FS_ERR;
-  }
-
   int rc = TILEDB_FS_OK;
   std::string continuation_token = "";
   auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
@@ -291,38 +292,34 @@ int AzureBlob::delete_dir(const std::string& dir) {
 
 std::vector<std::string> AzureBlob::get_dirs(const std::string& dir) {
   std::vector<std::string> dirs;
-  if (is_dir(dir)) {
-    std::string continuation_token = "";
-    auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
-    do {
-      for (auto i=0u; i<response.blobs.size(); i++) {
+  std::string continuation_token = "";
+  auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
+  do {
+    for (auto i=0u; i<response.blobs.size(); i++) {
         if (response.blobs[i].is_directory) {
           dirs.push_back(unslashify(response.blobs[i].name));
         }
-      }
-    } while (!continuation_token.empty());
-  }
+    }
+  } while (!continuation_token.empty());
   return dirs;
 }
     
 std::vector<std::string> AzureBlob::get_files(const std::string& dir) {
   std::vector<std::string> files;
-  if (is_dir(dir)) {
-    std::string continuation_token = "";
-    auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
-    do {
-      for (auto i=0u; i<response.blobs.size(); i++) {
-        if (!response.blobs[i].is_directory) {
-            files.push_back(response.blobs[i].name);
-        }
+  std::string continuation_token = "";
+  auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
+  do {
+    for (auto i=0u; i<response.blobs.size(); i++) {
+      if (!response.blobs[i].is_directory) {
+        files.push_back(response.blobs[i].name);
       }
-    } while (!continuation_token.empty());
-  }
+    }
+  } while (!continuation_token.empty());
   return files;
 }
 
 int AzureBlob::create_file(const std::string& filename, int flags, mode_t mode) {
-  if (is_file(filename) || is_dir(filename)) {
+  if (is_file(filename)) {
     AZ_BLOB_ERROR("Cannot create path as it already exists", filename);
     return TILEDB_FS_ERR;
   }
@@ -443,12 +440,13 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
         return TILEDB_FS_OK;
       }
     }
+    return TILEDB_FS_OK;
   }
 
-  if (!is_dir(parent_dir(NULL, filename))) {
+  /*  if (!is_dir(parent_dir(NULL, filename))) {
     AZ_BLOB_ERROR("Parent dir does not seem to exist", path);
     return TILEDB_FS_ERR;
-  }
+    }*/
 
   if (buffer_size > constants::max_num_blocks * constants::max_block_size) {
     AZ_BLOB_ERROR("Buffer size too large for azure upload", path);

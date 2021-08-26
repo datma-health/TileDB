@@ -191,10 +191,8 @@ TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test multithreaded file utils", "[file_utils_multi_threads]") {
-  CHECK(TileDBUtils::is_dir(get_temp_dir()));
   std::string test_dir = get_temp_dir()+"/test_dir";
   CHECK(TileDBUtils::create_dir(test_dir) == TILEDB_OK);
-  CHECK(TileDBUtils::is_dir(test_dir));
   CHECK(!TileDBUtils::is_file(test_dir));
 
   std::string test_file = test_dir+"/test_file";
