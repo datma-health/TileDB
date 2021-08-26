@@ -267,7 +267,8 @@ int AzureBlob::create_dir(const std::string& dir) {
     AZ_BLOB_ERROR("Path already exists", dir);
     return TILEDB_FS_ERR;
   }
-  //  return create_path(slashify(dir));
+  // No support in the azure lite client to create a folder
+  // no-op for this case for now
   return TILEDB_FS_OK;
 }
 
@@ -442,11 +443,6 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
     }
     return TILEDB_FS_OK;
   }
-
-  /*  if (!is_dir(parent_dir(NULL, filename))) {
-    AZ_BLOB_ERROR("Parent dir does not seem to exist", path);
-    return TILEDB_FS_ERR;
-    }*/
 
   if (buffer_size > constants::max_num_blocks * constants::max_block_size) {
     AZ_BLOB_ERROR("Buffer size too large for azure upload", path);
