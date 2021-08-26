@@ -149,6 +149,8 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob file", "[file]") {
   CHECK_RC(azure_blob->create_file(test_dir+"/foo", O_WRONLY|O_CREAT,  S_IRWXU), TILEDB_FS_OK);
   CHECK(azure_blob->is_file(test_dir+"/foo"));
   CHECK(!azure_blob->is_dir(test_dir+"/foo"));
+  // Cannot create_dir if file already exists
+  CHECK(azure_blob->create_dir(test_dir+"/foo") == TILEDB_FS_ERR);
   CHECK(azure_blob->file_size(test_dir+"/foo") == 0);
   CHECK(azure_blob->file_size(test_dir+"/foo1") == TILEDB_FS_ERR);
   CHECK(azure_blob->get_files(test_dir).size() == 1);
