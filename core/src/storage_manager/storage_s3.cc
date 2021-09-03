@@ -165,18 +165,6 @@ bool S3::path_exists(const std::string& path) {
   }
   return false;
 }
-  
-bool S3::is_dir(const std::string& dir) {
-  if (get_path(dir).length() == 0) {
-    // This must be the container - OK
-    return true;
-  }
-  return path_exists(slashify(dir));
-}
-
-bool S3::is_file(const std::string& file) {
-  return file.back() != '/' && path_exists(file);
-}
 
 std::string S3::real_dir(const std::string& dir) {
   if (dir.find("://") != std::string::npos) {

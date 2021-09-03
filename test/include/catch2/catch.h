@@ -98,7 +98,7 @@ class TempDir {
     } else {
       tmp_dirname_ = append_slash(g_test_dir)+mktemp(const_cast<char *>(dirname_pattern.c_str()));
       if (!TileDBUtils::is_dir(g_test_dir)) {
-        CHECK(TileDBUtils::create_dir(g_test_dir) == 0);
+        REQUIRE(TileDBUtils::create_dir(g_test_dir) == 0);
         delete_test_dir_in_destructor_ = g_test_dir;
       }
       if (!TileDBUtils::is_dir(tmp_dirname_)) {

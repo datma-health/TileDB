@@ -89,12 +89,13 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob cwd", "[cwd]") {
   }
   REQUIRE(azure_blob->current_dir().length() > 0);
   REQUIRE(azure_blob->create_dir(azure_blob->current_dir()) == TILEDB_FS_OK);
-  REQUIRE(azure_blob->is_dir(azure_blob->current_dir()));
+  // create_dir is a no-op for AzureBlob, so is_dir will return false
+  CHECK(!azure_blob->is_dir(azure_blob->current_dir()));
   REQUIRE(!azure_blob->is_file(azure_blob->current_dir()));
   REQUIRE(azure_blob->real_dir(azure_blob->current_dir()).length() > 0);
 }
 
-TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob real_dir", "[real_dir]") {
+TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob real_dir", "[real-dir]") {
   if (azure_blob == nullptr) {
     return;
   }
@@ -113,13 +114,12 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob dir", "[dir]") {
   }
   std::string test_dir("dir");
   CHECK_RC(azure_blob->create_dir(test_dir), TILEDB_FS_OK);
-  CHECK(azure_blob->is_dir(test_dir));
+  // create_dir is a no-op for AzureBlob, so is_dir will return false
+  CHECK(!azure_blob->is_dir(test_dir));
   CHECK(!azure_blob->is_file(test_dir));
-  CHECK_RC(azure_blob->create_dir(test_dir), TILEDB_FS_ERR); // Dir already exists
-  CHECK(!azure_blob->is_dir("parent_foo"));
-  CHECK_RC(azure_blob->create_dir("parent_foo/foo"), TILEDB_FS_ERR); 
-  CHECK_RC(azure_blob->create_file(test_dir, 0, 0), TILEDB_FS_ERR);
-  CHECK_RC(azure_blob->create_file(azure_blob->real_dir(test_dir), 0, 0), TILEDB_FS_ERR);
+  // Files can be created without parent dir existence on AzureBlob
+  CHECK_RC(azure_blob->create_file(test_dir+"/foo", 0, 0), TILEDB_FS_OK);
+  CHECK(azure_blob->is_dir(test_dir));
   CHECK(azure_blob->file_size(test_dir) == TILEDB_FS_ERR);
   CHECK(azure_blob->get_dirs(test_dir).size() == 0);
   CHECK(azure_blob->get_dirs("non-existent-dir").size() == 0);
@@ -133,7 +133,8 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob dir", "[dir]") {
   CHECK_RC(azure_blob->sync_path("non-existent-dir"), TILEDB_FS_OK);
 
   CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
-  CHECK_RC(azure_blob->delete_dir("non-existent-dir"), TILEDB_FS_ERR);
+  // No support for returning errors for non-existent paths
+  CHECK_RC(azure_blob->delete_dir("non-existent-dir"), TILEDB_FS_OK);
 
   CHECK(!azure_blob->is_dir(test_dir));
   CHECK(!azure_blob->is_file(test_dir));
@@ -145,18 +146,18 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob file", "[file]") {
   }
   std::string test_dir("file");
   CHECK_RC(azure_blob->create_dir(test_dir), 0);
-  REQUIRE(azure_blob->is_dir(test_dir));
   CHECK_RC(azure_blob->create_file(test_dir+"/foo", O_WRONLY|O_CREAT,  S_IRWXU), TILEDB_FS_OK);
   CHECK(azure_blob->is_file(test_dir+"/foo"));
   CHECK(!azure_blob->is_dir(test_dir+"/foo"));
+  // Cannot create_dir if file already exists
+  CHECK(azure_blob->create_dir(test_dir+"/foo") == TILEDB_FS_ERR);
   CHECK(azure_blob->file_size(test_dir+"/foo") == 0);
   CHECK(azure_blob->file_size(test_dir+"/foo1") == TILEDB_FS_ERR);
-  // Add +1 to account for directory marker
-  CHECK(azure_blob->get_files(test_dir).size() == 1+1);
+  CHECK(azure_blob->get_files(test_dir).size() == 1);
   CHECK(azure_blob->get_files("non-existent-dir").size() == 0);
   
   CHECK_RC(azure_blob->create_file(test_dir+"/foo1", O_WRONLY|O_CREAT,  S_IRWXU), TILEDB_FS_OK);
-  CHECK(azure_blob->get_files(test_dir).size() == 2+1);
+  CHECK(azure_blob->get_files(test_dir).size() == 2);
 
   CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(azure_blob->sync_path(test_dir), TILEDB_FS_OK);
@@ -178,9 +179,8 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   }
   std::string test_dir("read_write");
   CHECK_RC(azure_blob->create_dir(test_dir), TILEDB_FS_OK);
-  REQUIRE(azure_blob->is_dir(test_dir));
   CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
-  CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   REQUIRE(azure_blob->is_file(test_dir+"/foo"));
   CHECK(azure_blob->file_size(test_dir+"/foo") == 5);
 
@@ -209,14 +209,15 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 11), TILEDB_FS_OK);
   CHECK(((char *)buffer)[10] == 'e');
 
-  CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+  CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(azure_blob->delete_file(test_dir+"/foo"), TILEDB_FS_OK);
 
   CHECK_RC(azure_blob->sync_path(test_dir), TILEDB_FS_OK);
 
   CHECK_RC(azure_blob->read_from_file(test_dir+"/non-existent-file", 0, buffer, 5), TILEDB_FS_ERR);
   CHECK_RC(azure_blob->read_from_file("non-existent-dir/foo", 0, buffer, 5), TILEDB_FS_ERR);
-  CHECK_RC(azure_blob->write_to_file("non-existent-dir/foo", "hello", 5), TILEDB_FS_ERR);
+  // AzureBlob can write to non-existent dirs - create_dir really is a no-op
+  CHECK_RC(azure_blob->write_to_file("non-existent-dir/foo", "hello", 5), TILEDB_FS_OK);
   CHECK_RC(azure_blob->close_file("non-existent-dir/foo"), TILEDB_FS_OK);
 
   free(buffer);
@@ -235,7 +236,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
     memset(buffer, 'B', size);
     REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
     CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", buffer, size), TILEDB_FS_OK);
-    CHECK_RC(azure_blob->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
+    CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
     CHECK(azure_blob->is_file(test_dir+"/foo"));
     CHECK((size_t)azure_blob->file_size(test_dir+"/foo") == size);
 
@@ -286,7 +287,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     #pragma omp parallel for
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"/foo"+std::to_string(i);
-      CHECK_RC(azure_blob->sync_path(filename), TILEDB_FS_OK);
+      CHECK_RC(azure_blob->close_file(filename), TILEDB_FS_OK);
       CHECK(azure_blob->is_file(filename));
       CHECK((size_t)azure_blob->file_size(filename) == size*2);
     }

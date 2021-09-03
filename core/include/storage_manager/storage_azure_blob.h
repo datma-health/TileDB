@@ -55,8 +55,6 @@ class AzureBlob : public StorageCloudFS {
   std::string current_dir();
   int set_working_dir(const std::string& dir);
   
-  bool is_dir(const std::string& dir);
-  bool is_file(const std::string& file);
   std::string real_dir(const std::string& dir);
                
   int create_dir(const std::string& dir);
@@ -73,10 +71,6 @@ class AzureBlob : public StorageCloudFS {
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);
   
-  int sync_path(const std::string& path);
-
-  bool locking_support();
-
  protected:
   std::shared_ptr<blob_client> blob_client_ = nullptr;
   std::shared_ptr<blob_client_wrapper> bc_wrapper_ = nullptr;
@@ -88,6 +82,7 @@ class AzureBlob : public StorageCloudFS {
 
   std::mutex write_map_mtx_;
   std::unordered_map<std::string, std::vector<put_block_list_request_base::block_item>> write_map_;
+  std::unordered_map<std::string, size_t> filesizes_map_;
 
   std::vector<std::pair<std::string, std::string>> empty_metadata;
 
@@ -138,8 +133,6 @@ class AzureBlob : public StorageCloudFS {
 
   std::string get_path(const std::string& path);
 
-  int commit_file(const std::string& filename);
-
   std::vector<std::string> generate_block_ids(const std::string& path, int num_blocks) {
     std::vector<std::string> block_ids;
     block_ids.reserve(num_blocks);
@@ -164,6 +157,14 @@ class AzureBlob : public StorageCloudFS {
       search->second.push_back(std::move(block));
     }
 
+    if (existing_num_blocks+num_blocks > 50000) {
+      // https://docs.microsoft.com/en-us/rest/api/storageservices/understanding-block-blobs--append-blobs--and-page-blobs - A block blob can include up to 50,000 blocks
+      std::cerr << "Block Blobs cannot be comprised of more than 50000 blocks. "
+                << "Current number of blocks=" << std::to_string(existing_num_blocks+num_blocks)
+                << std::endl;
+      return {};
+    }
+
     return block_ids;
   }
 
@@ -171,6 +172,27 @@ class AzureBlob : public StorageCloudFS {
                                                        std::vector<std::string> block_list,
                                                        const char* buffer, uint64_t bufferlen,
                                                        uint parallelism=1);
-  
+
+  void update_expected_filesizes_map(const std::string& path, size_t size) {
+    auto search = filesizes_map_.find(path);
+    if (search == filesizes_map_.end()) {
+      filesizes_map_.insert({path, size});
+    } else {
+      filesizes_map_[path] += size;
+    }
+  }
+
+  ssize_t expected_filesize_from_map(const std::string& path) {
+    auto search = filesizes_map_.find(path);
+    if (search == filesizes_map_.end()) {
+      return -1;
+    } else {
+      return search->second;
+    }
+  }
+
+  bool path_exists(const std::string& path);
+  int create_path(const std::string& path);
+  int commit_file(const std::string& filename);
 };
 #endif /* __STORAGE_AZURE_BLOB_H__ */

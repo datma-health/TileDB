@@ -215,6 +215,11 @@ int WriteState::finalize() {
 }
 
 int WriteState::sync() {
+  // No sync needed for storage classes derived from StorageCloudFS
+  if (dynamic_cast<StorageCloudFS *>(fs_)) {
+    return TILEDB_FS_OK;
+  }
+
   // For easy reference
   const ArraySchema* array_schema = fragment_->array()->array_schema();
   const std::vector<int>& attribute_ids = fragment_->array()->attribute_ids();
@@ -326,6 +331,11 @@ int WriteState::sync() {
 }
 
 int WriteState::sync_attribute(const std::string& attribute) {
+  // No sync needed for storage classes derived from StorageCloudFS
+  if (dynamic_cast<StorageCloudFS *>(fs_)) {
+    return TILEDB_FS_OK;
+  }
+
   // For easy reference
   const ArraySchema* array_schema = fragment_->array()->array_schema();
   int write_method = fragment_->array()->config()->write_method();
@@ -595,7 +605,7 @@ int WriteState::compress_tile(
    codec = codec_[attribute_id];
   }
   if(codec->compress_tile(tile, tile_size, tile_compressed, tile_compressed_size) != TILEDB_CD_OK) {
-    std::string errmsg = "Cannot compress tile";
+    std::string errmsg = "Cannot compress tile for " + construct_filename(attribute_id, compress_offsets);
     PRINT_ERROR(errmsg);
     tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
     return TILEDB_WS_ERR;

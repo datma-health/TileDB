@@ -148,11 +148,21 @@ class StorageCloudFS : public virtual StorageFS {
     return TILEDB_FS_OK;
   }
 
+  bool is_dir(const std::string& dir) {
+    if (get_path(dir).length() == 0) {
+      // This must be the container - OK
+      return true;
+    }
+    return path_exists(slashify(dir));
+  }
+  
+  bool is_file(const std::string& file) {
+    return path_exists(unslashify(file));
+  }
+
   int move_path(const std::string& old_path, const std::string& new_path) {
     throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TBD: No support for moving path");
   }
-
-  virtual int commit_file(const std::string& filename);
 
   int sync_path(const std::string& path);
 
@@ -160,6 +170,11 @@ class StorageCloudFS : public virtual StorageFS {
 
  protected:
   std::string get_path(const std::string& path);
+
+  virtual bool path_exists(const std::string& path) = 0;
+  virtual int create_path(const std::string& path) = 0;
+
+  virtual int commit_file(const std::string& filename) = 0;
 
 #ifdef __linux__
   // Possible certificate files; stop after finding one.

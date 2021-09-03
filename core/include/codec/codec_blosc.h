@@ -24,7 +24,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * @section DESCRIPTION
  *
  * CodecBlosc derived from Codec for Blosc support
@@ -53,24 +53,25 @@ class CodecBlosc : public Codec {
   CodecBlosc(int compression_level, std::string compressor, size_t type_size):Codec(compression_level) {
     static std::once_flag loaded;
     static void *dl_handle = NULL;
-    
+
     compressor_ = compressor;
     type_size_ = type_size;
 
     std::call_once(loaded, [this]() {
         dl_handle = get_dlopen_handle("blosc");
         if (dl_handle) {
-	  BIND_SYMBOL(dl_handle, blosc_init, "blosc_init", (void (*)()));
-	  BIND_SYMBOL(dl_handle, blosc_destroy, "blosc_destroy", (void (*)()));
-	  BIND_SYMBOL(dl_handle, blosc_set_compressor, "blosc_set_compressor", (int (*)(const char *)));
-	  BIND_SYMBOL(dl_handle, blosc_compress, "blosc_compress", (int (*)(int, int, size_t, size_t, const void *, void *, size_t)));
-	  BIND_SYMBOL(dl_handle, blosc_decompress, "blosc_decompress", (int (*)(const void *, void *, size_t)));
+          BIND_SYMBOL(dl_handle, blosc_init, "blosc_init", (void (*)()));
+          BIND_SYMBOL(dl_handle, blosc_destroy, "blosc_destroy", (void (*)()));
+          BIND_SYMBOL(dl_handle, blosc_set_compressor, "blosc_set_compressor", (int (*)(const char *)));
+          BIND_SYMBOL(dl_handle, blosc_compress, "blosc_compress", (int (*)(int, int, size_t, size_t, const void *, void *, size_t)));
+          BIND_SYMBOL(dl_handle, blosc_decompress, "blosc_decompress", (int (*)(const void *, void *, size_t)));
         } else {
-	  throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " Blosc library not found. Install Blosc and setup library paths.");
-	}
+          throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " Blosc library not found. Install Blosc and setup library paths.");
+        }
       });
+    name_ = "Blosc";
   }
-  
+
   int do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) override;
 
   int do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) override;
@@ -78,7 +79,7 @@ class CodecBlosc : public Codec {
  private:
   std::string compressor_;
   size_t type_size_;
-  
+
 };
 
 #endif /*__CODEC_BLOSC_H__*/

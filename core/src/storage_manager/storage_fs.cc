@@ -78,14 +78,10 @@ std::string StorageCloudFS::get_path(const std::string& path) {
   }
 }
 
-int StorageCloudFS::commit_file(const std::string& file) {
-  // This should be implemented by the derived class
-  return TILEDB_FS_ERR;
-}
-
 int StorageCloudFS::sync_path(const std::string& path) {
   // S3 and GCS allow for only write-once semantics, so committing the file will
   // happen only when the file is closed or when commit_file() is explicitly called
+  // Forced write-once semantics for Azure Blob Storage too.
   return TILEDB_FS_OK;
 }
 

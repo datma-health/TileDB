@@ -234,18 +234,6 @@ int GCS::delete_path(const std::string& path) {
   }
 }
 
-bool GCS::is_dir(const std::string& dir) {
-  if (get_path(dir).length() == 0) {
-    // This must be the container - OK
-    return true;
-  }
-  return path_exists(slashify(dir));
-}
-
-bool GCS::is_file(const std::string& file) {
-  return path_exists(unslashify(file));
-}
-
 std::string GCS::real_dir(const std::string& dir) {
    if (dir.find("://") != std::string::npos) {
     gcs_uri path_uri(dir);
