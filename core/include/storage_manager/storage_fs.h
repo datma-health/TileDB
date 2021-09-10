@@ -112,6 +112,15 @@ class StorageFS {
     }
   }
 
+  void set_download_buffer_size(size_t buffer_size) {
+    download_buffer_size_ = buffer_size;
+  }
+
+  void set_upload_buffer_size(size_t buffer_size) {
+    upload_buffer_size_ = buffer_size;
+  }
+
+
   static inline std::string slashify(const std::string& path) {
     if (path.empty()) {
       return "/";

@@ -673,24 +673,6 @@ int read_from_file(StorageFS *fs,
     void* buffer,
     size_t length);
 
-/*
- * Reads an entire file into a buffer after decompressing. Memory is allocated by this
- * routine and a pointer to the buffer and the buffer size are returned. It is the caller's
- * responsibility to free the buffer when it is no longer needed.
- *
- * @param fs The storage filesystem type in use. e.g. posix, hdfs, etc.
- * @param filename The name of the file.
- * @param buffer Pointer to the allocated buffer for the decompressed data.
- * @param length Pointer to the size of the buffer.
- * @return TILEDB_UT_OK on success and TILEDB_UT_ERR on error.
- */
-int read_from_file_after_decompression(StorageFS *fs,
-    const std::string& filename,
-    void** buffer,
-    size_t &buffer_size,
-    const int compression);
-
-
 /**
  * Returns the absolute canonicalized directory path of the input directory.
  *
@@ -889,37 +871,6 @@ int write_to_file(StorageFS *fs,
                   const std::string& filename,
                   const void* buffer, 
                   size_t buffer_size);
-
-/** 
- * Writes the input buffer after compression to a file.
- *
- * @param fs The storage filesystem type in use. e.g. posix, hdfs, etc.
- * @param filename The name of the file.
- * @param buffer The input buffer.
- * @param buffer_size The size of the input buffer.
- * @return TILEDB_UT_OK on success, and TILEDB_UT_ERR on error.
- */
-int write_to_file_after_compression(StorageFS *fs,
-                                    const std::string& filename,
-                                    const void* buffer,
-                                    size_t buffer_size,
-                                    const int compression);
-
-
-/** 
- * Write the input buffer to a file, compressed with GZIP.
- * 
- * @param filename The name of the file.
- * @param buffer The input buffer.
- * @param buffer_size The size of the input buffer.
- * @return TILEDB_UT_OK on success, and TILEDB_UT_ERR on error.
- */
-/* TODO: Dead Code
-int write_to_file_cmp_gzip(
-    const char* filename,
-    const void* buffer, 
-    size_t buffer_size);
-*/
 
 /**
  * Delete directories

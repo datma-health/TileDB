@@ -563,25 +563,6 @@ TEST_CASE_METHOD(TempDir, "Test utils file system operations", "[test_utils_fs]"
   CHECK(is_file(fs, new_path));
   CHECK(file_size(fs, new_path) == 6);
   CHECK(!delete_file(fs, new_path));
-
-  char *buffer;
-  size_t buffer_length;
-
-  CHECK(write_to_file_after_compression(fs, "/non-existent-file", "Hello", 6, TILEDB_NO_COMPRESSION) == TILEDB_UT_ERR);
-  CHECK(write_to_file_after_compression(fs, "/non-existent-file", "Hello", 6, TILEDB_GZIP) == TILEDB_UT_ERR);
-  CHECK(read_from_file_after_decompression(fs, "/non-existent-file", (void **)(&buffer), buffer_length, TILEDB_NO_COMPRESSION) == TILEDB_UT_ERR);
-  CHECK(read_from_file_after_decompression(fs, "/non-existent-file", (void **)(&buffer), buffer_length, TILEDB_GZIP) == TILEDB_UT_ERR);
-  
-  const std::string compressed_file = temp_dir+"/compressed_foo";
-  CHECK(write_to_file_after_compression(fs, "/non-existent-file", "Hello", 6, 1000) == TILEDB_UT_ERR); // Unsupported type
-  REQUIRE(!write_to_file_after_compression(fs, compressed_file, "Hello", 6, TILEDB_GZIP));
-  CHECK(!close_file(fs, compressed_file));
- 
-  CHECK(read_from_file_after_decompression(fs, compressed_file, (void **)(&buffer), buffer_length, 1000) == TILEDB_UT_ERR); // Unsupported type
-  CHECK(!read_from_file_after_decompression(fs, compressed_file, (void **)(&buffer), buffer_length, TILEDB_GZIP));
-  CHECK(buffer_length == 6);
-  CHECK(!strcmp(buffer, "Hello"));
-  free(buffer);
 }
 
 TEST_CASE("Test empty value concept", "[empty_cell_val]") {

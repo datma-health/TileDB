@@ -514,7 +514,6 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
     // Buffered writing to help with distributed filesystem and cloud performance
     if (file_buffer != NULL) {
       if (file_buffer->append_buffer(segment, length) == TILEDB_BF_ERR) {
-        file_buffer->free_buffer();
         std::string errmsg = "Cannot write attribute file " + filename + " to memory buffer. Will try write directly to file";
         PRINT_ERROR(errmsg);
         tiledb_ws_errmsg = TILEDB_WS_ERRMSG + errmsg;
