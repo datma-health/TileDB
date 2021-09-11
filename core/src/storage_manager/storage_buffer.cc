@@ -39,9 +39,9 @@
 #include <string>
 #include <string.h>
 
-#define BUFFER_PATH_ERROR(MSG, PATH) free_buffer();SYSTEM_ERROR(TILEDB_FS_ERRMSG, MSG, PATH, tiledb_fs_errmsg)
-#define BUFFER_ERROR_WITH_ERRNO(MSG) free_buffer();TILEDB_ERROR_WITH_ERRNO(TILEDB_FS_ERRMSG, MSG, tiledb_fs_errmsg)
-#define BUFFER_ERROR(MSG) free_buffer();TILEDB_ERROR(TILEDB_FS_ERRMSG, MSG, tiledb_fs_errmsg)
+#define BUFFER_PATH_ERROR(MSG, PATH) free_buffer();SYSTEM_ERROR(TILEDB_BF_ERRMSG, MSG, PATH, tiledb_fs_errmsg)
+#define BUFFER_ERROR_WITH_ERRNO(MSG) free_buffer();TILEDB_ERROR_WITH_ERRNO(TILEDB_BF_ERRMSG, MSG, tiledb_fs_errmsg)
+#define BUFFER_ERROR(MSG) free_buffer();TILEDB_ERROR(TILEDB_BF_ERRMSG, MSG, tiledb_fs_errmsg)
 
 StorageBuffer::StorageBuffer(StorageFS *fs, const std::string& filename, const bool is_read) :
     fs_(fs), filename_(filename), read_only_(is_read) {

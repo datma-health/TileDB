@@ -32,8 +32,31 @@
 
 #pragma once
 
-#include "buffer.h"
 #include "storage_fs.h"
+
+#include "tiledb_constants.h"
+
+#include <zlib.h>
+
+/* ********************************* */
+/*             CONSTANTS             */
+/* ********************************* */
+
+/**@{*/
+/** Return code. */
+#define TILEDB_BF_OK        0
+#define TILEDB_BF_ERR      -1
+/**@}*/
+
+/** Default error message. */
+#define TILEDB_BF_ERRMSG std::string("[TileDB::StorageBuffer] Error: ")
+
+/* ********************************* */
+/*          GLOBAL VARIABLES         */
+/* ********************************* */
+
+/** Stores potential error messages. */
+extern std::string tiledb_bf_errmsg;
 
 class StorageBuffer {
  public:

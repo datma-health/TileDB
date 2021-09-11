@@ -32,7 +32,6 @@
  */
 
 #include "tiledb_constants.h"
-#include "buffer.h"
 #include "error.h"
 #include "utils.h"
 
