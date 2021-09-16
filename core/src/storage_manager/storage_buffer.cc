@@ -43,6 +43,9 @@
 #define BUFFER_ERROR_WITH_ERRNO(MSG) free_buffer();TILEDB_ERROR_WITH_ERRNO(TILEDB_BF_ERRMSG, MSG, tiledb_fs_errmsg)
 #define BUFFER_ERROR(MSG) free_buffer();TILEDB_ERROR(TILEDB_BF_ERRMSG, MSG, tiledb_fs_errmsg)
 
+// Using a typical page size for chunks
+#define CHUNK 4096
+
 StorageBuffer::StorageBuffer(StorageFS *fs, const std::string& filename, const bool is_read) :
     fs_(fs), filename_(filename), read_only_(is_read) {
   if (read_only_) {
@@ -91,8 +94,8 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
   }
 
   if (buffer_ == NULL || !(offset>=buffer_offset_ && (offset+size)<=(buffer_offset_+buffer_size_))) {
-    buffer_offset_ = (offset/chunk_size_)*chunk_size_;
-    buffer_size_ = ((size/chunk_size_)+1)*chunk_size_ + (offset%chunk_size_);
+    buffer_offset_ = (offset/CHUNK)*CHUNK;
+    buffer_size_ = ((size/chunk_size_)+1)*chunk_size_ + (offset%CHUNK);
     // Factor in last chunk
     if (buffer_offset_+buffer_size_ > filesize_) {
       buffer_size_ = filesize_-buffer_offset_;
@@ -128,8 +131,6 @@ int StorageBuffer::read_buffer() {
     return TILEDB_BF_OK;
   }
 
-// Using a typical page size for chunks
-#define CHUNK 4096
 int StorageBuffer::append_buffer(const void *bytes, size_t size) {
   assert(!read_only_);
 

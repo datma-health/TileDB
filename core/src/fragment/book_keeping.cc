@@ -258,7 +258,7 @@ int BookKeeping::finalize(StorageFS *fs) {
     return TILEDB_BK_OK;
 
   // Setup upload size
-  fs->set_upload_buffer_size(upload_download_size_);
+  fs->set_upload_buffer_size(upload_uncompressed_size_);
 
   // Create StorageBuffer to serialize book_keeping content
   buffer_ = new CompressedStorageBuffer(fs, filename_, /*is_read*/false,
@@ -372,7 +372,7 @@ int BookKeeping::init(const void* non_empty_domain) {
  */
 int BookKeeping::load(StorageFS *fs) {
   // Setup download size
-  fs->set_download_buffer_size(upload_download_size_);
+  fs->set_download_buffer_size(download_compressed_size_);
 
   // Create StorageBuffer to deserialize book_keeping content
   buffer_ = new CompressedStorageBuffer(fs, filename_, /*is_read*/ true,

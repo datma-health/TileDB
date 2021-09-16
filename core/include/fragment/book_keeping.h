@@ -245,7 +245,8 @@ class BookKeeping {
 
   // Hardcoded upload/download sizes for book-keeping segments
   // Each segment is individually compressed
-  size_t upload_download_size_ = 10*1024*1024;
+  size_t upload_uncompressed_size_ = 50*1024*1024; // 50M
+  size_t download_compressed_size_ = 10*1024*1024;  // 10M
 
   /** The array schema */
   const ArraySchema* array_schema_;
