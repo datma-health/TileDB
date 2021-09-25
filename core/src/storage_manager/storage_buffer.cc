@@ -115,7 +115,7 @@ int StorageBuffer::read_buffer(off_t offset, void *bytes, size_t size) {
   
   assert(offset >= buffer_offset_);
   assert(size <= buffer_size_);
-  assert(offset-buffer_offset_ <= buffer_size_);
+  assert(size_t(offset-buffer_offset_) <= buffer_size_);
   
   void *pmem = memcpy(bytes, (char *)buffer_+offset-buffer_offset_, size);
   assert(pmem == bytes);
@@ -212,7 +212,7 @@ int CompressedStorageBuffer::read_buffer(void *bytes, size_t size) {
       case TILEDB_NO_COMPRESSION:
         break;
       default:
-        BUFFER_ERROR("Compression type for read_buffer not supported in StorageBuffer");
+        BUFFER_ERROR("Compression type=" + std::to_string(compression_type_) + " for read_buffer not supported for CompressedStorageBuffer");
         return TILEDB_BF_ERR;
     }
   }
@@ -234,7 +234,7 @@ int CompressedStorageBuffer::write_buffer() {
       case TILEDB_NO_COMPRESSION:
         return StorageBuffer::write_buffer();
       default:
-        BUFFER_ERROR("Compression type not supported in StorageBuffer");
+        BUFFER_ERROR("Compression type=" + std::to_string(compression_type_) + " not supported in StorageBuffer");
         return TILEDB_BF_ERR;
     }
   }
