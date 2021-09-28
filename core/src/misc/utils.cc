@@ -32,7 +32,6 @@
  */
 
 #include "tiledb_constants.h"
-#include "buffer.h"
 #include "error.h"
 #include "utils.h"
 
@@ -882,102 +881,6 @@ int read_from_file(StorageFS *fs,
   return TILEDB_UT_OK;
 }
 
-#define windowBits 15
-#define GZIP_ENCODING 16
-
-int read_from_file_after_decompression(StorageFS *fs, const std::string& filename, void** buffer, size_t &buffer_size, const int compression) {
-  switch (compression) {
-    case TILEDB_GZIP:
-    case TILEDB_NO_COMPRESSION:
-      break;
-    default:
-      UTILS_ERROR("Compression type not supported");
-      return TILEDB_UT_ERR;
-  }
-  
-  auto size = fs->file_size(filename);
-  if (size == TILEDB_FS_ERR || size == 0) {
-    UTILS_PATH_ERROR("Cannot read file into buffer as it does not exist or is empty", filename);
-    return TILEDB_UT_ERR;
-  }
-  unsigned char *in = (unsigned char *)malloc(size);
-  if (in == NULL) {
-    UTILS_PATH_ERROR( "Cannot read file into buffer; Mem allocation error for filesize=" + std::to_string(size), filename);
-    return TILEDB_UT_ERR;
-  }
-
-  if (fs->read_from_file(filename, 0, in, size) == TILEDB_UT_ERR) {
-    free(in);
-    UTILS_PATH_ERROR("Could not read from file for decompression", filename);
-    return TILEDB_UT_ERR;
-  }
-
-  if (compression == TILEDB_NO_COMPRESSION) {
-    *buffer = in;
-    buffer_size = size;
-    return TILEDB_UT_OK;
-  }
-
-  unsigned char out[TILEDB_GZIP_CHUNK_SIZE];
-
-  /* allocate inflate state */
-  z_stream strm = {0};
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-  strm.avail_in = 0;
-  strm.next_in = Z_NULL;
-
-  int rc;
-  if ((rc = inflateInit2(&strm, (windowBits + 32))) != Z_OK) {
-    free(in);
-    gzip_handle_error(rc, std::string("Could not initialize decompression for file ")+filename);
-    return TILEDB_UT_ERR;
-  }
-
-  /* decompress until deflate stream ends or end of file */
-  strm.avail_in = size;
-  strm.next_in = in;
-  *buffer = NULL;
-  buffer_size = 0;
-    
-  /* run inflate() on input until output buffer not full */
-  unsigned have;
-  do {
-    strm.avail_out = TILEDB_GZIP_CHUNK_SIZE;
-    strm.next_out = out;
-    rc = inflate(&strm, Z_NO_FLUSH);
-    assert(rc != Z_STREAM_ERROR);  /* state not clobbered */
-    switch (rc) {
-      case Z_NEED_DICT:
-        rc = Z_DATA_ERROR;     /* and fall through */
-      case Z_DATA_ERROR:
-      case Z_STREAM_ERROR:
-      case Z_MEM_ERROR:
-        free(in);
-        inflateEnd(&strm);
-        close_file(fs, filename);
-        gzip_handle_error(rc, std::string("Error encountered during inflate with ")+filename);
-        return TILEDB_UT_ERR;
-    }
-
-    have = TILEDB_GZIP_CHUNK_SIZE - strm.avail_out;
-    *buffer =  (unsigned char *)realloc(*buffer, buffer_size+have);
-    memcpy((char *)(*buffer) + buffer_size, out, have);
-    buffer_size += have;
-      
-  } while (strm.avail_out == 0);
-
-  /* clean up and return */
-  free(in);
-  inflateEnd(&strm);
-  close_file(fs, filename);
-  
-  assert(rc == Z_STREAM_END); // All bytes have been decompressed
-  
-  return TILEDB_UT_OK;
-}
-
 std::string real_dir(StorageFS *fs, const std::string& dir) {
   return fs->real_dir(dir);
 }
@@ -1577,83 +1480,6 @@ int write_to_file(
     tiledb_ut_errmsg = tiledb_fs_errmsg;
     return TILEDB_UT_ERR;
   }
-  return TILEDB_UT_OK;
-}
-
-int write_to_file_after_compression(StorageFS *fs, const std::string& filename, const void* buffer, size_t buffer_size, const int compression) {
-    int rc;
-  switch (compression) {
-    case TILEDB_GZIP:
-      break;
-    case TILEDB_NO_COMPRESSION:
-      if (write_to_file(fs, filename, buffer, buffer_size)) {
-	tiledb_ut_errmsg = tiledb_fs_errmsg;
-	return TILEDB_UT_ERR;
-      }
-      close_file(fs, filename);
-    default:
-      UTILS_PATH_ERROR("Compression type not supported", filename);
-      return TILEDB_UT_ERR;
-  }
-
-  unsigned have;
-  z_stream strm;
-  unsigned char out[TILEDB_GZIP_CHUNK_SIZE];
-
-  /* allocate deflate state */
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-
-  if ((rc = deflateInit2 (&strm, TILEDB_COMPRESSION_LEVEL_GZIP, Z_DEFLATED, windowBits | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY)) != Z_OK) {
-    gzip_handle_error(rc, std::string("Could not initialize compression for ")+filename);
-    return TILEDB_UT_ERR;
-  }
-
-  /* compress until end of file */
-  strm.avail_in = buffer_size;
-  strm.next_in = (unsigned char *)buffer;
-
-  /* run deflate() on input until output buffer not full, finish
-     compression if all of source has been read in */
-  Buffer *gzip_buffer = new Buffer();
-  do {
-    strm.avail_out = TILEDB_GZIP_CHUNK_SIZE;
-    strm.next_out = out;
-    
-    if ((rc = deflate(&strm, Z_FINISH)) == Z_STREAM_ERROR) {
-      deflateEnd(&strm);
-      UTILS_PATH_ERROR("Encountered Z_STREAM_ERROR; Could not compress file", filename);
-      return TILEDB_UT_ERR;
-    }
-    
-    have = TILEDB_GZIP_CHUNK_SIZE - strm.avail_out;
-    if (gzip_buffer->append_buffer(out, have) == TILEDB_BF_ERR) {
-      deflateEnd(&strm);
-      UTILS_PATH_ERROR("Could not write compressed bytes to internal buffer", filename);
-      return TILEDB_UT_ERR;
-    }
-  } while (strm.avail_out == 0);
-  
-  assert(rc == Z_STREAM_END);     /* stream is complete */
-  deflateEnd(&strm);
-
-  if (strm.avail_in != 0) { // All input has not been compressed
-    UTILS_PATH_ERROR("All input could not be compressed: deflate error", filename);
-    delete gzip_buffer;
-    return TILEDB_UT_ERR;
-  }
-
-  if (write_to_file(fs, filename, gzip_buffer->get_buffer(), gzip_buffer->get_buffer_size()) == TILEDB_UT_ERR) {
-    UTILS_PATH_ERROR("Could not write compressed bytes to internal buffer", filename);
-    return TILEDB_UT_ERR;
-  }
-
-  delete gzip_buffer;
-
-  sync_path(fs, filename);
-  close_file(fs, filename);
-
   return TILEDB_UT_OK;
 }
 

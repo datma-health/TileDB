@@ -31,7 +31,6 @@
  */
 
 #include "catch.h"
-#include "buffer.h"
 #include "storage_posixfs.h"
 #include "utils.h"
 
