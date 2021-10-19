@@ -85,6 +85,14 @@ int move_across_filesystems(const std::string& src, const std::string& dest);
 
 int create_temp_filename(char *path, size_t path_length);
 
+/**
+ * access to compression algorithms
+ */
+int create_codec(void **handle, int compression_type, int compression_level);
+int compress(void *handle, unsigned char* segment, size_t segment_size, void** compressed_segment, size_t& compressed_segment_size);
+int decompress(void *handle, unsigned char* compressed_segment,  size_t compressed_segment_size, unsigned char* segment, size_t segment_size);
+void finalize_codec(void *handle);
+
 }
 
 #endif

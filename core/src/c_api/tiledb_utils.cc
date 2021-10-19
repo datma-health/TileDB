@@ -44,6 +44,11 @@
 #include <stdio.h>
 #include <trace.h>
 
+#include "codec_gzip.h"
+#ifdef ENABLE_ZSTD
+#  include "codec_zstd.h"
+#endif
+
 namespace TileDBUtils {
 
 static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,
@@ -441,6 +446,37 @@ int create_temp_filename(char *path, size_t path_length) {
   }
   close(tmp_fd);
   return rc;
+}
+
+int create_codec(void **handle, int compression_type, int compression_level) {
+  int rc = TILEDB_OK;
+  switch (compression_type) {
+    case TILEDB_GZIP:
+      *handle = new CodecGzip(compression_level);
+      break;
+#ifdef ENABLE_ZSTD
+    case TILEDB_ZSTD:
+      *handle = new CodecZStandard(compression_level);
+      break;
+#endif
+    default:
+      snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Compression algorithm %d not supported", compression_type);
+      *handle = NULL;
+      rc = TILEDB_ERR;
+  }
+  return rc; 
+}
+  
+int compress(void *handle, unsigned char* segment, size_t segment_size, void** compressed_segment, size_t& compressed_segment_size) {
+  return (reinterpret_cast<Codec *>(handle))->do_compress_tile(segment, segment_size, compressed_segment, compressed_segment_size);
+}
+  
+int decompress(void *handle, unsigned char* compressed_segment,  size_t compressed_segment_size, unsigned char* segment, size_t segment_size) {
+  return (reinterpret_cast<Codec *>(handle))->do_decompress_tile(compressed_segment, compressed_segment_size, segment, segment_size);
+}
+  
+void finalize_codec(void *handle) {
+  delete reinterpret_cast<Codec *>(handle);
 }
 
 }
