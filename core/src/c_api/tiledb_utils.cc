@@ -34,6 +34,8 @@
  */
 
 #include "tiledb_utils.h"
+
+#include "codec.h"
 #include "tiledb_storage.h"
 #include "storage_fs.h"
 
@@ -44,10 +46,6 @@
 #include <stdio.h>
 #include <trace.h>
 
-#include "codec_gzip.h"
-#ifdef ENABLE_ZSTD
-#  include "codec_zstd.h"
-#endif
 
 namespace TileDBUtils {
 
@@ -449,22 +447,7 @@ int create_temp_filename(char *path, size_t path_length) {
 }
 
 int create_codec(void **handle, int compression_type, int compression_level) {
-  int rc = TILEDB_OK;
-  switch (compression_type) {
-    case TILEDB_GZIP:
-      *handle = new CodecGzip(compression_level);
-      break;
-#ifdef ENABLE_ZSTD
-    case TILEDB_ZSTD:
-      *handle = new CodecZStandard(compression_level);
-      break;
-#endif
-    default:
-      snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Compression algorithm %d not supported", compression_type);
-      *handle = NULL;
-      rc = TILEDB_ERR;
-  }
-  return rc; 
+  return Codec::create(handle, compression_type, compression_level);
 }
   
 int compress(void *handle, unsigned char* segment, size_t segment_size, void** compressed_segment, size_t& compressed_segment_size) {

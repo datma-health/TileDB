@@ -295,3 +295,21 @@ TEST_CASE_METHOD(TempDir, "Test move across filesystems", "[move_across_filesyst
   CHECK(!TileDBUtils::is_file(filename));
 }
 
+TEST_CASE("Test codec api", "[codec_api]") {
+  void *handle;
+  CHECK(TileDBUtils::create_codec(&handle, 999, 999) == TILEDB_ERR); // unsupported compression type
+  CHECK(TileDBUtils::create_codec(&handle, TILEDB_GZIP, 0) == TILEDB_OK);
+  CHECK(handle != nullptr);
+  size_t size = 1024*1024*10; // 10M
+  std::vector<unsigned char> buffer(size);
+  std::generate(buffer.begin(), buffer.end(), std::rand);
+  void *compressed_buffer;
+  size_t compressed_buffer_size;
+  CHECK(TileDBUtils::compress(handle, &buffer[0], size, &compressed_buffer, compressed_buffer_size) == TILEDB_OK);
+  std::vector<unsigned char> decompressed_buffer(size);
+  CHECK(TileDBUtils::decompress(handle, (unsigned char *)compressed_buffer, compressed_buffer_size, &decompressed_buffer[0], size) == TILEDB_OK);
+  for (size_t i=0; i<size; i++) {
+    CHECK(buffer[i] == decompressed_buffer[i]);
+  }
+  TileDBUtils::finalize_codec(handle);
+}

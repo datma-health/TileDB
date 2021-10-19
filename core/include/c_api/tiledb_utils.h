@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
- * @copyright Copyright (c) 2020 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2020-2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
