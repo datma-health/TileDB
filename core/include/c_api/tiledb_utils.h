@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
- * @copyright Copyright (c) 2020 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2020-2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,6 +84,14 @@ int delete_file(const std::string& filename);
 int move_across_filesystems(const std::string& src, const std::string& dest);
 
 int create_temp_filename(char *path, size_t path_length);
+
+/**
+ * access to compression algorithms
+ */
+int create_codec(void **handle, int compression_type, int compression_level);
+int compress(void *handle, unsigned char* segment, size_t segment_size, void** compressed_segment, size_t& compressed_segment_size);
+int decompress(void *handle, unsigned char* compressed_segment,  size_t compressed_segment_size, unsigned char* segment, size_t segment_size);
+void finalize_codec(void *handle);
 
 }
 

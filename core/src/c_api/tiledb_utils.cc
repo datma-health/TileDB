@@ -34,6 +34,8 @@
  */
 
 #include "tiledb_utils.h"
+
+#include "codec.h"
 #include "tiledb_storage.h"
 #include "storage_fs.h"
 
@@ -43,6 +45,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <trace.h>
+
 
 namespace TileDBUtils {
 
@@ -441,6 +444,22 @@ int create_temp_filename(char *path, size_t path_length) {
   }
   close(tmp_fd);
   return rc;
+}
+
+int create_codec(void **handle, int compression_type, int compression_level) {
+  return Codec::create(handle, compression_type, compression_level);
+}
+  
+int compress(void *handle, unsigned char* segment, size_t segment_size, void** compressed_segment, size_t& compressed_segment_size) {
+  return (reinterpret_cast<Codec *>(handle))->do_compress_tile(segment, segment_size, compressed_segment, compressed_segment_size);
+}
+  
+int decompress(void *handle, unsigned char* compressed_segment,  size_t compressed_segment_size, unsigned char* segment, size_t segment_size) {
+  return (reinterpret_cast<Codec *>(handle))->do_decompress_tile(compressed_segment, compressed_segment_size, segment, segment_size);
+}
+  
+void finalize_codec(void *handle) {
+  delete reinterpret_cast<Codec *>(handle);
 }
 
 }

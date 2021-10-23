@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -224,6 +224,26 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
   }
 
   return codec;
+}
+
+// Generalized non-TileDB codec usage
+int Codec::create(void **handle, int compression_type, int compression_level) {
+  int rc = TILEDB_OK;
+  switch (compression_type) {
+    case TILEDB_GZIP:
+      *handle = new CodecGzip(compression_level);
+      break;
+#ifdef ENABLE_ZSTD
+    case TILEDB_ZSTD:
+      *handle = new CodecZStandard(compression_level);
+      break;
+#endif
+    default:
+      snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Compression algorithm %d not supported", compression_type);
+      *handle = NULL;
+      rc = TILEDB_ERR;
+  }
+  return rc; 
 }
 
 int Codec::get_default_level(int compression_type) {
