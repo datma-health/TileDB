@@ -85,7 +85,7 @@ jobs:
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make 
       env:
-        OPENSSL_ROOT_DIR: /usr/local/opt/openssl
+        OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
         AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
 
     - name: Build and Test
