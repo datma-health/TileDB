@@ -1,6 +1,6 @@
 diff -Naur awssdk-build/cmake/AWSSDKConfig.cmake awssdk-build.modify/cmake/AWSSDKConfig.cmake
---- awssdk-build/cmake/AWSSDKConfig.cmake	2020-12-28 12:18:15.000000000 -0800
-+++ awssdk-build.modify/cmake/AWSSDKConfig.cmake	2021-12-13 19:30:51.000000000 -0800
+--- awssdk-build/cmake/AWSSDKConfig.cmake	2021-12-13 22:19:01.000000000 -0800
++++ awssdk-build.modify/cmake/AWSSDKConfig.cmake	2021-12-13 22:20:44.000000000 -0800
 @@ -116,7 +116,7 @@
  get_filename_component(TEMP_PATH "${AWSSDK_CORE_LIB_FILE}" PATH)
  get_filename_component(TEMP_NAME "${TEMP_PATH}" NAME)
@@ -10,3 +10,22 @@ diff -Naur awssdk-build/cmake/AWSSDKConfig.cmake awssdk-build.modify/cmake/AWSSD
      set(TEMP_PLATFORM_PREFIX "${TEMP_NAME}/${TEMP_PLATFORM_PREFIX}")
      get_filename_component(TEMP_PATH "${TEMP_PATH}" PATH)
      get_filename_component(TEMP_NAME "${TEMP_PATH}" NAME)
+diff -Naur awssdk-build/third-party/CMakeLists.txt awssdk-build.modify/third-party/CMakeLists.txt
+--- awssdk-build/third-party/CMakeLists.txt	2021-04-15 12:18:01.000000000 -0700
++++ awssdk-build.modify/third-party/CMakeLists.txt	2021-12-13 22:21:06.000000000 -0800
+@@ -15,7 +15,7 @@
+ set(AWS_DEPS_DOWNLOAD_DIR "${AWS_DEPS_BUILD_DIR}/downloads" CACHE PATH "Dependencies download directory.")
+ 
+ set(AWS_C_COMMON_URL "https://github.com/awslabs/aws-c-common.git")
+-set(AWS_C_COMMON_TAG "v0.4.42")
++set(AWS_C_COMMON_TAG "v0.6.2")
+ include(BuildAwsCCommon)
+ 
+ set(AWS_CHECKSUMS_URL "https://github.com/awslabs/aws-checksums.git")
+@@ -26,4 +26,4 @@
+ set(AWS_EVENT_STREAM_TAG "v0.1.5")
+ include(BuildAwsEventStream)
+ 
+-add_dependencies(AwsCEventStream AwsCCommon AwsChecksums)
+\ No newline at end of file
++add_dependencies(AwsCEventStream AwsCCommon AwsChecksums)
