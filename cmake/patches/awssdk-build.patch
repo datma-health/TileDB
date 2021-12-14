@@ -1,0 +1,12 @@
+diff -Naur awssdk-build/cmake/AWSSDKConfig.cmake awssdk-build.modify/cmake/AWSSDKConfig.cmake
+--- awssdk-build/cmake/AWSSDKConfig.cmake	2020-12-28 12:18:15.000000000 -0800
++++ awssdk-build.modify/cmake/AWSSDKConfig.cmake	2021-12-13 19:30:51.000000000 -0800
+@@ -116,7 +116,7 @@
+ get_filename_component(TEMP_PATH "${AWSSDK_CORE_LIB_FILE}" PATH)
+ get_filename_component(TEMP_NAME "${TEMP_PATH}" NAME)
+ 
+-while (NOT TEMP_NAME STREQUAL ${LIB_SEARCH_PREFIX})
++while (NOT TEMP_NAME STREQUAL "${LIB_SEARCH_PREFIX}")
+     set(TEMP_PLATFORM_PREFIX "${TEMP_NAME}/${TEMP_PLATFORM_PREFIX}")
+     get_filename_component(TEMP_PATH "${TEMP_PATH}" PATH)
+     get_filename_component(TEMP_NAME "${TEMP_PATH}" NAME)
