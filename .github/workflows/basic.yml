@@ -105,7 +105,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{env.AWSSDK_ROOT_DIR}}
-        key: aws-${{env.AWSSDK_VER}}-v2
+        key: aws-${{env.AWSSDK_VER}}-v3
 
     - name: Cache Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs'
