@@ -68,6 +68,8 @@ jobs:
         if [[ ${{matrix.type}} == "basic-codec" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_supported_codec.sh
         fi
+        echo "Nalini - " `which gcc` `gcc --version`
+        echo "Nalini - LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DAWSSDK_URL=$AWSSDK_URL $USE_HDFS
       env:
