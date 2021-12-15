@@ -107,9 +107,6 @@ if(ENABLE_ZSTD)
     add_definitions(-DENABLE_ZSTD)
 endif()
 
-# libaws-c-common.a needs dl libs
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_DL_LIBS})
-
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${OPENSSL_LIBRARIES})
@@ -132,6 +129,9 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${AWSSDK_LINK_LIBRARIES})
 find_package(GCSClient REQUIRED)
 include_directories(${GCSSDK_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${GCSSDK_LINK_LIBRARIES})
+
+# libaws-c-common.a needs dl libs
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CMAKE_DL_LIBS})
 
 # Build MuParserX source code added as a dependency
 include_directories(${MUPARSERX_SOURCE_DIR}/parser)
