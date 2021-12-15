@@ -3,16 +3,10 @@
 # Error out on first failure
 set -e
 
-gpg --quiet --batch --yes --decrypt --passphrase=$AWS_TAR --output ${HOME}/aws.tar $GITHUB_WORKSPACE/.github/scripts/aws.tar.gpg
-tar xvf ${HOME}/aws.tar -C $HOME
-
 # Install aws cli for sanity checking
 if [[ ! -n $(which aws) ]]; then
-  pushd /tmp
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -s -o "awscliv2.zip"
-  unzip awscliv2.zip
-  sudo ./aws/install
-  popd
+  sudo apt-get -q update
+  sudo apt-get -y install awscli
 fi
 
 # Sanity check

@@ -40,12 +40,10 @@ echo "Testing with curl..."
 curl -vsSL --tlsv1.2 -X GET $AWS_ENDPOINT_URL
 echo "Testing with curl DONE"
 
-# Install aws cli
-pushd /tmp
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -s -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-popd
+if [[ ! -n $(which aws) ]]; then
+  sudo apt-get -q update
+  sudo apt-get -y install awscli 
+fi
 
 echo "aws version=`aws --version`"
 echo "Listing Buckets..."
