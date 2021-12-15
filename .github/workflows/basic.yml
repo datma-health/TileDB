@@ -22,8 +22,7 @@ jobs:
         # os: [ubuntu-18.04, macOS-10.15]
         os: [ubuntu-20.04, macOS-10.15]
         # All supported types
-        #type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
-        type: [basic]
+        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
         exclude:
           - os: macos-10.15
             type: basic-no-hdfs
