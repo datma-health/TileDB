@@ -67,8 +67,6 @@ jobs:
         if [[ ${{matrix.type}} == "basic-codec" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_supported_codec.sh
         fi
-        echo "Nalini - " `which gcc` `gcc --version`
-        echo "Nalini - LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DAWSSDK_URL=$AWSSDK_URL $USE_HDFS
       env:
@@ -85,7 +83,7 @@ jobs:
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
-        make 
+        make -j4
       env:
         OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
         AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
