@@ -8,11 +8,8 @@ tar xvf ${HOME}/aws.tar -C $HOME
 
 # Install aws cli for sanity checking
 if [[ ! -n $(which aws) ]]; then
-  pushd /tmp
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -s -o "awscliv2.zip"
-  unzip awscliv2.zip
-  sudo ./aws/install
-  popd
+  sudo apt-get -q update
+  sudo apt-get -y install awscli
 fi
 
 # Sanity check

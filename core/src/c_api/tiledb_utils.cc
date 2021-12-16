@@ -46,7 +46,6 @@
 #include <stdio.h>
 #include <trace.h>
 
-
 namespace TileDBUtils {
 
 static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,

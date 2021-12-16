@@ -20,6 +20,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04, macOS-10.15]
+        # os: [ubuntu-20.04, macOS-10.15]
         # All supported types
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
         exclude:
@@ -82,9 +83,9 @@ jobs:
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
-        make -j4 
+        make -j4
       env:
-        OPENSSL_ROOT_DIR: /usr/local/opt/openssl
+        OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
         AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
 
     - name: Build and Test
@@ -105,7 +106,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{env.AWSSDK_ROOT_DIR}}
-        key: aws-${{env.AWSSDK_VER}}-v2
+        key: aws-${{env.AWSSDK_VER}}-v3
 
     - name: Cache Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs'
