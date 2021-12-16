@@ -55,7 +55,7 @@ download_gcs_connector() {
 }
 
 download_hadoop() {
-  retry wget -nv --trust-server-names http://www-eu.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz
+  retry wget -nv --trust-server-names https://archive.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz
   tar -xzf $HADOOP.tar.gz --directory $INSTALL_DIR &&
   download_gcs_connector &&
   echo "download_hadoop successful"
@@ -109,6 +109,7 @@ setup_paths() {
 }
 
 install_hadoop() {
+  echo "Installing Hadoop..."
   install_prereqs
   if [[ ! -f $HADOOP_ENV ]]; then
     download_hadoop &&
@@ -128,7 +129,3 @@ echo "INSTALL_TYPE=$INSTALL_TYPE"
 gpg --quiet --batch --yes --decrypt --passphrase="$R_TAR" --output $INSTALL_DIR/r.tar $GITHUB_WORKSPACE/.github/scripts/r.tar.gpg &&
 tar xf $INSTALL_DIR/r.tar -C $GITHUB_WORKSPACE/.github &&
 install_hadoop
-
-
-
-

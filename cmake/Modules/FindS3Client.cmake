@@ -63,7 +63,7 @@ elseif(NOT AWSSDK_FOUND)
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
-    PATCH_COMMAND patch -p1 < ${CMAKE_SOURCE_DIR}/cmake/patches/awssdk-build.patch
+    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk-build.patch
     CMAKE_ARGS
         -DBUILD_SHARED_LIBS=OFF
         -DENABLE_TESTING=OFF
