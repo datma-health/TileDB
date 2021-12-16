@@ -82,6 +82,9 @@ class Codec {
 
   static Codec* create(const ArraySchema* array_schema, const int attribute_id, const bool is_offsets_compression=false);
 
+  // Generalized non-TileDB codec usage
+  static int create(void **handle, int compression_type, int compression_level);
+
   static int get_default_level(const int compression_type);
 
   static int print_errmsg(const std::string& msg);
