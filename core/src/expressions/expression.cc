@@ -254,7 +254,7 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, int 
   }
 
   for (int current_cell=0, next_cell=0; next_cell < number_of_cells; current_cell++, next_cell++) {
-    int reduce_by = 0;
+    size_t reduce_by = 0;
     bool next_cell_dropped;
     do {
       next_cell_dropped = std::find(cells_to_be_dropped.begin(), cells_to_be_dropped.end(), next_cell) != cells_to_be_dropped.end();
@@ -266,7 +266,7 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, int 
 
     for (auto i=0u, j=0u; i < attributes_.size(); i++, j++) {
       int attribute_id = array_schema_->attribute_id(attributes_[i]);
-      int cell_size;
+      size_t cell_size;
       int cell_val_num = array_schema_->cell_val_num(attribute_id);
       if (cell_val_num == TILEDB_VAR_NUM) {
         cell_size = sizeof(size_t);
