@@ -261,8 +261,7 @@ int delete_dir(const std::string& dirpath)
   return rc;
 }
 
-bool is_file(const std::string& filepath)
-{
+bool is_file(const std::string& filepath) {
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filepath))) {
     FINALIZE;
@@ -271,6 +270,17 @@ bool is_file(const std::string& filepath)
   bool check = is_file(tiledb_ctx, filepath);
   finalize(tiledb_ctx);
   return check;
+}
+
+ssize_t file_size(const std::string& filepath) {
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, parent_dir(filepath))) {
+    FINALIZE;
+    return false;
+  }
+  ssize_t filesize = file_size(tiledb_ctx, filepath);
+  finalize(tiledb_ctx);
+  return filesize;
 }
 
 std::vector<std::string> get_dirs(const std::string& dirpath) {
