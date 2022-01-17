@@ -70,6 +70,8 @@ std::vector<std::string> get_dirs(const std::string& dirpath);
 
 std::vector<std::string> get_files(const std::string& dirpath);
 
+ssize_t file_size(const std::string& filepath);
+
 /**
  * buffer is malloc'ed and has to be freed by calling function
  */
