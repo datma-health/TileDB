@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019, 2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -83,7 +83,7 @@ class Expression {
 
   int add_expression(std::string expression);
 
-  bool evaluate_cell(void **buffers, size_t* buffer_sizes, std::vector<int64_t>& position);
+  bool evaluate_cell(void **buffers, size_t* buffer_sizes, std::vector<int64_t>& positions);
 
   /**
    * The evaluate method is called after array read is done.
@@ -94,20 +94,47 @@ class Expression {
    */
   int evaluate(void** buffers, size_t* buffer_sizes);
 
-  std::map<std::string, mup::Value> attribute_map_;
-
  private:
   void fixup_return_buffers(void** buffers, size_t* buffer_sizes, int number_of_cells, std::vector<int> cells_to_be_dropped);
   
   std::string expression_;
   std::vector<std::string> attributes_;
+  const ArraySchema* array_schema_;
+
+  mup::ParserX *parser_ = new mup::ParserX(mup::pckALL_NON_COMPLEX | mup::pckMATRIX);
+  std::map<std::string, mup::Value> attribute_map_;
+
   int coords_index_ = 0;
   int coords_index_in_buffer_ = 0;
 
-  mup::ParserX *parser_ = new mup::ParserX(mup::pckALL_NON_COMPLEX | mup::pckMATRIX);
-  const ArraySchema* array_schema_;
-
   std::vector<int64_t> last_processed_buffer_index_;
+
+  void assign_single_cell_value(const int attribute_id, void** buffers, size_t *buffer_sizes,
+                                const uint64_t buffer_index, const int64_t position);
+  void assign_fixed_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
+                                const uint64_t buffer_index, const int64_t position);
+  void assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
+                                const uint64_t buffer_index, const int64_t position);
+
+  inline const int get_cell_val_num(const std::string& attribute_name) const {
+    return array_schema_->cell_val_num(array_schema_->attribute_id(attribute_name));
+  }
+
+  inline const size_t get_cell_size(const std::string& attribute_name) const {
+    int attribute_id = array_schema_->attribute_id(attribute_name);
+    int cell_val_num = get_cell_val_num(attribute_name);
+    if (cell_val_num == TILEDB_VAR_NUM) {
+      return sizeof(size_t);
+    } else if (attribute_name.compare(TILEDB_COORDS) == 0) {
+      return array_schema_->type_size(attribute_id)*array_schema_->dim_num();
+    } else {
+      return array_schema_->type_size(attribute_id)*cell_val_num;
+    }
+  }
+
+  inline const size_t get_var_cell_type_size(const std::string& attribute_name) const {
+    return array_schema_->type_size(array_schema_->attribute_id(attribute_name));
+  }
 };
 
 #endif // __EXPRESSION_H__

@@ -5,7 +5,7 @@
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019, 2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
       1,                                             // Number of attributes
       buffers,                                       // Buffers used internally
       buffer_sizes,                                  // Buffer sizes
-      "a1 > 5");                                     // Filter Expression on attribute a1
+      "a1 > 5");
  
   // Iterate over all values in subarray
   printf(" a1\n----\n");

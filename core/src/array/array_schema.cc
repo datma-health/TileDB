@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019-2020, 2022 Omics Data Automation, Inc.
  * 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1893,7 +1893,7 @@ int ArraySchema::set_types(const int* types) {
      types[attribute_num_] != TILEDB_INT64 &&
      types[attribute_num_] != TILEDB_FLOAT32 &&
      types[attribute_num_] != TILEDB_FLOAT64) {
-    std::string errmsg = "Cannot set types; Invalid type";
+    std::string errmsg = "Cannot set types; Invalid type for coordinate";
     PRINT_ERROR(errmsg);
     tiledb_as_errmsg = TILEDB_AS_ERRMSG + errmsg;
     return TILEDB_AS_ERR;

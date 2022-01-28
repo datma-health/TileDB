@@ -5,7 +5,7 @@
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019, 2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
       NULL,                                             // All attributes
       0);                                               // Number of attributes
 
-  tiledb_array_apply_filter(tiledb_array, "a1 > 1");
+  tiledb_array_apply_filter(tiledb_array, "a1 > 5 && (a2 == \"u\" || a2 != \"w\")  && a3[0] > 105.0 && a2 != \"yyy\"");
 
   // Prepare cell buffers 
   int buffer_a1[10];
