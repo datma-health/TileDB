@@ -320,10 +320,10 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
   }
 
   // Get minimum number of cells in buffers for evaluation to account for overflow.
-  int number_of_cells = 0;
+  size_t number_of_cells = 0;
   for (auto i = 0u, j = 0u; i < attributes_.size(); i++, j++) {
     int attribute_id = array_schema_->attribute_id(attributes_[i]);
-    int ncells = 0;
+    size_t ncells = 0;
     if (buffer_sizes[j] != 0) {
       ncells = get_num_cells(array_schema_, attribute_id, buffer_sizes, j);
       last_processed_buffer_index_[i] = 0;
@@ -338,12 +338,12 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
     return TILEDB_EXPR_OK;
   }
   
-  std::vector<int> cells_to_be_dropped;
+  std::vector<size_t> cells_to_be_dropped;
 
   print_parser_varmap(parser_);
   print_parser_expr_varmap(parser_);
 
-  for (int i_cell = 0; i_cell < number_of_cells; i_cell++) {
+  for (auto i_cell = 0u; i_cell < number_of_cells; i_cell++) {
     try {
       if (!evaluate_cell(buffers, buffer_sizes, last_processed_buffer_index_)) {
         cells_to_be_dropped.push_back(i_cell);
@@ -364,7 +364,7 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
   return TILEDB_EXPR_OK;
 }
 
-void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, int number_of_cells, std::vector<int> cells_to_be_dropped) {
+void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, size_t number_of_cells, std::vector<size_t> cells_to_be_dropped) {
   std::map<int, size_t> adjust_offsets;
   std::vector<size_t> num_cells(attributes_.size());
 
@@ -376,7 +376,7 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, int 
 
   auto max_num_cells = std::max_element(num_cells.begin(), num_cells.end());
   for (int current_cell=0, next_cell=0; next_cell < *max_num_cells; current_cell++, next_cell++) {
-    int reduce_by = 0;
+    size_t reduce_by = 0;
     bool next_cell_dropped = false;
     do {
       next_cell_dropped = std::find(cells_to_be_dropped.begin(), cells_to_be_dropped.end(), next_cell) != cells_to_be_dropped.end();

@@ -95,7 +95,7 @@ class Expression {
   int evaluate(void** buffers, size_t* buffer_sizes);
 
  private:
-  void fixup_return_buffers(void** buffers, size_t* buffer_sizes, int number_of_cells, std::vector<int> cells_to_be_dropped);
+  void fixup_return_buffers(void** buffers, size_t* buffer_sizes, size_t number_of_cells, std::vector<size_t> cells_to_be_dropped);
   
   std::string expression_;
   std::vector<std::string> attributes_;
