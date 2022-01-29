@@ -8,12 +8,9 @@ echo "node version = `node --version`"
 sudo npm install -g azurite
 AZURITE_DIR=$INSTALL_DIR/azurite
 mkdir $AZURITE_DIR
-echo "Nalini - AZURITE_DIR=$AZURITE_DIR"
 gpg --quiet --batch --yes --decrypt --passphrase=$AZURITE_TAR --output $AZURITE_DIR/azurite.tar $GITHUB_WORKSPACE/.github/scripts/azurite.tar.gpg
-echo "Nalini - Listing azurite contents"
 ls $AZURITE_DIR
 tar xvf $AZURITE_DIR/azurite.tar -C $AZURITE_DIR
-echo "Nalini - tar xvf DONE"
 sudo cp $AZURITE_DIR/cert.pem /usr/local/share/ca-certificates/ca-certificates.crt
 sudo update-ca-certificates
 which azurite
