@@ -29,7 +29,13 @@ make test_tiledb_utils &&
 make test_azure_blob_storage &&
 make test_sparse_array_benchmark &&
 make test_s3_storage &&
-make examples &&
+make examples
+
+if [ $? -ne 0 ]; then
+  echo "Errors encountered during TileDB build"
+  exit 1
+fi
+
 cd examples
 
 TEST=github_test_$RANDOM
