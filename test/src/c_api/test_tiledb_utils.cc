@@ -249,6 +249,9 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
     CHECK(buffer[i] == 'H');
   }
 
+  CHECK(TileDBUtils::file_size(filename) == 1024); // for existing file
+  CHECK(TileDBUtils::file_size("non-existing-file") == -1);
+
   // TODO: Should investigate why the hdfs java io exceptions are not being propagated properly from catch2.
   if (TileDBUtils::is_cloud_path(filename)) {
     return;
