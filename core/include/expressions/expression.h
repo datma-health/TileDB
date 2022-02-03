@@ -109,12 +109,9 @@ class Expression {
 
   std::vector<int64_t> last_processed_buffer_index_;
 
-  void assign_single_cell_value(const int attribute_id, void** buffers, size_t *buffer_sizes,
-                                const uint64_t buffer_index, const int64_t position);
-  void assign_fixed_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
-                                const uint64_t buffer_index, const int64_t position);
-  void assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
-                                const uint64_t buffer_index, const int64_t position);
+  void assign_single_cell_value(const int attribute_id, void** buffers, const uint64_t buffer_index, const int64_t position);
+  void assign_fixed_cell_values(const int attribute_id, void** buffers, const uint64_t buffer_index, const int64_t position);
+  void assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes, const uint64_t buffer_index, const int64_t position);
 
   inline const int get_cell_val_num(const std::string& attribute_name) const {
     return array_schema_->cell_val_num(array_schema_->attribute_id(attribute_name));
@@ -134,6 +131,21 @@ class Expression {
 
   inline const size_t get_var_cell_type_size(const std::string& attribute_name) const {
     return array_schema_->type_size(array_schema_->attribute_id(attribute_name));
+  }
+
+  inline void *offset_pointer(const std::string& attribute_name, const void* src, size_t offset) const {
+    switch (get_var_cell_type_size(attribute_name)) {
+      case 1:
+        return (void *)((uint8_t *)(src) + offset);
+      case 2:
+        return (void *)((uint16_t *)(src) + offset);
+      case 4:
+        return (void *)((uint32_t *)(src) + offset);
+      case 8:
+        return (void *)((uint64_t *)(src) + offset);
+      default:
+        throw std::range_error("Attribute Type for " + attribute_name + " not supported in expressions");
+    }
   }
 };
 

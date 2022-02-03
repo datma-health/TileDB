@@ -45,27 +45,58 @@ class ArrayFixture {
   const std::vector<std::string> attribute_names = { "a1" };
 
   const char* attr_names[1] = { "a1" };
-  int types[1] = { TILEDB_CHAR };
+  int types[2] = { TILEDB_CHAR, TILEDB_INT32 };
   int cell_val_nums[1] = { 1 };
 
   T buffer_a1[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
   void* buffers[1] { buffer_a1 };
   size_t buffer_sizes[1] = { sizeof(buffer_a1) };
+  T expected_buffer[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-  PosixFS *posixfs_;
-  ArraySchema *array_schema_;
+  size_t buffer_var_a1_offsets[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+  T buffer_var_a1[16] = { 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
+  void* var_buffers[2] = { buffer_var_a1_offsets, buffer_var_a1 };
+  size_t var_buffer_sizes[2] = { sizeof(buffer_var_a1_offsets), sizeof(buffer_var_a1) };
+  size_t expected_buffer_var_offsets[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+  T expected_buffer_var[16] = { 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
   
-  ArrayFixture() {
+  PosixFS *posixfs_ = 0;
+  ArraySchema *array_schema_ = 0;
+  
+  void setup(int cell_nums) {
+    // Only cell_nums =0, 1 or TILEDB_VAR_NUM has been tested. But, this can
+    // be extended to support all cell_nums
+    bool supported_cell_nums = cell_nums == 1 || cell_nums == 2 || cell_nums == TILEDB_VAR_NUM;
+    REQUIRE(supported_cell_nums);
+    delete array_schema_;
+    delete posixfs_;
     if (typeid(T)== typeid(char)) {
       types[0] = TILEDB_CHAR;
-    } else if (typeid(T) == typeid(int)) {
+    } else if (typeid(T) == typeid(uint8_t)) {
+      types[0] = TILEDB_UINT8;
+    } else if (typeid(T) == typeid(uint16_t)) {
+      types[0] = TILEDB_UINT16;
+    } else if (typeid(T) == typeid(uint32_t)) {
+      types[0] = TILEDB_UINT32;
+    } else if (typeid(T) == typeid(uint64_t)) {
+      types[0] = TILEDB_UINT64;
+    } else if (typeid(T) == typeid(int8_t)) {
+      types[0] = TILEDB_INT8;
+    } else if (typeid(T) == typeid(int16_t)) {
+      types[0] = TILEDB_INT16;
+    } else if (typeid(T) == typeid(int) || typeid(T) == typeid(int32_t)) {
       types[0] = TILEDB_INT32;
+    } else if (typeid(T) == typeid(int64_t)) {
+      types[0] = TILEDB_INT64;
     } else if (typeid(T) == typeid(float)) {
       types[0] = TILEDB_FLOAT32;
+    } else if (typeid(T) == typeid(double)) {
+      types[0] = TILEDB_FLOAT64;
     }
     posixfs_ = new PosixFS();
     array_schema_ = new ArraySchema(posixfs_);
     array_schema_->set_attributes(const_cast<char **>(attr_names), 1);
+    cell_val_nums[0] = cell_nums;
     array_schema_->set_cell_val_num(cell_val_nums);
     array_schema_->set_types(types);
     array_schema_->set_dense(0);
@@ -77,86 +108,193 @@ class ArrayFixture {
   }
 
   void check_buffer(void **computed, size_t *computed_size, const T *expected, const size_t expected_size) {
-    size_t buffer_size = *computed_size/sizeof(T);
-    REQUIRE(buffer_size == expected_size);
-
-    T *buffer = reinterpret_cast<T *>(computed[0]);
-    for (auto i=0u; i<buffer_size; i++) {
-      CHECK(*buffer++ == *expected++);
+    if (cell_val_nums[0] < TILEDB_VAR_NUM) {
+      size_t buffer_size = *computed_size/sizeof(T);
+      REQUIRE(buffer_size == expected_size);
+      
+      if (buffer_size) {
+        T *buffer = reinterpret_cast<T *>(computed[0]);
+        for (auto i=0u; i<buffer_size; i++) {
+          CHECK(buffer[i] == expected[i]);
+        }
+      }
+    } else if (cell_val_nums[0] == TILEDB_VAR_NUM) {
+      size_t buffer_size = *computed_size/sizeof(size_t);
+      REQUIRE(buffer_size == expected_size);
+      size_t *buffer = reinterpret_cast<size_t *>(computed[0]);
+      for (auto i=0u; i<buffer_size; i++) {
+        CHECK(buffer[i] < 16);
+        if (i<buffer_size-1) {
+          CHECK(buffer[i+1]-buffer[i] == 1);
+        }
+      }
+      T *buffer_var = reinterpret_cast<T *>(computed[1]);
+      for (auto i=0u; i<buffer_size; i++) {
+        CHECK(buffer_var[i] == expected[i]);
+      }
     }
   }
 };
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions Empty", "[expressions_empty]") {
-  Expression expression("", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const int expected_buffer[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 16);
+#define AF ArrayFixture<TestType>
+
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions Empty", "[expressions_empty]", char, int, float) {
+  SECTION("cell sizes = 1") {
+    AF::setup(1);
+    Expression expression("", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::buffer_a1[0], 16);
+  }
+  SECTION("cell sizes = 2") {
+    AF::setup(2);
+    Expression expression("", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::buffer_a1[0], 16);
+  }
+   SECTION("cell sizes = TILEDB_VAR_NUM") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, &AF::expected_buffer_var[0], 16);
+  }
 }
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions All", "[expressions_all]") {
-  Expression expression("a1 >= 0", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const int expected_buffer[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 16);
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All", "[expressions_all]", uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  SECTION("cell sizes = 1") {
+    AF::setup(1);
+    Expression expression("a1 >= 0", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[0], 16);
+  }
+  SECTION("cell sizes = 2") {
+    AF::setup(2);
+    Expression expression("a1[0] >= 0 && a1[1] >=0", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[0], 16);
+  }
+  SECTION("cell sizes = TILEDB_VAR_NUM") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("a1[0] >= 0", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, &AF::expected_buffer_var[0], 16);
+  }
 }
 
-TEST_CASE_METHOD(ArrayFixture<char>, "Test Expressions All - char", "[expressions_all_char]") {
-  Expression expression("a1 >= 0", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const char expected_buffer[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 16);
-}
-
-TEST_CASE_METHOD(ArrayFixture<float>, "Test Expressions All - float", "[expressions_all_float]") {
-  Expression expression("a1 >= 0", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const float expected_buffer[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 16);
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All - Out-of-bound expression", "[expressions_all_exception]", uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  SECTION("cell sizes = 2") {
+    AF::setup(2);
+    Expression expression("a1[0] >= 0 && a1[2] >=0", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_ERR);
+  }
+  SECTION("cell sizes = VAR") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("a1[0] >= 0 && a1[2] >=0", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_ERR);
+  }
 }
 
 TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions Non-existent Attribute", "[expressions_non_existent_attr]") {
+  setup(1);
   Expression expression("a2 > a1", attribute_names, array_schema_);
   CHECK_RC(expression.evaluate(buffers, buffer_sizes), TILEDB_ERR);
 }
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions With Dropped Cells from left", "[expressions_dropped_cells_left]") {
-  Expression expression("a1 > 4", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const int expected_buffer[11] =  { 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 11);
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions With Dropped Cells from left", "[expressions_dropped_cells_left]", int, uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  SECTION("cell sizes = 1") {
+    AF::setup(1);
+    Expression expression("a1 > 4", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[5], 11);
+  }
+  SECTION("cell sizes = 2") {
+    AF::setup(1);
+    Expression expression("a1[0] > 4", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[5], 11);
+  }
+  SECTION("cell sizes = TILEDB_VAR_NUM") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("a1[0] > 20", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, &AF::expected_buffer_var[5], 11);
+  }
+  SECTION("cell sizes = TILEDB_VAR_NUM and selection expression includes a second value") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("a1[0] > 20 && a1[0] > 21", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, &AF::expected_buffer_var[6], 10);
+  }
 }
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions With Dropped Cells from right", "[expressions_dropped_cells_right]") {
-  Expression expression("a1 < 4", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const int expected_buffer[11] =  { 0, 1, 2, 3 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 4);
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions With Dropped Cells from right", "[expressions_dropped_cells_right]", int, uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  SECTION("cell sizes = 1") {
+    AF::setup(1);
+    Expression expression("a1 < 4", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[0], 4);
+  }
+  SECTION("cell sizes = 2") {
+    AF::setup(2);
+    Expression expression("a1[0] < 4", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[0], 4);
+  }
+  SECTION("cell sizes = TILEDB_VAR_NUM") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("a1[0] < 20", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, &AF::expected_buffer_var[0], 4);
+  }
 }
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions All Dropped Cells", "[expressions_all_dropped_cells]") {
-  Expression expression("a1 > 16", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const int expected_buffer[0] = { };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 0);
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All Dropped Cells", "[expressions_all_dropped_cells]", int, uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  SECTION("cell sizes = 1") {
+    AF::setup(1);
+    Expression expression("a1 > 16", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, 0, 0);
+  }
+  SECTION("cell sizes = 2") {
+    AF::setup(2);
+    Expression expression("a1[0] > 16", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, 0, 0);
+  }
+  SECTION("cell sizes = TILEDB_VAR_NUM") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("a1[0] > 32", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);  
+    AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, 0, 0);
+  }
 }
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions All-1 Dropped Cells", "[expressions_all_but_one_dropped_cells]") {
-  Expression expression("a1 == 15", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const int expected_buffer[1] = { 15 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 1);
-}
-
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions Start/End Dropped Cells", "[expressions_start_end_dropped_cells]") {
-  Expression expression("a1==0 or a1 == 15", attribute_names, array_schema_);
-  REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);
-  const int expected_buffer[2] = { 0, 15 };
-  check_buffer(buffers, buffer_sizes, expected_buffer, 2);
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions Some Dropped Cells", "[expressions_some_cells]", int, uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  SECTION("cell sizes = 1") {
+    AF::setup(1);
+    Expression expression("a1 == 15 || a1 == 7 || a1 == 0", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    const TestType expected_buffer[3] = { 0, 7, 15 };
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, expected_buffer, 3);
+  }
+  SECTION("cell sizes = 2") {
+    AF::setup(2);
+    Expression expression("a1[0] == 6 || a1[1] == 11", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    const TestType expected_buffer[4] = { 6, 7, 10, 11 };
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, expected_buffer, 4);
+  }
+  SECTION("cell sizes = TILEDB_VAR_NUM") {
+    AF::setup(TILEDB_VAR_NUM);
+    Expression expression("a1[0] == 26 || a1[0] == 29", AF::attribute_names, AF::array_schema_);
+    REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);
+    const TestType expected_buffer[2] = { 26, 29 };
+    AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, expected_buffer, 2);
+  }
 }
 
 // TODO: Expressions not really supported as yet for dense arrays
 TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions Dense", "[expressions_dense]") {
+  setup(1);
   array_schema_->set_dense(1);
   Expression expression("a1==0 or a1 == 15", attribute_names, array_schema_);
   REQUIRE(expression.evaluate(buffers, buffer_sizes) == TILEDB_OK);

@@ -124,10 +124,10 @@ void Expression::add_attribute(std::string name) {
 void print_parser_varmap(mup::ParserX *parser) {
 #if 0
   mup::var_maptype vmap = parser->GetVar();
-  std::cout << "Map of all variables used by parser" << std::endl;
+  std::cerr << "Map of all variables used by parser" << std::endl;
   for (mup::var_maptype::iterator item = vmap.begin(); item!=vmap.end(); ++item)
-    std::cout << item->first << "=" << (mup::Variable&)(*(item->second)) << std::endl;
-  std::cout << "Map of all variables used by parser - END" << std::endl;
+    std::cerr << item->first << "=" << (mup::Variable&)(*(item->second)) << std::endl;
+  std::cerr << "Map of all variables used by parser - END" << std::endl;
 #endif
 }
 
@@ -136,10 +136,10 @@ void print_parser_expr_varmap(mup::ParserX *parser)
 {
 #if 0
   mup::var_maptype vmap = parser->GetExprVar();
-  std::cout << "Map of all variables used in the expression to the parser" << std::endl;
+  std::cerr << "Map of all variables used in the expression to the parser" << std::endl;
   for (mup::var_maptype::iterator item = vmap.begin(); item!=vmap.end(); ++item)
-    std::cout << item->first << "=" << (mup::Variable&)(*(item->second)) << std::endl;
-  std::cout << "Map of all variables used in the expression to the parser - END" << std::endl;
+    std::cerr << item->first << "=" << (mup::Variable&)(*(item->second)) << std::endl;
+  std::cerr << "Map of all variables used in the expression to the parser - END" << std::endl;
 #endif
 }
 
@@ -150,8 +150,8 @@ struct EmptyValueException : public std::exception {
 };
 
 template<typename T>
-T get_value(const void *buffer, const uint64_t buffer_index) {
-  T val = *(reinterpret_cast<const T *>(buffer) + buffer_index);
+T get_value(const void *buffer, const uint64_t offset) {
+  T val = *(reinterpret_cast<const T *>(buffer) + offset);
   if ((typeid(T) == typeid(char) && val == TILEDB_EMPTY_CHAR)
       || (typeid(T) == typeid(int) && val == TILEDB_EMPTY_INT32)
       || (typeid(T) == typeid(float) && val == TILEDB_EMPTY_FLOAT32)) {
@@ -160,8 +160,8 @@ T get_value(const void *buffer, const uint64_t buffer_index) {
   return val;
 }
 
-inline mup::Value get_single_cell_value(const int attribute_type, void** buffers, size_t *buffer_sizes,
-                                        const uint64_t buffer_index, const int64_t position) {
+inline mup::Value get_single_cell_value(const int attribute_type, void** buffers,
+                                 const uint64_t buffer_index, const int64_t position) {
   switch (attribute_type) {
     case TILEDB_CHAR:
       return mup::int_type(get_value<char>(buffers[buffer_index], position));
@@ -186,19 +186,18 @@ inline mup::Value get_single_cell_value(const int attribute_type, void** buffers
     case TILEDB_FLOAT64:
       return mup::float_type(get_value<double>(buffers[buffer_index], position));
     default:
-      std::string msg = "Attribute Type " + std::to_string(attribute_type) + " not supported in expressions";
-      throw std::range_error(msg);
+      throw std::range_error("Attribute Type " + std::to_string(attribute_type) + " not supported in expressions");
   }
 }
 
-void Expression::assign_single_cell_value(const int attribute_id, void** buffers, size_t *buffer_sizes,
+void Expression::assign_single_cell_value(const int attribute_id, void** buffers,
                                           const uint64_t buffer_index, const int64_t position) {
   auto& attribute_name = array_schema_->attribute(attribute_id);
-  attribute_map_[attribute_name] = get_single_cell_value(array_schema_->type(attribute_id), buffers, buffer_sizes,
+  attribute_map_[attribute_name] = get_single_cell_value(array_schema_->type(attribute_id), buffers,
                                                          buffer_index, position);
 }
 
-void Expression::assign_fixed_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
+void Expression::assign_fixed_cell_values(const int attribute_id, void** buffers,
                                           const uint64_t buffer_index, const int64_t position) {
   auto& attribute_name = array_schema_->attribute(attribute_id);
   auto attribute_type = array_schema_->type(attribute_id);
@@ -211,7 +210,7 @@ void Expression::assign_fixed_cell_values(const int attribute_id, void** buffers
     default: {
       auto& x_array = attribute_map_[attribute_name];
       for (auto i=0u; i<num_cells; i++) {
-        x_array.At(i) = get_single_cell_value(array_schema_->type(attribute_id), buffers, buffer_sizes,
+        x_array.At(i) = get_single_cell_value(array_schema_->type(attribute_id), buffers,
                                               buffer_index, position*num_cells+i);
       }
     }
@@ -227,9 +226,9 @@ std::pair<size_t, size_t> get_var_cell_info(void** buffers, size_t* buffer_sizes
   if ((buffer_position+1) < (buffer_sizes[buffer_index]/sizeof(size_t))) {
     length = get_value<size_t>(buffers[buffer_index], buffer_position+1)-offset;
   } else {
-    length=buffer_sizes[buffer_index+1]-offset;
+    length=buffer_sizes[buffer_index+1]/sizeof(T)-offset;
   }
-  return std::make_pair(offset, length/sizeof(T));
+  return std::make_pair(offset, length);
 }
 
 void Expression::assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
@@ -238,20 +237,46 @@ void Expression::assign_var_cell_values(const int attribute_id, void** buffers, 
   auto attribute_type = array_schema_->type(attribute_id);
   switch (attribute_type) {
     case TILEDB_CHAR: {
-       std::pair<size_t, size_t> info = get_var_cell_info<char>(buffers, buffer_sizes, buffer_index, position);
-       attribute_map_[attribute_name] =
-           mup::string_type(std::string((char *)buffers[buffer_index+1]+info.first, info.second));
-       break;
+      std::pair<size_t, size_t> info = get_var_cell_info<char>(buffers, buffer_sizes, buffer_index, position);
+      attribute_map_[attribute_name] =
+          mup::string_type(std::string((char *)buffers[buffer_index+1]+info.first, info.second));
+      break;
     }
     default: {
-      parser_->RemoveVar(attribute_name);
-      std::pair<size_t, size_t> info = get_var_cell_info<int>(buffers, buffer_sizes, buffer_index, position);
-      mup::Value x_array(mup::int_type(info.first), mup::int_type(info.second));
-      for (auto i=0u; i<info.second; i++) {
-        x_array.At(i) = get_single_cell_value(attribute_type, buffers, buffer_sizes, buffer_index, info.first+i);
+      std::pair<size_t, size_t> info;
+      switch (attribute_type) {
+        case TILEDB_UINT8:
+          info = get_var_cell_info<uint8_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_UINT16:
+          info = get_var_cell_info<uint16_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_UINT32:
+          info = get_var_cell_info<uint32_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_UINT64:
+          info = get_var_cell_info<uint64_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_INT8:
+          info = get_var_cell_info<int8_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_INT16:
+          info = get_var_cell_info<int16_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_INT32:
+          info = get_var_cell_info<int32_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_INT64:
+          info = get_var_cell_info<int64_t>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_FLOAT32:
+          info = get_var_cell_info<float>(buffers, buffer_sizes, buffer_index, position); break;
+        case TILEDB_FLOAT64:
+          info = get_var_cell_info<double>(buffers, buffer_sizes, buffer_index, position); break;
+        default:
+          throw std::range_error("Attribute Type " + std::to_string(attribute_type) + " not supported in expressions");
       }
-      parser_->DefineVar(attribute_name, (mup::Variable)&x_array);
-      break;
+      parser_->RemoveVar(attribute_name);
+      assert(!parser_->IsVarDefined(attribute_name));
+      mup::Value x_array(mup::int_type(info.second), mup::int_type(0));
+      for (auto i=0u; i<info.second; i++) {
+        x_array.At(i) = get_single_cell_value(attribute_type, buffers, buffer_index+1, info.first+i);
+      }
+      assert(x_array.IsMatrix());
+      attribute_map_[attribute_name] = std::move(x_array);
+      parser_->DefineVar(attribute_name, (mup::Variable)&(attribute_map_[attribute_name]));
     }
   }
 }
@@ -267,13 +292,13 @@ bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, std::vector
       try {
         switch (array_schema_->cell_val_num(attribute_id)) {
           case 1:
-            assign_single_cell_value(attribute_id, buffers, buffer_sizes, j, positions[i]);
+            assign_single_cell_value(attribute_id, buffers, j, positions[i]);
             break;
           case TILEDB_VAR_NUM :
             assign_var_cell_values(attribute_id, buffers, buffer_sizes, j, positions[i]);
             break;
           default:
-            assign_fixed_cell_values(attribute_id, buffers, buffer_sizes, j, positions[i]);
+            assign_fixed_cell_values(attribute_id, buffers, j, positions[i]);
         }
       } catch (EmptyValueException& e) {
         return true; // TODO: Filter expressions do not handle empty values yet.
@@ -395,19 +420,21 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, size
         void *current = static_cast<char *>(buffers[j])+cell_size*current_cell;
 
         if (cell_val_num == TILEDB_VAR_NUM) {
-          if (adjust_offsets.find(j) == adjust_offsets.end()) adjust_offsets[j] = 0;
+          if (adjust_offsets.find(j) == adjust_offsets.end()) adjust_offsets[j] = 0; // Initialization
 
-          size_t next_length = 0;
+          size_t next_length = 0; // Length of next cell in cells
           if ((next_cell+1) < num_cells[i]) {
             next_length = *(reinterpret_cast<size_t *>(next)+1) -  *(reinterpret_cast<size_t *>(next));
           } else {
-            next_length = buffer_sizes[j+1] -  *(reinterpret_cast<size_t *>(next));
+            next_length = (buffer_sizes[j+1] - *(reinterpret_cast<size_t *>(next))*get_var_cell_type_size(attributes_[i]))/get_var_cell_type_size(attributes_[i]);
           }
 
-          void *var_next = static_cast<char *>(buffers[j+1]) + *(reinterpret_cast<size_t *>(next));
-          void *var_current =  static_cast<char *>(buffers[j+1]) + adjust_offsets[j];
+          void *var_next = offset_pointer(attributes_[i], buffers[j+1], *(reinterpret_cast<size_t *>(next)));
+          void *var_current =  offset_pointer(attributes_[i], buffers[j+1], adjust_offsets[j]);
+
           // Shift cell contents into (dropped)current contents
           memmove(var_current, var_next, next_length*get_var_cell_type_size(attributes_[i]));
+
           // Adjust the current cell's offsets
           memmove(current, &adjust_offsets[j], sizeof(size_t));
           adjust_offsets[j] += next_length;
@@ -426,7 +453,7 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, size
   // Fixup buffer_sizes for attributes with variable cell size
   for (auto i=0u, j=0u; i < attributes_.size(); i++, j++) {
     if (get_cell_val_num(attributes_[i])  == TILEDB_VAR_NUM) {
-      buffer_sizes[j+1] = adjust_offsets[j];
+      buffer_sizes[j+1] = adjust_offsets[j]*get_var_cell_type_size(attributes_[i]);
       j++;
     }
   }
