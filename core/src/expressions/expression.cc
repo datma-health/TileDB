@@ -420,20 +420,22 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, size
         void *current = static_cast<char *>(buffers[j])+cell_size*current_cell;
 
         if (cell_val_num == TILEDB_VAR_NUM) {
-          if (adjust_offsets.find(j) == adjust_offsets.end()) adjust_offsets[j] = 0; // Initialization
+           // Initialization
+          if (adjust_offsets.find(j) == adjust_offsets.end()) adjust_offsets[j] = 0;
+          auto var_cell_type_size = get_var_cell_type_size( attributes_[i]);
 
           size_t next_length = 0; // Length of next cell in cells
           if ((next_cell+1) < num_cells[i]) {
             next_length = *(reinterpret_cast<size_t *>(next)+1) -  *(reinterpret_cast<size_t *>(next));
           } else {
-            next_length = (buffer_sizes[j+1] - *(reinterpret_cast<size_t *>(next))*get_var_cell_type_size(attributes_[i]))/get_var_cell_type_size(attributes_[i]);
+            next_length = (buffer_sizes[j+1] - *(reinterpret_cast<size_t *>(next))*var_cell_type_size)/var_cell_type_size;
           }
 
           void *var_next = offset_pointer(attributes_[i], buffers[j+1], *(reinterpret_cast<size_t *>(next)));
           void *var_current =  offset_pointer(attributes_[i], buffers[j+1], adjust_offsets[j]);
 
           // Shift cell contents into (dropped)current contents
-          memmove(var_current, var_next, next_length*get_var_cell_type_size(attributes_[i]));
+          memmove(var_current, var_next, next_length*var_cell_type_size);
 
           // Adjust the current cell's offsets
           memmove(current, &adjust_offsets[j], sizeof(size_t));
