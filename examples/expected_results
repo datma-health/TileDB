@@ -159,12 +159,6 @@ Example 20: Done running ./tiledb_array_read_sparse_1
 Example 21: Running ./tiledb_array_read_sparse_filter_1...
 coords	 a1	   a2	     (a3.first, a3.second)
 --------------------------------------------------
-(1, 4)	   2	  ccc		 (  2.1,   2.2)
-(2, 3)	   3	 dddd		 (  3.1,   3.2)
-(3, 1)	   4	    e		 (  4.1,   4.2)
-(4, 2)	   5	   ff		 (  5.1,   5.2)
-(3, 3)	   6	  ggg		 (  6.1,   6.2)
-(3, 4)	   7	 hhhh		 (  7.1,   7.2)
 Example 21: Done running ./tiledb_array_read_sparse_filter_1
 Example 22: Running ./tiledb_array_iterator_sparse...
  a1
@@ -246,14 +240,7 @@ Example 31: Done running ./tiledb_array_read_sparse_1
 Example 32: Running ./tiledb_array_read_sparse_filter_1...
 coords	 a1	   a2	     (a3.first, a3.second)
 --------------------------------------------------
-(1, 4)	   2	  ccc		 (  2.1,   2.2)
-(2, 3)	   3	 dddd		 (  3.1,   3.2)
-(3, 1)	   4	    e		 (  4.1,   4.2)
-(3, 2)	 104	    u		 (104.1, 104.2)
 (4, 1)	 105	 vvvv		 (105.1, 105.2)
-(4, 2)	   5	   ff		 (  5.1,   5.2)
-(3, 3)	 106	    w		 (106.1, 106.2)
-(3, 4)	 107	  yyy		 (107.1, 107.2)
 Example 32: Done running ./tiledb_array_read_sparse_filter_1
 Example 33: Running ./tiledb_array_read_sparse_filter_2...
  a1
