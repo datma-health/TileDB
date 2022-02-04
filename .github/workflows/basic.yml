@@ -31,8 +31,6 @@ jobs:
           - os: macos-10.15
             type: hdfs
           - os: macos-10.15
-            type: gcs
-          - os: macos-10.15
             type: azure
           - os: macos-10.15
             type: azurite
