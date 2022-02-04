@@ -110,6 +110,10 @@ setup_paths() {
 
 install_hadoop() {
   if [[ $(uname) == "Darwin" ]]; then
+    if [[ $INSTALL_TYPE == gcs ]]; then
+      export GOOGLE_APPLICATION_CREDENTIALS=$GITHUB_WORKSPACE/.github/resources/gcs/GCS.json
+      source $GITHUB_WORKSPACE/.github/resources/gcs/gcs_cred.sh
+    fi
     echo "No support for installing hadoop on MacOS yet"
     return 0
   fi
