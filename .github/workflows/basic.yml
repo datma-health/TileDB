@@ -126,7 +126,7 @@ jobs:
           source $GITHUB_WORKSPACE/.github/scripts/install_minio.sh
         elif [[ ${{matrix.type}} == "aws" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_aws.sh
-        elif [[ ${{matrix.os}} == ubuntu* ]]; then
+        else
           source $GITHUB_WORKSPACE/.github/scripts/install_hadoop.sh
         fi
         source $GITHUB_WORKSPACE/.github/scripts/run_dfs_tests.sh

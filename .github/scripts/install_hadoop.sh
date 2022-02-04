@@ -109,6 +109,10 @@ setup_paths() {
 }
 
 install_hadoop() {
+  if [[ $(uname) == "Darwin" ]]; then
+    echo "No support for installing hadoop on MacOS yet"
+    return 0
+  fi
   echo "Installing Hadoop..."
   install_prereqs
   if [[ ! -f $HADOOP_ENV ]]; then
