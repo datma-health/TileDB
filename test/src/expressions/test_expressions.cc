@@ -59,6 +59,10 @@ class ArrayFixture {
   size_t var_buffer_sizes[2] = { sizeof(buffer_var_a1_offsets), sizeof(buffer_var_a1) };
   size_t expected_buffer_var_offsets[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
   T expected_buffer_var[16] = { 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
+
+  size_t buffer_var_a1_offsets_1[8] = { 0, 1, 3, 5, 8, 11, 12, 13 };
+  void* var_buffers_1[2] = { buffer_var_a1_offsets_1, buffer_var_a1 };
+  size_t var_buffer_sizes_1[2] = { sizeof(buffer_var_a1_offsets_1), sizeof(buffer_var_a1) };
   
   PosixFS *posixfs_ = 0;
   ArraySchema *array_schema_ = 0;
@@ -289,6 +293,26 @@ TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions Some Dropped Cells", "
     REQUIRE(expression.evaluate(AF::var_buffers, AF::var_buffer_sizes) == TILEDB_OK);
     const TestType expected_buffer[2] = { 26, 29 };
     AF::check_buffer(AF::var_buffers, AF::var_buffer_sizes, expected_buffer, 2);
+  }
+}
+
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions with VAR_NUM and different offsets", "[expressions_different_offsets]", int, uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  AF::setup(TILEDB_VAR_NUM);
+  Expression expression("a1[0] == 17 || a1[0] == 29", AF::attribute_names, AF::array_schema_);
+  REQUIRE(expression.evaluate(AF::var_buffers_1, AF::var_buffer_sizes_1) == TILEDB_OK);
+  CHECK(AF::var_buffer_sizes_1[0] == 2*sizeof(size_t));
+  CHECK(AF::var_buffer_sizes_1[1] == 5*sizeof(TestType));
+  // Check offset sizes first
+  size_t expected_offsets[2] = {0, 2};
+  size_t *buffer_offsets = reinterpret_cast<size_t *>(AF::var_buffers_1[0]);
+  for (auto i=0u; i<2; i++) {
+    CHECK(buffer_offsets[i] == expected_offsets[i]);
+  }
+  // Check cell values
+  TestType expected_values[5] = {17, 18, 29, 30, 31};
+  TestType *buffer_values = reinterpret_cast<TestType *>(AF::var_buffers_1[1]);
+  for (auto i=0u; i<5; i++) {
+    CHECK(buffer_values[i] == expected_values[i]);
   }
 }
 
