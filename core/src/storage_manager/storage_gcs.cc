@@ -360,8 +360,9 @@ int GCS::write_to_file(const std::string& filename, const void *buffer, size_t b
       update_info.last_uploaded_size_ = buffer_size;
       write_map_.insert({filepath, std::move(update_info)});
     } else {
-      if (search->second.last_uploaded_size_ < 5*1024*1024) {
-        GCS_ERROR("Only the last of the uploadable parts can be less than 5MB, try increasing TILEDB_UPLOAD_BUFFER_SIZE to at least 5MB", filepath);
+      // https://cloud.google.com/storage/docs/performing-resumable-uploads#chunked-upload
+      if (search->second.last_uploaded_size_ < 256*1024) {
+        GCS_ERROR("Only the last of the uploadable parts can be less than 256KB", filepath);
         return TILEDB_FS_ERR;
       }
       part_number = ++search->second.part_number_;

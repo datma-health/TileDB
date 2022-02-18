@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019, 2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -156,12 +156,6 @@ int Fragment::finalize() {
     assert(book_keeping_ != NULL);  
     int rc_ws = write_state_->finalize();
     int rc_bk = book_keeping_->finalize(fs);
-    int rc_rn = TILEDB_FG_OK;
-    int rc_cf = TILEDB_UT_OK;
-    if(is_dir(fs, fragment_name_)) {
-      rc_rn = rename_fragment();
-      rc_cf = create_fragment_file(fs, fragment_name_);
-    }
     // Errors
     if(rc_ws != TILEDB_WS_OK) {
       tiledb_fg_errmsg = tiledb_ws_errmsg;
@@ -170,13 +164,17 @@ int Fragment::finalize() {
     if(rc_bk != TILEDB_BK_OK) {
       tiledb_fg_errmsg = tiledb_bk_errmsg;
       return TILEDB_FG_ERR;
-    } 
-    if(rc_cf != TILEDB_UT_OK) {
-      tiledb_fg_errmsg = tiledb_ut_errmsg;
-      return TILEDB_FG_ERR;
     }
-    if(rc_rn != TILEDB_FG_OK)
-      return TILEDB_FG_ERR;
+
+    if(is_dir(fs, fragment_name_)) {
+      if (rename_fragment()) {
+        return TILEDB_FG_ERR;
+      }
+      if (create_fragment_file(fs, fragment_name_)) {
+        tiledb_fg_errmsg = tiledb_ut_errmsg;
+        return TILEDB_FG_ERR;
+      }
+    }
 
     // Success
     return TILEDB_FG_OK;

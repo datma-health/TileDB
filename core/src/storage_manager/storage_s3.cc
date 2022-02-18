@@ -404,9 +404,11 @@ int S3::write_to_file(const std::string& filename, const void *buffer, size_t bu
     part_number = found->second.part_number_;
     completed_parts = found->second.completed_parts_;
     // Verify that the previous uploaded part was at least 5M - see https://docs.aws.amazon.com/AmazonS3/latest/API/mpUploadUploadPart.html
+    // S3 throws error only when committing, so it is better to check in write_to_file and abort here. Note that cleanup occurs
+    // in commit_file that is called from the destructor if there was an issue.
     auto last_uploaded_size = found->second.last_uploaded_size_;
     if (found->second.abort_upload_ || (last_uploaded_size != 0 && last_uploaded_size < 5*1024*1024)) {
-      S3_ERROR("Only the last of the uploadable parts can be less than 5Mb, try increasing TILEDB_UPLOAD_BUFFER_SIZE to at least 5Mb", filepath);
+      S3_ERROR("Only the last of the uploadable parts can be less than 5MB", filepath);
       found->second.abort_upload_ = true;
       return TILEDB_FS_ERR;
     } else {

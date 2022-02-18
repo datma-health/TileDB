@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2021-2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,20 +31,31 @@
  */
 
 #include "catch.h"
+
+#include "storage_azure_blob.h"
 #include "storage_buffer.h"
+#include "storage_gcs.h"
 #include "storage_posixfs.h"
+#include "storage_s3.h"
+#include "utils.h"
 
 TEST_CASE_METHOD(TempDir, "Test Storage Buffer Basic", "[basic]") {
+  if (get_temp_dir().find("://") != std::string::npos) {
+    return;
+  }
+
   std::string filename = get_temp_dir()+"/test-file";
   std::vector<char> buffer(10);
   std::generate(buffer.begin(), buffer.end(), std::rand);
+
+  size_t chunk_size = 0;
   
   PosixFS fs;
-  StorageBuffer storage_buffer(&fs, filename);
+  StorageBuffer storage_buffer(&fs, filename, chunk_size);
   CHECK_RC(storage_buffer.append_buffer(buffer.data(), 10), TILEDB_BF_ERR); // No upload buffer size set
 
-  fs.upload_buffer_size_ = 100;
-  StorageBuffer storage_buffer1(&fs, filename);
+  chunk_size = 100;
+  StorageBuffer storage_buffer1(&fs, filename, chunk_size);
   CHECK_RC(storage_buffer1.append_buffer(buffer.data(), 10), TILEDB_BF_OK);
   CHECK_RC(storage_buffer1.finalize(), TILEDB_BF_OK);
 
@@ -54,14 +65,14 @@ TEST_CASE_METHOD(TempDir, "Test Storage Buffer Basic", "[basic]") {
   CHECK(memcmp(buffer.data(), check_buffer.data(), 10) == 0);
 
   std::vector<char> read_buffer(10);  
-  StorageBuffer storage_buffer2(&fs, filename+"-non-existent", /*is_read*/true);
+  StorageBuffer storage_buffer2(&fs, filename+"-non-existent", chunk_size, /*is_read*/true);
   CHECK_RC(storage_buffer2.read_buffer(0, read_buffer.data(), 10), TILEDB_BF_ERR); // Non existent file
 
-  StorageBuffer storage_buffer3(&fs, filename, /*is_read*/true);
+  StorageBuffer storage_buffer3(&fs, filename, 0, /*is_read*/true);
   CHECK_RC(storage_buffer3.read_buffer(0, read_buffer.data(), 10), TILEDB_BF_ERR); // No download buffer size
 
-  fs.download_buffer_size_ = 100;
-  StorageBuffer storage_buffer4(&fs, filename, /*is_read*/true);
+  chunk_size = 100;
+  StorageBuffer storage_buffer4(&fs, filename, chunk_size, /*is_read*/true);
   CHECK_RC(storage_buffer4.read_buffer(0, read_buffer.data(), 10), TILEDB_BF_OK);
   CHECK(memcmp(buffer.data(), read_buffer.data(), 10) == 0);
   CHECK_RC(storage_buffer4.read_buffer(0, read_buffer.data(), 100), TILEDB_BF_ERR); // Reading past file
@@ -69,25 +80,23 @@ TEST_CASE_METHOD(TempDir, "Test Storage Buffer Basic", "[basic]") {
 
 int write_to_file_after_compression(StorageFS *fs, const std::string& filename, const char *str, size_t size,
                                      int compression_type) {
-  if (!fs->get_upload_buffer_size()) {
-    fs->set_upload_buffer_size(1024);
-  }
-  CompressedStorageBuffer *buffer = new CompressedStorageBuffer(fs, filename, false, compression_type);
+  size_t chunk_size = 1024;
+  CompressedStorageBuffer *buffer = new CompressedStorageBuffer(fs, filename, chunk_size, false, compression_type);
   if (buffer->append_buffer(str, size)) {
     delete buffer;
     return TILEDB_ERR;
   }
-  int rc = buffer->finalize();
-  delete buffer;
-  return rc;
+  if (buffer->finalize()) {
+    delete buffer;
+    return TILEDB_ERR;
+  }
+  return TILEDB_OK;
 }
 
 int read_from_file_after_decompression(StorageFS *fs, const std::string& filename,
                                        void *bytes, size_t length, int compression_type) {
-  if (!fs->get_download_buffer_size()) {
-    fs->set_download_buffer_size(1024);
-  }
-  CompressedStorageBuffer *buffer = new CompressedStorageBuffer(fs, filename, true, compression_type);
+  size_t chunk_size = 1024;
+  CompressedStorageBuffer *buffer = new CompressedStorageBuffer(fs, filename, chunk_size, true, compression_type);
   if (buffer->read_buffer(bytes, length)) {
     delete buffer;
     return TILEDB_ERR;
@@ -98,6 +107,10 @@ int read_from_file_after_decompression(StorageFS *fs, const std::string& filenam
 }
 
 TEST_CASE_METHOD(TempDir, "Test Storage Buffer with compression", "[compr]") {
+  if (get_temp_dir().find("://") != std::string::npos) {
+    return;
+  }
+
   PosixFS test_fs;
   PosixFS *fs = &test_fs;
   char *buffer = NULL;
@@ -162,48 +175,116 @@ class TestBufferedWrite : public TempDir {
 };
 
 TEST_CASE_METHOD(TestBufferedWrite, "Test Storage Buffer with buffered reading/writing of large files", "[large-file]") {
-  size_t size = 1024*1024*10; // 10M
+<<<<<<< HEAD
+  size_t size = 1024*1024*20 + 1024; // 20M + 1024
+=======
+  size_t size = 1024*1024*10 + 1024; // 10M + 1024
+>>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   std::vector<char> buffer(size);
   std::generate(buffer.begin(), buffer.end(), std::rand);
 
-  PosixFS fs;
-  fs.upload_buffer_size_ = 1024*1024; // 1M chunk
-  fs.download_buffer_size_ = 1024*512; // 0.5M chunk
+  std::shared_ptr<StorageFS> fs;
+<<<<<<< HEAD
+  bool is_posix = false;
+=======
+>>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
 
   // Buffered write
   std::string filename = get_temp_dir()+"/buffered_file";
-  StorageBuffer storage_buffer(&fs, filename, /*is_read*/false);
+  if (is_gcs_path(filename)) {
+    fs = std::make_shared<GCS>(filename);
+  } else if (is_azure_blob_storage_path(filename)) {
+    fs = std::make_shared<AzureBlob>(filename);
+  } else if (is_s3_storage_path(filename)) {
+    fs = std::make_shared<S3>(filename);
+  } else {
+    fs = std::make_shared<PosixFS>();
+<<<<<<< HEAD
+    is_posix = true;
+  }
+
+  auto write_chunk_size = fs->get_upload_buffer_size()?fs->get_upload_buffer_size():10240; // default chunk
+  auto read_chunk_size = fs->get_download_buffer_size()?fs->get_download_buffer_size():5120; // default chunk
+
+  // Buffered write
+  StorageBuffer storage_buffer(fs.get(), filename, write_chunk_size, /*is_read*/false);
   write(filename, &storage_buffer, buffer.data(), size);
-  CHECK(fs.file_size(filename) == size);
+  CHECK((size_t)fs->file_size(filename) == size);
+=======
+    fs->upload_buffer_size_ = 1024*1024; // 1M chunk
+    fs->download_buffer_size_ = 1024*512; // 0.5M chunk
+  }
+
+  // Buffered write
+  StorageBuffer storage_buffer(fs.get(), filename, /*is_read*/false);
+  write(filename, &storage_buffer, buffer.data(), size);
+  CHECK(fs->file_size(filename) == size);
+>>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
 
   // Check buffered write results with unbuffered read
   std::vector<char> read_buffer(size);
-  CHECK_RC(fs.read_from_file(filename, 0, read_buffer.data(), size), TILEDB_BF_OK);
-  CHECK_RC(fs.close_file(filename), TILEDB_BF_OK);
+  CHECK_RC(fs->read_from_file(filename, 0, read_buffer.data(), size), TILEDB_BF_OK);
+  CHECK_RC(fs->close_file(filename), TILEDB_BF_OK);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
 
   // Buffered read
-  StorageBuffer read_storage_buffer(&fs, filename, /*is_read*/true);
+<<<<<<< HEAD
+  StorageBuffer read_storage_buffer(fs.get(), filename, read_chunk_size, /*is_read*/true);
+=======
+  StorageBuffer read_storage_buffer(fs.get(), filename, /*is_read*/true);
+>>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   memset(read_buffer.data(), 0, size);
   read(filename, &read_storage_buffer, read_buffer.data(), size);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
 
   // Buffered read with implicit offset
-  CompressedStorageBuffer read_storage_buffer_1(&fs, filename, /*is_read*/true);
+<<<<<<< HEAD
+  CompressedStorageBuffer read_storage_buffer_1(fs.get(), filename, write_chunk_size, /*is_read*/true);
+=======
+  CompressedStorageBuffer read_storage_buffer_1(fs.get(), filename, /*is_read*/true);
+>>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   memset(read_buffer.data(), 0, size);
   read_with_implicit_offset(filename, &read_storage_buffer_1, read_buffer.data(), size);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
 
   // Buffered write with compression
   filename += ".compress";
-  CompressedStorageBuffer storage_buffer_with_compression(&fs, filename, false, TILEDB_GZIP);
+<<<<<<< HEAD
+  CompressedStorageBuffer storage_buffer_with_compression(fs.get(), filename, write_chunk_size, false, TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
   write(filename, &storage_buffer_with_compression, buffer.data(), size);
 
   // Buffered read with decompression
-  CompressedStorageBuffer read_storage_buffer_with_compression(&fs, filename, true, TILEDB_GZIP);
+  CompressedStorageBuffer read_storage_buffer_with_compression(fs.get(), filename, read_chunk_size, true, TILEDB_GZIP);
+=======
+  CompressedStorageBuffer storage_buffer_with_compression(fs.get(), filename, false, TILEDB_GZIP);
+  write(filename, &storage_buffer_with_compression, buffer.data(), size);
+
+  // Buffered read with decompression
+  CompressedStorageBuffer read_storage_buffer_with_compression(fs.get(), filename, true, TILEDB_GZIP);
+>>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   memset(read_buffer.data(), 0, size);
   read_with_implicit_offset(filename, &read_storage_buffer_with_compression, read_buffer.data(), size);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
+
+  std::cerr << "+++ we are here 2" << std::endl;
+
+  // Buffered write with compression and buffer set to all one's
+  filename += ".simple";
+  memset(buffer.data(), 'R', size);
+  if (is_posix) {
+    // This will test out all paths to write out compressed bytes even for Posix
+    fs->set_upload_buffer_size(write_chunk_size*2);
+  }
+  CompressedStorageBuffer simple_storage_buffer_with_compression(fs.get(), filename, write_chunk_size, false, TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
+  write(filename, &simple_storage_buffer_with_compression, buffer.data(), size);
+
+  // Buffer read with decompression for buffer set to one's
+  CompressedStorageBuffer read_simple_storage_buffer_with_compression(fs.get(), filename, read_chunk_size, true, TILEDB_GZIP);
+  memset(read_buffer.data(), 0, size);
+  read_with_implicit_offset(filename, &read_simple_storage_buffer_with_compression, read_buffer.data(), size);
+  CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
+
+  
 }
 
 

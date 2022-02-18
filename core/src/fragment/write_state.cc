@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -501,12 +501,12 @@ int WriteState::write_segment(int attribute_id, bool is_var, const void *segment
     if (is_var) {
       assert((attribute_id < attribute_num_) && "Coords attribute cannot be variable");
       if (file_var_buffer_[attribute_id] == NULL) {
-        file_var_buffer_[attribute_id]= new StorageBuffer(fs_, filename);
+        file_var_buffer_[attribute_id]= new StorageBuffer(fs_, filename, fs_->get_upload_buffer_size());
       }
       file_buffer = file_var_buffer_[attribute_id];
     } else {
       if (file_buffer_[attribute_id] == NULL) {
-        file_buffer_[attribute_id] = new StorageBuffer(fs_, filename);
+        file_buffer_[attribute_id] = new StorageBuffer(fs_, filename, fs_->get_upload_buffer_size());
       }
       file_buffer = file_buffer_[attribute_id];
     }
