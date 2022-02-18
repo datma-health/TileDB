@@ -150,6 +150,12 @@ int StorageManagerConfig::init(
   dynamic_cast<PosixFS *>(fs_)->set_disable_file_locking(enable_shared_posixfs_optimizations);
   dynamic_cast<PosixFS *>(fs_)->set_keep_write_file_handles_open(enable_shared_posixfs_optimizations);
 
+  // Explicitly set read/write method defaults when it is a shared posix filesystem
+  if (enable_shared_posixfs_optimizations) {
+    read_method_ = TILEDB_IO_READ;
+    write_method_ = TILEDB_IO_WRITE;
+  }
+
   if(home == NULL) {
     home_ = "";
   } else {
@@ -172,7 +178,7 @@ int StorageManagerConfig::init(
   write_method_ = write_method;
   if(write_method_ != TILEDB_IO_WRITE &&
      write_method_ != TILEDB_IO_MPI)
-    write_method_ = TILEDB_IO_WRITE;  // Use default 
+    write_method_ = TILEDB_IO_WRITE;  // Use default
 
   return TILEDB_SMC_OK;
 }
