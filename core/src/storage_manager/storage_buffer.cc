@@ -403,7 +403,6 @@ int CompressedStorageBuffer::gzip_write_buffer() {
     return TILEDB_BF_ERR;
   }
 
-<<<<<<< HEAD
   // Write directly if and only if the bytes to be written out is greater than the upload_file_size
   if (!fs_->get_upload_buffer_size() || (!compressed_write_buffer_size_ && processed >= fs_->get_upload_buffer_size())) {
     // Write directly
@@ -426,14 +425,6 @@ int CompressedStorageBuffer::gzip_write_buffer() {
       compressed_write_buffer_->flush();
       compressed_write_buffer_size_ = 0;
     }
-=======
-  if (!compressed_write_buffer_) {
-    compressed_write_buffer_ = std::make_shared<StorageBuffer>(fs_, filename_);
-  }
-  if (compressed_write_buffer_->append_buffer(compress_buffer_, processed)) {
-    BUFFER_PATH_ERROR("Cannot write buffer after compression", filename_);
-    return TILEDB_BF_ERR;
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   }
 
   return TILEDB_BF_OK;
@@ -443,17 +434,10 @@ int CompressedStorageBuffer::finalize() {
   int rc = TILEDB_BF_OK;
   if (!read_only_) {
     // Compress and write out any remaining bytes
-<<<<<<< HEAD
     rc = write_buffer();
     if (compressed_write_buffer_) {
       rc = rc || compressed_write_buffer_->finalize();
     }
-=======
-    if (buffer_size_) {
-      rc = write_buffer();
-    }
-    rc = rc || compressed_write_buffer_->finalize();
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
     if (rc) {
       BUFFER_PATH_ERROR("Could not finalize buffer after compression", filename_);
     }

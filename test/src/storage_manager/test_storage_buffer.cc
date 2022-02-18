@@ -175,19 +175,12 @@ class TestBufferedWrite : public TempDir {
 };
 
 TEST_CASE_METHOD(TestBufferedWrite, "Test Storage Buffer with buffered reading/writing of large files", "[large-file]") {
-<<<<<<< HEAD
   size_t size = 1024*1024*20 + 1024; // 20M + 1024
-=======
-  size_t size = 1024*1024*10 + 1024; // 10M + 1024
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   std::vector<char> buffer(size);
   std::generate(buffer.begin(), buffer.end(), std::rand);
 
   std::shared_ptr<StorageFS> fs;
-<<<<<<< HEAD
   bool is_posix = false;
-=======
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
 
   // Buffered write
   std::string filename = get_temp_dir()+"/buffered_file";
@@ -199,7 +192,6 @@ TEST_CASE_METHOD(TestBufferedWrite, "Test Storage Buffer with buffered reading/w
     fs = std::make_shared<S3>(filename);
   } else {
     fs = std::make_shared<PosixFS>();
-<<<<<<< HEAD
     is_posix = true;
   }
 
@@ -210,16 +202,6 @@ TEST_CASE_METHOD(TestBufferedWrite, "Test Storage Buffer with buffered reading/w
   StorageBuffer storage_buffer(fs.get(), filename, write_chunk_size, /*is_read*/false);
   write(filename, &storage_buffer, buffer.data(), size);
   CHECK((size_t)fs->file_size(filename) == size);
-=======
-    fs->upload_buffer_size_ = 1024*1024; // 1M chunk
-    fs->download_buffer_size_ = 1024*512; // 0.5M chunk
-  }
-
-  // Buffered write
-  StorageBuffer storage_buffer(fs.get(), filename, /*is_read*/false);
-  write(filename, &storage_buffer, buffer.data(), size);
-  CHECK(fs->file_size(filename) == size);
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
 
   // Check buffered write results with unbuffered read
   std::vector<char> read_buffer(size);
@@ -228,40 +210,24 @@ TEST_CASE_METHOD(TestBufferedWrite, "Test Storage Buffer with buffered reading/w
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
 
   // Buffered read
-<<<<<<< HEAD
   StorageBuffer read_storage_buffer(fs.get(), filename, read_chunk_size, /*is_read*/true);
-=======
-  StorageBuffer read_storage_buffer(fs.get(), filename, /*is_read*/true);
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   memset(read_buffer.data(), 0, size);
   read(filename, &read_storage_buffer, read_buffer.data(), size);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
 
   // Buffered read with implicit offset
-<<<<<<< HEAD
   CompressedStorageBuffer read_storage_buffer_1(fs.get(), filename, write_chunk_size, /*is_read*/true);
-=======
-  CompressedStorageBuffer read_storage_buffer_1(fs.get(), filename, /*is_read*/true);
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   memset(read_buffer.data(), 0, size);
   read_with_implicit_offset(filename, &read_storage_buffer_1, read_buffer.data(), size);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
 
   // Buffered write with compression
   filename += ".compress";
-<<<<<<< HEAD
   CompressedStorageBuffer storage_buffer_with_compression(fs.get(), filename, write_chunk_size, false, TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
   write(filename, &storage_buffer_with_compression, buffer.data(), size);
 
   // Buffered read with decompression
   CompressedStorageBuffer read_storage_buffer_with_compression(fs.get(), filename, read_chunk_size, true, TILEDB_GZIP);
-=======
-  CompressedStorageBuffer storage_buffer_with_compression(fs.get(), filename, false, TILEDB_GZIP);
-  write(filename, &storage_buffer_with_compression, buffer.data(), size);
-
-  // Buffered read with decompression
-  CompressedStorageBuffer read_storage_buffer_with_compression(fs.get(), filename, true, TILEDB_GZIP);
->>>>>>> 4921866... Fix for storage buffer with compression and cloud with restrictions where only the last chunk uploaded can be below a threshold
   memset(read_buffer.data(), 0, size);
   read_with_implicit_offset(filename, &read_storage_buffer_with_compression, read_buffer.data(), size);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);

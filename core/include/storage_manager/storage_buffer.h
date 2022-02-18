@@ -175,7 +175,6 @@ class CompressedStorageBuffer : public StorageBuffer {
   const int compression_level_;
   void *compress_buffer_ = NULL;
   size_t compress_buffer_size_ = 0;
-  std::shared_ptr<StorageBuffer> compressed_write_buffer_ = 0;
 
   std::shared_ptr<StorageBuffer> compressed_write_buffer_ = 0;
   size_t compressed_write_buffer_size_ = 0;
