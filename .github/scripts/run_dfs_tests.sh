@@ -29,6 +29,8 @@ make test_tiledb_utils &&
 make test_azure_blob_storage &&
 make test_sparse_array_benchmark &&
 make test_s3_storage &&
+make test_gcs_storage &&
+make test_storage_buffer
 make examples
 
 if [ $? -ne 0 ]; then
@@ -48,30 +50,35 @@ if [[ $INSTALL_TYPE == hdfs ]]; then
 
 elif [[ $INSTALL_TYPE == gcs ]]; then
   tiledb_utils_tests "gs://$GS_BUCKET/$TEST" &&
-    time  $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$TEST" &&
+    $CMAKE_BUILD_DIR/test/test_gcs_storage --test-dir "gs://$GS_BUCKET/$TEST" &&
+    $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "gs://$GS_BUCKET/$TEST" &&
+    $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$TEST" &&
     echo "Running GCS_HDFS_CONNECTOR tests..." &&
     time TILEDB_USE_GCS_HDFS_CONNECTOR=1 $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/hdfs_$TEST" &&
     echo "Running GCS_HDFS_CONNECTOR tests DONE"
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
+  echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
+    echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
+    echo "az schema storage buffer test" && $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
+    echo "az schema examples" && time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST"
   #echo "Listing Azure Container $AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT";hdfs dfs -ls wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/; echo "Listing Azure DONE"
   #echo "wasbs schema utils test" && tiledb_utils_tests "wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/github_unit_test" &&
-    echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
-    echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
-    echo "az schema examples" && time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST"
-    #    echo "wasbs schema examples" && time  $GITHUB_WORKSPACE/examples/run_examples.sh "wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST"
+  #echo "wasbs schema examples" && time  $GITHUB_WORKSPACE/examples/run_examples.sh "wasbs://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST"
 
 elif [[ $INSTALL_TYPE == azurite ]]; then
   setup_azurite
   tiledb_utils_tests "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
   $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
+  $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
   $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/$TEST"
 
 elif [[ $INSTALL_TYPE == aws ]]; then
   TILEDB_BENCHMARK=1
   tiledb_utils_tests "s3://github-actions-1/$TEST" &&
   $CMAKE_BUILD_DIR/test/test_s3_storage --test-dir s3://github-actions-1/$TEST &&
+  $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir s3://github-actions-1/$TEST &&
   $CMAKE_BUILD_DIR/test/test_sparse_array_benchmark --test-dir s3://github-actions-1/$TEST &&
   $GITHUB_WORKSPACE/examples/run_examples.sh s3://github-actions-1/$TEST
 
