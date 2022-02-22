@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2021-2022 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -257,11 +257,8 @@ int BookKeeping::finalize(StorageFS *fs) {
   if(!is_dir(fs, fragment_name_))
     return TILEDB_BK_OK;
 
-  // Setup upload size
-  fs->set_upload_buffer_size(upload_uncompressed_size_);
-
   // Create StorageBuffer to serialize book_keeping content
-  buffer_ = new CompressedStorageBuffer(fs, filename_, /*is_read*/false,
+  buffer_ = new CompressedStorageBuffer(fs, filename_, upload_uncompressed_size_, /*is_read*/false,
                                         TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
 
   // Write non-empty domain
@@ -371,11 +368,8 @@ int BookKeeping::init(const void* non_empty_domain) {
  * last_tile_cell_num(int64_t)
  */
 int BookKeeping::load(StorageFS *fs) {
-  // Setup download size
-  fs->set_download_buffer_size(download_compressed_size_);
-
   // Create StorageBuffer to deserialize book_keeping content
-  buffer_ = new CompressedStorageBuffer(fs, filename_, /*is_read*/ true,
+  buffer_ = new CompressedStorageBuffer(fs, filename_, download_compressed_size_, /*is_read*/ true,
                                         TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
   
   // Load non-empty domain

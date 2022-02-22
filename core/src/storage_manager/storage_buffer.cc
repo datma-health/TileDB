@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2020-2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2020-2022 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@
 // Using a typical page size for chunks
 #define CHUNK 4096
 
-StorageBuffer::StorageBuffer(StorageFS *fs, const std::string& filename, const bool is_read) :
+StorageBuffer::StorageBuffer(StorageFS *fs, const std::string& filename, size_t chunk_size, const bool is_read) :
     fs_(fs), filename_(filename), read_only_(is_read) {
   if (read_only_) {
     if (fs_->file_size(filename) == TILEDB_FS_ERR) {
@@ -55,15 +55,10 @@ StorageBuffer::StorageBuffer(StorageFS *fs, const std::string& filename, const b
     } else {
       filesize_ = (size_t)fs_->file_size(filename);
     }
-    if (!(chunk_size_ = fs->get_download_buffer_size())) {
-      BUFFER_PATH_ERROR("Cannot perform buffered reads as there is no download buffer size set", filename_);
-      is_error_ = true;
-    }
-  } else {
-    if (!(chunk_size_ = fs->get_upload_buffer_size())) {
-      BUFFER_PATH_ERROR("Cannot perform buffered writes as there is no upload buffer size set", filename_);
-      is_error_ = true;
-    }
+  }
+  if (!(chunk_size_ = chunk_size)) {
+    BUFFER_PATH_ERROR("Cannot perform buffered reads or writes as there is no buffer chunk size set", filename_);
+    is_error_ = true;
   }
 }
 
@@ -169,6 +164,9 @@ int StorageBuffer::append_buffer(const void *bytes, size_t size) {
 }
 
 int StorageBuffer::write_buffer() {
+  if (is_error_) {
+    return TILEDB_BF_ERR;
+  }
   if (fs_->write_to_file(filename_, buffer_, buffer_size_)) {
     BUFFER_PATH_ERROR("Cannot write bytes", filename_);
     return TILEDB_BF_ERR;
@@ -223,6 +221,9 @@ int CompressedStorageBuffer::read_buffer(void *bytes, size_t size) {
 }
 
 int CompressedStorageBuffer::write_buffer() {
+  if (is_error_) {
+    return TILEDB_BF_ERR;
+  }
   if (buffer_size_ > 0) {
     switch (compression_type_) {
       case TILEDB_GZIP:
@@ -402,10 +403,44 @@ int CompressedStorageBuffer::gzip_write_buffer() {
     return TILEDB_BF_ERR;
   }
 
-  if (fs_->write_to_file(filename_, compress_buffer_, processed)) {
-    BUFFER_PATH_ERROR("Cannot write bytes", filename_);
-    return TILEDB_BF_ERR;
+  // Write directly if and only if the bytes to be written out is greater than the upload_file_size
+  if (!fs_->get_upload_buffer_size() || (!compressed_write_buffer_size_ && processed >= fs_->get_upload_buffer_size())) {
+    // Write directly
+    if (fs_->write_to_file(filename_, compress_buffer_, processed)) {
+      BUFFER_PATH_ERROR("Cannot write bytes", filename_);
+      return TILEDB_BF_ERR;
+    }
+  } else {
+    // Use another buffer to hold the compressed bytes until the minimum upload_file_size is satisfied
+    if (!compressed_write_buffer_) {
+      assert(compressed_write_buffer_size_ == 0);
+      compressed_write_buffer_ = std::make_shared<StorageBuffer>(fs_, filename_, fs_->get_upload_buffer_size());
+    }
+    if (compressed_write_buffer_->append_buffer(compress_buffer_, processed)) {
+      BUFFER_PATH_ERROR("Cannot write buffer after compression", filename_);
+      return TILEDB_BF_ERR;
+    }
+    compressed_write_buffer_size_ += processed;
+    if (compressed_write_buffer_size_ >= fs_->get_upload_buffer_size()) {
+      compressed_write_buffer_->flush();
+      compressed_write_buffer_size_ = 0;
+    }
   }
 
   return TILEDB_BF_OK;
+}
+
+int CompressedStorageBuffer::finalize() {
+  int rc = TILEDB_BF_OK;
+  if (!read_only_) {
+    // Compress and write out any remaining bytes
+    rc = write_buffer();
+    if (compressed_write_buffer_) {
+      rc = rc || compressed_write_buffer_->finalize();
+    }
+    if (rc) {
+      BUFFER_PATH_ERROR("Could not finalize buffer after compression", filename_);
+    }
+  }
+  return StorageBuffer::finalize() || rc;
 }

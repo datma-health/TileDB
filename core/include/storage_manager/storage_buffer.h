@@ -5,7 +5,7 @@
  *
  * The MIT License
  *
- * @copyright Copyright (c) 2020-2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2020-2022 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,9 +33,10 @@
 #pragma once
 
 #include "storage_fs.h"
-
+#include "storage_posixfs.h"
 #include "tiledb_constants.h"
 
+#include <memory>
 #include <zlib.h>
 
 /* ********************************* */
@@ -64,7 +65,7 @@ class StorageBuffer {
    * Constructor that accepts StorageFS and the filename minimally. StorageBuffer is a no-op
    * if the upload/download limits are not set in StorageFS.
    */
-  StorageBuffer(StorageFS *fs, const std::string& filename, const bool is_read=false);
+  StorageBuffer(StorageFS *fs, const std::string& filename, size_t chunk_size, const bool is_read=false);
 
   virtual ~StorageBuffer() {
     free_buffer();
@@ -99,9 +100,21 @@ class StorageBuffer {
   int append_buffer(const void *bytes, size_t size);
 
   /**
+   * Persist bytes in the buffer to the FileSystem. It is the responsibilty of the client to
+   * check upload file size thresholds for Cloud Storage as only the last block to be uploaded 
+   * can be lower than the threshold. See
+   *     https://cloud.google.com/storage/docs/performing-resumable-uploads#chunked-uploads
+   *     https://docs.aws.amazon.com/AmazonS3/latest/API/mpUploadUploadPart.html
+   * Currently used internally only with CompressedStorageBuffer.
+   */
+  inline int flush() {
+    return read_only_?TILEDB_FS_OK:write_buffer();
+  }
+
+  /**
    * Finalize flushes existing buffers and releases any allocated memory.
    */
-  int finalize();
+  virtual int finalize();
   
  protected:
   void *buffer_ = NULL;
@@ -136,9 +149,9 @@ class StorageBuffer {
 
 class CompressedStorageBuffer : public StorageBuffer {
  public:
-  CompressedStorageBuffer(StorageFS *fs, const std::string& filename, const bool is_read=false,
+  CompressedStorageBuffer(StorageFS *fs, const std::string& filename, size_t chunk_size, const bool is_read=false,
                           const int compression_type=TILEDB_NO_COMPRESSION, const int compression_level=0)
-      : StorageBuffer(fs, filename, is_read),
+      : StorageBuffer(fs, filename, chunk_size, is_read),
         compression_type_(compression_type), compression_level_(compression_level) {
   }
 
@@ -148,6 +161,7 @@ class CompressedStorageBuffer : public StorageBuffer {
 
   int read_buffer(void *bytes, size_t size);
   int write_buffer();
+  int finalize();
 
   void free_buffer() {
     if (compress_buffer_) free(compress_buffer_);
@@ -161,6 +175,9 @@ class CompressedStorageBuffer : public StorageBuffer {
   const int compression_level_;
   void *compress_buffer_ = NULL;
   size_t compress_buffer_size_ = 0;
+
+  std::shared_ptr<StorageBuffer> compressed_write_buffer_ = 0;
+  size_t compressed_write_buffer_size_ = 0;
 
   int initialize_gzip_stream(z_stream *strm);
   int gzip_read_buffer();
