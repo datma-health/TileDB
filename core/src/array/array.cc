@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 
-#ifdef 0
+#if 0
 void print_memory_stats(const std::string& msg);
 #endif
 
@@ -378,7 +378,7 @@ int Array::consolidate(
     return TILEDB_AR_ERR;
   }
 
-#ifdef 0
+#if 0
   std::cerr << "Using buffer_size=" << consolidation_buffer_size << " for consolidation" << std::endl;
   print_memory_stats("beginning consolidation");
 #endif
@@ -392,7 +392,7 @@ int Array::consolidate(
     }
   }
 
-#ifdef 0
+#if 0
   print_memory_stats("after final consolidation");
 #endif
 
@@ -455,7 +455,7 @@ int Array::consolidate(
     }
   }
 
-#ifdef 0
+#if 0
   print_memory_stats("after alloc for attribute="+array_schema_->attribute(attribute_id));
 #endif
 
