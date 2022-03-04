@@ -257,7 +257,8 @@ class Array {
    */
   int consolidate(
       Fragment*& new_fragment, 
-      std::vector<std::string>& old_fragment_names);
+      std::vector<std::string>& old_fragment_names,
+      size_t consolidation_buffer_size = TILEDB_CONSOLIDATION_BUFFER_SIZE);
 
   /**
    * Consolidates all fragment into a new single one, focusing on a specific
@@ -268,7 +269,8 @@ class Array {
    */
   int consolidate(
       Fragment* new_fragment,
-      int attribute_id);
+      int attribute_id,
+      size_t consolidation_buffer_size);
 
   /**
    * Finalizes the array, properly freeing up memory space.

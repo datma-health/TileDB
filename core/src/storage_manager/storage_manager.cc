@@ -272,7 +272,7 @@ int StorageManager::group_create(const std::string& group) const {
 /*             ARRAY              */
 /* ****************************** */
 
-int StorageManager::array_consolidate(const char* array_dir) {
+int StorageManager::array_consolidate(const char* array_dir, size_t consolidation_buffer_size) {
   // Create an array object
   Array* array;
   if(array_init(
@@ -288,7 +288,7 @@ int StorageManager::array_consolidate(const char* array_dir) {
   Fragment* new_fragment;
   std::vector<std::string> old_fragment_names;
   int rc_array_consolidate = 
-      array->consolidate(new_fragment, old_fragment_names);
+      array->consolidate(new_fragment, old_fragment_names, consolidation_buffer_size);
   
   // Close the array
   int rc_array_close = array_close(array->get_array_path_used());

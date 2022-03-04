@@ -638,7 +638,8 @@ TILEDB_EXPORT int tiledb_array_overflow(
  */
 TILEDB_EXPORT int tiledb_array_consolidate(
     const TileDB_CTX* tiledb_ctx,
-    const char* array);
+    const char* array,
+    size_t consolidation_buffer_size = TILEDB_CONSOLIDATION_BUFFER_SIZE);
 
 /** 
  * Finalizes a TileDB array, properly freeing its memory space. 

@@ -207,7 +207,7 @@ class StorageManager {
    * @param array_dir The name of the array to be consolidated.
    * @return TILEDB_SM_OK for success and TILEDB_SM_ERR for error.
    */
-  int array_consolidate(const char* array_dir);
+  int array_consolidate(const char* array_dir, size_t consolidation_buffer_size);
 
   /**
    * Creates a new TileDB array.

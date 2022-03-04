@@ -42,6 +42,10 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 
+#ifdef 0
+void print_memory_stats(const std::string& msg);
+#endif
+
 /* ****************************** */
 /*             MACROS             */
 /* ****************************** */
@@ -60,8 +64,6 @@
 /* ****************************** */
 
 std::string tiledb_ar_errmsg = "";
-
-
 
 
 /* ****************************** */
@@ -353,7 +355,8 @@ bool Array::write_mode() const {
 
 int Array::consolidate(
     Fragment*& new_fragment,
-    std::vector<std::string>& old_fragment_names) {
+    std::vector<std::string>& old_fragment_names,
+    size_t consolidation_buffer_size) {
   // Trivial case
   if(fragments_.size() == 1)
     return TILEDB_AR_OK;
@@ -375,14 +378,23 @@ int Array::consolidate(
     return TILEDB_AR_ERR;
   }
 
+#ifdef 0
+  std::cerr << "Using buffer_size=" << consolidation_buffer_size << " for consolidation" << std::endl;
+  print_memory_stats("beginning consolidation");
+#endif
+
   // Consolidate on a per-attribute basis
   for(int i=0; i<array_schema_->attribute_num()+1; ++i) {
-    if(consolidate(new_fragment, i) != TILEDB_AR_OK) {
+    if(consolidate(new_fragment, i, consolidation_buffer_size) != TILEDB_AR_OK) {
       delete_dir(config_->get_filesystem(), new_fragment->fragment_name());
       delete new_fragment;
       return TILEDB_AR_ERR;
     }
   }
+
+#ifdef 0
+  print_memory_stats("after final consolidation");
+#endif
 
   // Get old fragment names
   int fragment_num = fragments_.size();
@@ -395,7 +407,8 @@ int Array::consolidate(
     
 int Array::consolidate(
     Fragment* new_fragment,
-    int attribute_id) {
+    int attribute_id,
+    size_t consolidation_buffer_size) {
   // For easy reference
   int attribute_num = array_schema_->attribute_num();
 
@@ -413,19 +426,20 @@ int Array::consolidate(
   // Cache the buffer indices associated with the attribute
   int buffer_index = -1;
   int buffer_var_index = -1;
-
+  
   // Populate the buffers
   int buffer_num = attribute_num + 1 + var_attribute_num;
   buffers = (void**) malloc(buffer_num * sizeof(void*));
   buffer_sizes = (size_t*) malloc(buffer_num * sizeof(size_t));
+
   int buffer_i = 0;
   for(int i=0; i<attribute_num+1; ++i) {
     if(i == attribute_id) {
-      buffers[buffer_i] = malloc(TILEDB_CONSOLIDATION_BUFFER_SIZE);
+      buffers[buffer_i] = malloc(consolidation_buffer_size);
       buffer_index = buffer_i;
       ++buffer_i;
       if(array_schema_->var_size(i)) {
-        buffers[buffer_i] = malloc(TILEDB_CONSOLIDATION_BUFFER_SIZE);
+        buffers[buffer_i] = malloc(consolidation_buffer_size);
         buffer_var_index = buffer_i;
         ++buffer_i;
       }
@@ -441,14 +455,18 @@ int Array::consolidate(
     }
   }
 
+#ifdef 0
+  print_memory_stats("after alloc for attribute="+array_schema_->attribute(attribute_id));
+#endif
+
   // Read and write attribute until there is no overflow
   int rc_write = TILEDB_FG_OK; 
   int rc_read = TILEDB_FG_OK; 
   do {
     // Set or reset buffer sizes as they are modified by the reads
-    buffer_sizes[buffer_index] = TILEDB_CONSOLIDATION_BUFFER_SIZE;
+    buffer_sizes[buffer_index] = consolidation_buffer_size;
     if (buffer_var_index != -1) {
-      buffer_sizes[buffer_var_index] = TILEDB_CONSOLIDATION_BUFFER_SIZE;
+      buffer_sizes[buffer_var_index] = consolidation_buffer_size;
     }
     
     // Read
