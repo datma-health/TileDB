@@ -62,25 +62,6 @@ class SparseArrayTestFixture : TempDir {
   /* ********************************* */
 
   /**
-   * Creates a 1D sparse array.
-   *
-   * @param attribute_type
-   * @param tile_extent
-   * @param domain_lo
-   * @param domain_hi
-   * @param cell_order The cell order.
-   * @param tile_order The tile order.
-   * @return TILEDB_OK on success and TILEDB_ERR on error.
-   */
-  int create_sparse_array_1D(
-    const int attribute_type,
-    const int32_t tile_extent,
-    const int32_t domain_lo,
-    const int32_t domain_hi,
-    const int cell_order,
-    const int tile_order);
-
-  /**
    * Creates a 2D sparse array.
    *
    * @param tile_extent_0 The tile extent along the first dimension. 
