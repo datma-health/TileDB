@@ -240,6 +240,9 @@ class Array {
   /** Returns true if the array is in write mode. */
   bool write_mode() const;
 
+  /** Return true if the array is in consolidate mode */
+  bool consolidate_mode() const;
+
 
   /* ********************************* */
   /*              MUTATORS             */
@@ -253,24 +256,33 @@ class Array {
    *
    * @param new_fragment The new fragment to be returned.
    * @param old_fragment_names The names of the old fragments to be returned.
+   * @param buffer_size (Optional) The size of buffers for reading/writing attributes during consolidation. Default is 10M.
+   * @param batch size (Optional) When specified, consolidation will occur batch-wise with a smaller batch_size set of
+   *     fragments getting consolidating together. Default is all fragments.
    * @return TILEDB_AR_OK for success and TILEDB_AR_ERR for error.
    */
   int consolidate(
-      Fragment*& new_fragment, 
+      Fragment*& new_fragment,
       std::vector<std::string>& old_fragment_names,
-      size_t consolidation_buffer_size = TILEDB_CONSOLIDATION_BUFFER_SIZE);
+      size_t buffer_size = TILEDB_CONSOLIDATION_BUFFER_SIZE,
+      int batch_size = -1);
 
   /**
-   * Consolidates all fragment into a new single one, focusing on a specific
-   * attribute.
+   * Consolidates a batch of fragments into a new single one, focusing on a specific attribute.
    *
    * @param new_fragment The new consolidated fragment object.
    * @param attribute_id The id of the target attribute.
+   * @param buffers Array of buffers, preallocated only for specified attribute. Buffers for other attributes can be NULL
+   * @param buffer_sizes Size of buffer allocations in buffers. Buffer sizes for all attributes except the one
+   *     specified can be 0.
+   * @param buffer_size
    */
   int consolidate(
       Fragment* new_fragment,
       int attribute_id,
-      size_t consolidation_buffer_size);
+      void **buffers,
+      size_t *buffer_sizes,
+      size_t buffer_size);
 
   /**
    * Finalizes the array, properly freeing up memory space.
@@ -505,6 +517,8 @@ class Array {
   std::vector<int> attribute_ids_;
   /** Configuration parameters. */
   const StorageManagerConfig* config_;
+  /** Fragment names at initialization for consolidation */
+  std::vector<std::string> fragment_names_;
   /** The array fragments. */
   std::vector<Fragment*> fragments_;
   /** 

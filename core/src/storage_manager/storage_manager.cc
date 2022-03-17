@@ -272,13 +272,13 @@ int StorageManager::group_create(const std::string& group) const {
 /*             ARRAY              */
 /* ****************************** */
 
-int StorageManager::array_consolidate(const char* array_dir, size_t consolidation_buffer_size) {
+int StorageManager::array_consolidate(const char* array_dir, size_t buffer_size, int batch_size) {
   // Create an array object
   Array* array;
   if(array_init(
       array,
       array_dir,
-      TILEDB_ARRAY_READ,
+      TILEDB_ARRAY_CONSOLIDATE,
       NULL,
       NULL,
       0) != TILEDB_SM_OK) 
@@ -288,7 +288,7 @@ int StorageManager::array_consolidate(const char* array_dir, size_t consolidatio
   Fragment* new_fragment;
   std::vector<std::string> old_fragment_names;
   int rc_array_consolidate = 
-      array->consolidate(new_fragment, old_fragment_names, consolidation_buffer_size);
+      array->consolidate(new_fragment, old_fragment_names, buffer_size, batch_size);
   
   // Close the array
   int rc_array_close = array_close(array->get_array_path_used());
@@ -525,34 +525,37 @@ int StorageManager::array_init(
 
   // Open the array
   OpenArray* open_array = NULL;
-  if(array_read_mode(mode)) {
+  if(array_read_mode(mode) || array_consolidate_mode(mode)) {
     if(array_open(full_array_path, open_array, mode) != TILEDB_SM_OK)
       return TILEDB_SM_ERR;
   }
 
-  // Create the clone Array object
-  Array* array_clone = new Array();
-  int rc_clone = array_clone->init(
-                     array_schema,
-                     full_array_path,
-                     open_array->fragment_names_,
-                     open_array->book_keeping_,
-                     mode,
-                     attributes, 
-                     attribute_num, 
-                     subarray,
-                     config_);
+  Array* array_clone = NULL;
+  if (!array_consolidate_mode(mode)) {
+    // Create the clone Array object. No need to clone for consolidation
+    array_clone = new Array();
+    int rc_clone = array_clone->init(
+        array_schema,
+        full_array_path,
+        open_array->fragment_names_,
+        open_array->book_keeping_,
+        mode,
+        attributes,
+        attribute_num,
+        subarray,
+        config_);
 
-  // Handle error
-  if(rc_clone != TILEDB_AR_OK) {
-    delete array_schema;
-    delete array_clone;
-    array = NULL;
-    if(array_read_mode(mode)) 
-      array_close(full_array_path);
-    tiledb_sm_errmsg = tiledb_ar_errmsg;
-    return TILEDB_SM_ERR;
-  } 
+    // Handle error
+    if(rc_clone != TILEDB_AR_OK) {
+      delete array_schema;
+      delete array_clone;
+      array = NULL;
+      if(array_read_mode(mode))
+        array_close(full_array_path);
+      tiledb_sm_errmsg = tiledb_ar_errmsg;
+      return TILEDB_SM_ERR;
+    }
+  }
 
   // Create actual array
   array = new Array();
@@ -1465,18 +1468,21 @@ int StorageManager::array_open(
              open_array->array_schema_) != TILEDB_SM_OK)
         return TILEDB_SM_ERR;
     }
+  }
 
-    // Load the book-keeping for each fragment
+  if (!array_consolidate_mode(mode)) {
+    // Load the book-keeping for each fragment. For consolidate mode, each fragment will be opened
+    // separately
     if(array_load_book_keeping(
-           open_array->array_schema_, 
-           open_array->fragment_names_, 
+           open_array->array_schema_,
+           open_array->fragment_names_,
            open_array->book_keeping_,
            mode) != TILEDB_SM_OK) {
       delete open_array->array_schema_;
       open_array->array_schema_ = NULL;
       open_array->mutex_unlock();
       return TILEDB_SM_ERR;
-    } 
+    }
   }
 
   // Unlock the mutex of the array

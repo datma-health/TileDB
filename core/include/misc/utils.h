@@ -84,7 +84,10 @@ extern std::string tiledb_ut_errmsg;
 bool array_read_mode(int mode); 
 
 /** Returns true if the input is an array write mode. */
-bool array_write_mode(int mode); 
+bool array_write_mode(int mode);
+
+/** Returns true if the input is an array consolidate mode. */
+bool array_consolidate_mode(int mode);
 
 /**
  * Checks if both inputs represent the '/' character. This is an auxiliary

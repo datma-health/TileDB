@@ -252,10 +252,12 @@ class ArrayTestFixture1D : TempDir {
     return TILEDB_OK;
   }
 
-  int consolidate_array(size_t segment_size=0) {
+  int consolidate_array(size_t segment_size=0, int batch_size=0) {
     // Consolidate array
     int rc;
-    if (segment_size) {
+    if (batch_size) {
+      rc = tiledb_array_consolidate(tiledb_ctx_, array_name_.c_str(), segment_size, batch_size);
+    } else if (segment_size) {
       rc = tiledb_array_consolidate(tiledb_ctx_, array_name_.c_str(), segment_size);
     } else {
       rc = tiledb_array_consolidate(tiledb_ctx_, array_name_.c_str());
@@ -272,7 +274,7 @@ class ArrayTestFixture1D : TempDir {
 
 #define AF ArrayTestFixture1D<TestType>
  
-TEMPLATE_TEST_CASE_METHOD(ArrayTestFixture1D, "Test sparse write with attribute types 1", "[test_new]", 
+TEMPLATE_TEST_CASE_METHOD(ArrayTestFixture1D, "Test Sparse 1D Array", "[test_sparse_1D_array]", 
                           char,  uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
   SECTION("row_major") {
     AF::set_array_name("sparse_test_1D_row");
@@ -287,11 +289,19 @@ TEMPLATE_TEST_CASE_METHOD(ArrayTestFixture1D, "Test sparse write with attribute 
     CHECK_RC(AF::write_array(), TILEDB_OK);
     CHECK_RC(AF::consolidate_array(200), TILEDB_OK);
     CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::consolidate_array(200, 2), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
   }
   SECTION("col_major") {
     AF::set_array_name("sparse_test_1D_col");
     CHECK_RC(AF::create_array(10, 0, 990, TILEDB_COL_MAJOR, TILEDB_COL_MAJOR), TILEDB_OK);
     CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::consolidate_array(200, 1), TILEDB_OK);
     CHECK_RC(AF::read_array(), TILEDB_OK);
   }
   SECTION("col_mixed") {

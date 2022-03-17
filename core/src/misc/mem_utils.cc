@@ -35,8 +35,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <vector>
 
-typedef struct {
+typedef struct statm_t{
   unsigned long size=0,resident=0,share=0,text=0,lib=0,data=0,dt=0;
 } statm_t;
 
@@ -44,6 +45,22 @@ void print_time() {
   time_t track_time = time(NULL);
   tm* current = localtime(&track_time);
   std::cerr << current->tm_hour << ":" << current->tm_min << ":" << current->tm_sec << " ";
+}
+
+std::string readable_size(size_t size) {
+  std::vector<std::string> suffix = { "B", "KB", "MB", "GB", "TB" };
+  auto i = 0u;
+  size = size*4096;
+  while (size > 0) {
+    if (i > suffix.size()) break;
+    if (size/1024 == 0) {
+      return std::to_string(size) + suffix[i];
+    } else {
+      size /= 1024;
+      i++;
+    }
+  }
+  return std::to_string(size);
 }
     
 void print_memory_stats(const std::string& msg) {
@@ -65,10 +82,10 @@ void print_memory_stats(const std::string& msg) {
   fclose(f);
 
   print_time();
-  std::cerr << "Memory stats(pages) " << msg << " size=" << result.size
-            << " resident=" << result.resident << " share=" << result.share
-            << " text=" << result.text << " lib=" << result.lib
-            << " data=" << result.data << " dt=" << result.dt << std::endl;
+  std::cerr << "Memory stats(pages) " << msg << " size=" << readable_size(result.size)
+            << " resident=" << readable_size(result.resident) << " share=" << readable_size(result.share)
+            << " text=" << readable_size(result.text) << " lib=" << readable_size(result.lib)
+            << " data=" << readable_size(result.data) << " dt=" << readable_size(result.dt) << std::endl;
 #else
   print_time();
   std::cerr << "TBD: Memory stats " << msg << std::endl;

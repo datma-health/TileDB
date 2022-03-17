@@ -205,9 +205,12 @@ class StorageManager {
    * Consolidates the fragments of an array into a single fragment.
    *
    * @param array_dir The name of the array to be consolidated.
+   * @param buffer_size The size of buffers for reading/writing attributes during consolidation.
+   * @param batch size Consolidation will occur batch-wise with a smaller batch_size set of
+   *     fragments getting consolidating together. If <=0, all fragments will be consolidated together.
    * @return TILEDB_SM_OK for success and TILEDB_SM_ERR for error.
    */
-  int array_consolidate(const char* array_dir, size_t consolidation_buffer_size);
+  int array_consolidate(const char* array_dir, size_t buffer_size, int batch_size);
 
   /**
    * Creates a new TileDB array.
@@ -557,7 +560,7 @@ class StorageManager {
   StorageManagerConfig* config_;
   /** The Filesystem associated with this configuration */
   StorageFS* fs_;
-  /** OpneMP mutex for creating/deleting an OpenArray object. */
+  /** OpenMP mutex for creating/deleting an OpenArray object. */
 #ifdef HAVE_OPENMP
   omp_lock_t open_array_omp_mtx_;
 #endif

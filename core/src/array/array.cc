@@ -37,6 +37,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -264,7 +265,7 @@ bool Array::overflow() const {
 }
 
 bool Array::overflow(int attribute_id) const {
-  assert(read_mode());
+  assert(read_mode() || consolidate_mode());
 
   // Trivial case
   if(fragments_.size() == 0)
@@ -279,7 +280,7 @@ bool Array::overflow(int attribute_id) const {
 
 int Array::read(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
   // Sanity checks
-  if(!read_mode()) {
+  if(!read_mode() && !consolidate_mode()) {
     std::string errmsg = "Cannot read from array; Invalid mode";
     PRINT_ERROR(errmsg);
     tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
@@ -349,6 +350,10 @@ bool Array::write_mode() const {
   return array_write_mode(mode_);
 }
 
+bool Array::consolidate_mode() const {
+  return array_consolidate_mode(mode_);
+}
+
 /* ****************************** */
 /*            MUTATORS            */
 /* ****************************** */
@@ -356,9 +361,10 @@ bool Array::write_mode() const {
 int Array::consolidate(
     Fragment*& new_fragment,
     std::vector<std::string>& old_fragment_names,
-    size_t consolidation_buffer_size) {
+    size_t buffer_size,
+    int batch_size) {
   // Trivial case
-  if(fragments_.size() == 1)
+  if(fragment_names_.size() == 1)
     return TILEDB_AR_OK;
 
   // Get new fragment name
@@ -379,27 +385,97 @@ int Array::consolidate(
   }
 
 #if 0
-  std::cerr << "Using buffer_size=" << consolidation_buffer_size << " for consolidation" << std::endl;
+  std::cerr << "Using buffer_size=" << buffer_size << " for consolidation" << std::endl;
   print_memory_stats("beginning consolidation");
 #endif
 
-  // Consolidate on a per-attribute basis
-  for(int i=0; i<array_schema_->attribute_num()+1; ++i) {
-    if(consolidate(new_fragment, i, consolidation_buffer_size) != TILEDB_AR_OK) {
-      delete_dir(config_->get_filesystem(), new_fragment->fragment_name());
-      delete new_fragment;
-      return TILEDB_AR_ERR;
-    }
+  // Consolidate on a per-batch and per-attribute basis
+  if (batch_size <= 0 || batch_size > fragment_names_.size()) {
+    batch_size = fragment_names_.size();
   }
+  auto remaining = (fragment_names_.size()%batch_size);
+  int num_batches = fragment_names_.size()/batch_size+(fragment_names_.size()%batch_size)?1:0;
+
+  // Create the buffers
+  int attribute_num = array_schema_->attribute_num();
+  int var_attribute_num = array_schema_->var_attribute_num();
+  int buffer_num = attribute_num + 1 + var_attribute_num;
+  void **buffers = (void**) malloc(buffer_num * sizeof(void*));
+  size_t *buffer_sizes = (size_t*) malloc(buffer_num * sizeof(size_t));
+
+  void *buffer = malloc(buffer_size);
+  void *buffer_var = malloc(buffer_size);
+
+  StorageFS* fs = config_->get_filesystem();
+  std::vector<BookKeeping *> book_keepers;
+  assert(fragments_.size() == 0);
+
+  // Consolidating per batch
+  for (auto batch=0; batch<num_batches; batch++) {
+    int actual_batch_size;
+    if (batch == num_batches-1) {
+      actual_batch_size = remaining?remaining:batch_size;
+    } else {
+      actual_batch_size = batch_size;
+    }
+    auto start = batch*actual_batch_size;
+    for (auto fragment_i = start; fragment_i<start+actual_batch_size; fragment_i++) {
+      fragments_.push_back(new Fragment(this));
+      auto fragment_name = fragment_names_[fragment_i];
+      bool dense = !fs->is_file(fs->append_paths(fragment_name, std::string(TILEDB_COORDS) + TILEDB_FILE_SUFFIX));
+      book_keepers.push_back(new BookKeeping(array_schema_, dense, fragment_name, TILEDB_ARRAY_READ));
+      if (book_keepers.back()->load(fs) != TILEDB_BK_OK) {
+        tiledb_ar_errmsg = tiledb_bk_errmsg;
+        return TILEDB_AR_ERR;
+      }
+      if(fragments_.back()->init(fragment_name, book_keepers.back(), TILEDB_ARRAY_READ) != TILEDB_FG_OK) {
+        tiledb_ar_errmsg = tiledb_fg_errmsg;
+        return TILEDB_AR_ERR;
+      }
+    }
+
+    array_read_state_ = new ArrayReadState(this);
+
+    // Consolidating per batch per attribute
+    for (auto i=0u,j=0u; i<array_schema_->attribute_num()+1; ++i,++j) {
+      buffers[j] = buffer;
+      buffer_sizes[j] = buffer_size;
+      if (array_schema_->var_size(i)) {
+        buffers[j+1] = buffer_var;
+        buffer_sizes[j+1] = buffer_size;
+        j++;
+      }
+      if(consolidate(new_fragment, i, buffers, buffer_sizes, buffer_size) != TILEDB_AR_OK) {
+        delete_dir(fs, new_fragment->fragment_name());
+        delete new_fragment;
+        return TILEDB_AR_ERR;
+      }
+    }
+
+    // Cleanup aftr batch consolidation
+    delete array_read_state_;
+    array_read_state_ = NULL;
+    assert(fragments_.size() == book_keepers.size());
+    for (auto fragment_i = 0; fragment_i<fragments_.size(); fragment_i++) {
+      fragments_[fragment_i]->finalize();
+      delete fragments_[fragment_i];
+      delete book_keepers[fragment_i];
+    }
+    fragments_.clear();
+    book_keepers.clear();
+  }
+
+  // Clean up
+  free(buffer_var);
+  free(buffer);
+  free(buffer_sizes);
+  free(buffers);
 
 #if 0
   print_memory_stats("after final consolidation");
 #endif
 
-  // Get old fragment names
-  int fragment_num = fragments_.size();
-  for(int i=0; i<fragment_num; ++i) 
-    old_fragment_names.push_back(fragments_[i]->fragment_name());
+  old_fragment_names = fragment_names_;
 
   // Success
   return TILEDB_AR_OK;
@@ -408,7 +484,9 @@ int Array::consolidate(
 int Array::consolidate(
     Fragment* new_fragment,
     int attribute_id,
-    size_t consolidation_buffer_size) {
+    void **buffers,
+    size_t *buffer_sizes,
+    size_t buffer_size) {
   // For easy reference
   int attribute_num = array_schema_->attribute_num();
 
@@ -416,30 +494,17 @@ int Array::consolidate(
   if(array_schema_->dense() && attribute_id == attribute_num)
     return TILEDB_AR_OK;
 
-  // Prepare buffers
-  void** buffers;
-  size_t* buffer_sizes;
-
-  // Count the number of variable attributes
-  int var_attribute_num = array_schema_->var_attribute_num();
-
   // Cache the buffer indices associated with the attribute
   int buffer_index = -1;
   int buffer_var_index = -1;
-  
-  // Populate the buffers
-  int buffer_num = attribute_num + 1 + var_attribute_num;
-  buffers = (void**) malloc(buffer_num * sizeof(void*));
-  buffer_sizes = (size_t*) malloc(buffer_num * sizeof(size_t));
-
   int buffer_i = 0;
   for(int i=0; i<attribute_num+1; ++i) {
     if(i == attribute_id) {
-      buffers[buffer_i] = malloc(consolidation_buffer_size);
+      assert(buffers[buffer_i]);
       buffer_index = buffer_i;
       ++buffer_i;
       if(array_schema_->var_size(i)) {
-        buffers[buffer_i] = malloc(consolidation_buffer_size);
+        assert(buffers[buffer_i]);
         buffer_var_index = buffer_i;
         ++buffer_i;
       }
@@ -464,9 +529,9 @@ int Array::consolidate(
   int rc_read = TILEDB_FG_OK; 
   do {
     // Set or reset buffer sizes as they are modified by the reads
-    buffer_sizes[buffer_index] = consolidation_buffer_size;
+    buffer_sizes[buffer_index] = buffer_size;
     if (buffer_var_index != -1) {
-      buffer_sizes[buffer_var_index] = consolidation_buffer_size;
+      buffer_sizes[buffer_var_index] = buffer_size;
     }
     
     // Read
@@ -482,14 +547,6 @@ int Array::consolidate(
       break;
   } while(overflow(attribute_id));
 
-  // Clean up
-  for(int i=0; i<buffer_num; ++i) {
-    if(buffers[i] != NULL)
-      free(buffers[i]);
-  } 
-  free(buffers);
-  free(buffer_sizes);
-
   // Error
   if(rc_write != TILEDB_FG_OK || rc_read != TILEDB_FG_OK) {
     tiledb_ar_errmsg = tiledb_fg_errmsg;
@@ -497,7 +554,7 @@ int Array::consolidate(
   }
 
   // Success
-    return TILEDB_AR_OK;
+  return TILEDB_AR_OK;
 }
 
 int Array::finalize() {
@@ -529,6 +586,10 @@ int Array::finalize() {
   if(array_sorted_write_state_ != NULL) {
     delete array_sorted_write_state_;
     array_sorted_write_state_ = NULL;
+  }
+
+  if (consolidate_mode()) {
+    return fg_error?TILEDB_AR_ERR:TILEDB_AR_OK;
   }
 
   // Clean the AIO-related members
@@ -597,7 +658,7 @@ int Array::init(
   array_clone_ = array_clone;
 
   // Sanity check on mode
-  if(!read_mode() && !write_mode()) {
+  if(!read_mode() && !write_mode() && !consolidate_mode()) {
     std::string errmsg = "Cannot initialize array; Invalid array mode";
     PRINT_ERROR(errmsg);
     tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
@@ -607,8 +668,15 @@ int Array::init(
   // Set config
   config_ = config;
 
+  // Set array schema
+  array_schema_ = array_schema;
+
+  if (consolidate_mode()) {
+    fragment_names_ = fragment_names;
+  }
+
   // Set subarray
-  size_t subarray_size = 2*array_schema->coords_size();
+  size_t subarray_size = 2*array_schema_->coords_size();
   subarray_ = malloc(subarray_size);
   if(subarray == NULL) 
     memcpy(subarray_, array_schema->domain(), subarray_size);
@@ -618,15 +686,15 @@ int Array::init(
   // Get attributes
   std::vector<std::string> attributes_vec;
   if(attributes == NULL) { // Default: all attributes
-    attributes_vec = array_schema->attributes();
-    if(array_schema->dense() && mode != TILEDB_ARRAY_WRITE_UNSORTED) 
+    attributes_vec = array_schema_->attributes();
+    if(array_schema_->dense() && mode != TILEDB_ARRAY_WRITE_UNSORTED)
       // Remove coordinates attribute for dense arrays, 
       // unless in TILEDB_WRITE_UNSORTED mode
       attributes_vec.pop_back(); 
   } else {                 // Custom attributes
     // Get attributes
     bool coords_found = false;
-    bool sparse = !array_schema->dense();
+    bool sparse = !array_schema_->dense();
     for(int i=0; i<attribute_num; ++i) {
       // Check attribute name length
       if(attributes[i] == NULL || strlen(attributes[i]) > TILEDB_NAME_MAX_LEN) {
@@ -658,14 +726,11 @@ int Array::init(
   }
 
   // Set attribute ids
-  if(array_schema->get_attribute_ids(attributes_vec, attribute_ids_) 
+  if(array_schema_->get_attribute_ids(attributes_vec, attribute_ids_)
          != TILEDB_AS_OK) {
     tiledb_ar_errmsg = tiledb_as_errmsg;
     return TILEDB_AR_ERR;
   }
-
-  // Set array schema
-  array_schema_ = array_schema;
 
   try {
     // Initialize new fragment if needed
@@ -701,6 +766,10 @@ int Array::init(
       } else {
         array_sorted_write_state_ = NULL;
       }
+    } else if (consolidate_mode()) {
+      array_read_state_ = NULL;
+      array_sorted_read_state_ = NULL;
+      return TILEDB_OK;
     } else {           // READ MODE
       // Open fragments
       if(open_fragments(fragment_names, book_keeping) != TILEDB_AR_OK) {
@@ -1330,7 +1399,7 @@ int Array::open_fragments(
     Fragment* fragment = new Fragment(this);
     fragments_.push_back(fragment);
 
-    if(fragment->init(fragment_names[i], book_keeping[i]) != TILEDB_FG_OK) {
+    if(fragment->init(fragment_names[i], book_keeping[i], mode()) != TILEDB_FG_OK) {
       tiledb_ar_errmsg = tiledb_fg_errmsg;
       return TILEDB_AR_ERR;
     }
