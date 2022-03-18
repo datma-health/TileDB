@@ -30,7 +30,7 @@
  * This file implements utilities to help profile memory
  */
 
-#include <time.h>
+#include <ctime>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,10 @@ typedef struct statm_t{
 void print_time() {
   time_t track_time = time(NULL);
   tm* current = localtime(&track_time);
-  std::cerr << current->tm_hour << ":" << current->tm_min << ":" << current->tm_sec << " ";
+  char buffer[32];
+  // Format %c(locale dependent) e.g. Fri Mar 18 16:13:48 2022 for EN_US
+  std::strftime(buffer, sizeof(buffer), "%c ", current);
+  std::cerr << buffer;
 }
 
 std::string readable_size(size_t size) {
@@ -82,6 +85,7 @@ void print_memory_stats(const std::string& msg) {
   fclose(f);
 
   print_time();
+  printf(
   std::cerr << "Memory stats " << msg << " size=" << readable_size(result.size)
             << " resident=" << readable_size(result.resident) << " share=" << readable_size(result.share)
             << " text=" << readable_size(result.text) << " lib=" << readable_size(result.lib)
