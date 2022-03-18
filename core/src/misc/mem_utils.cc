@@ -82,7 +82,7 @@ void print_memory_stats(const std::string& msg) {
   fclose(f);
 
   print_time();
-  std::cerr << "Memory stats(pages) " << msg << " size=" << readable_size(result.size)
+  std::cerr << "Memory stats(bytes) " << msg << " size=" << readable_size(result.size)
             << " resident=" << readable_size(result.resident) << " share=" << readable_size(result.share)
             << " text=" << readable_size(result.text) << " lib=" << readable_size(result.lib)
             << " data=" << readable_size(result.data) << " dt=" << readable_size(result.dt) << std::endl;
