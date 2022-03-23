@@ -115,6 +115,10 @@ int Fragment::mode() const {
   return mode_;
 }
 
+BookKeeping* Fragment::book_keeping() const {
+  return book_keeping_;
+}
+
 inline
 bool Fragment::read_mode() const {
   return array_read_mode(mode_);

@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -100,6 +101,9 @@ class Fragment {
   
   /** Returns the array the fragment belongs to. */
   const Array* array() const;
+
+  /** Returns the book_keeping data structure for this fragment. */
+  BookKeeping* book_keeping() const;
 
   /** Returns the number of cell per (full) tile. */
   int64_t cell_num_per_tile() const;

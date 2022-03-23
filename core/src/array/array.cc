@@ -32,6 +32,7 @@
  */
 
 #include "array.h"
+#include "mem_utils.h"
 #include "utils.h"
 #include <algorithm>
 #include <cassert>
@@ -42,10 +43,6 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
-
-#if 0
-void print_memory_stats(const std::string& msg);
-#endif
 
 /* ****************************** */
 /*             MACROS             */
@@ -358,13 +355,30 @@ bool Array::consolidate_mode() const {
 /*            MUTATORS            */
 /* ****************************** */
 
+//#define DO_MEMORY_PROFILING
+
+Fragment* get_fragment_for_consolidation(StorageFS *fs, std::string fragment_name, const Array *array) {
+  Fragment* fragment = new Fragment(array);
+  bool dense = !fs->is_file(fs->append_paths(fragment_name, std::string(TILEDB_COORDS) + TILEDB_FILE_SUFFIX));
+  BookKeeping *book_keeping = new BookKeeping(array->array_schema(), dense, fragment_name, TILEDB_ARRAY_READ);
+  if (book_keeping->load(fs) != TILEDB_BK_OK) {
+    tiledb_ar_errmsg = tiledb_bk_errmsg;
+    return NULL;
+  }
+  if(fragment->init(fragment_name, book_keeping, TILEDB_ARRAY_READ) != TILEDB_FG_OK) {
+    tiledb_ar_errmsg = tiledb_fg_errmsg;
+    return NULL;
+  }
+  return fragment;
+}
+
 int Array::consolidate(
     Fragment*& new_fragment,
     std::vector<std::string>& old_fragment_names,
     size_t buffer_size,
     int batch_size) {
   // Trivial case
-  if(fragment_names_.size() == 1)
+  if(fragment_names_.size() <= 1)
     return TILEDB_AR_OK;
 
   // Get new fragment name
@@ -376,15 +390,7 @@ int Array::consolidate(
     return TILEDB_AR_ERR;
   }
 
-  // Create new fragment
-  new_fragment = new Fragment(this);
-  if(new_fragment->init(new_fragment_name, TILEDB_ARRAY_WRITE, subarray_) != 
-     TILEDB_FG_OK) {
-    tiledb_ar_errmsg = tiledb_fg_errmsg;
-    return TILEDB_AR_ERR;
-  }
-
-#if 0
+#if DO_MEMORY_PROFILING
   std::cerr << "Using buffer_size=" << buffer_size << " for consolidation" << std::endl;
   print_memory_stats("beginning consolidation");
 #endif
@@ -407,11 +413,29 @@ int Array::consolidate(
   void *buffer_var = malloc(buffer_size);
 
   StorageFS* fs = config_->get_filesystem();
-  std::vector<BookKeeping *> book_keepers;
-  assert(fragments_.size() == 0);
 
   // Consolidating per batch
+  std::string last_batch_fragment_name;
   for (auto batch=0; batch<num_batches; batch++) {
+#ifdef D_MEMORY_PROFILING
+    print_memory_stats("Start: batch " + std::to_string(batch+1) + "/" + std::to_string(num_batches));
+#endif
+
+    // Get new fragment name
+    std::string new_fragment_name = this->new_fragment_name();
+    if(new_fragment_name == "") {
+      std::string errmsg = "Cannot produce new fragment name";
+      PRINT_ERROR(errmsg);
+      tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
+      return TILEDB_AR_ERR;
+    }
+
+    new_fragment = new Fragment(this);
+    if(new_fragment->init(new_fragment_name, TILEDB_ARRAY_WRITE, subarray_) != TILEDB_FG_OK) {
+      tiledb_ar_errmsg = tiledb_fg_errmsg;
+      return TILEDB_AR_ERR;
+    }
+
     int actual_batch_size;
     if (batch == num_batches-1) {
       actual_batch_size = remaining?remaining:batch_size;
@@ -420,18 +444,10 @@ int Array::consolidate(
     }
     auto start = batch*actual_batch_size;
     for (auto fragment_i = start; fragment_i<start+actual_batch_size; fragment_i++) {
-      fragments_.push_back(new Fragment(this));
-      auto fragment_name = fragment_names_[fragment_i];
-      bool dense = !fs->is_file(fs->append_paths(fragment_name, std::string(TILEDB_COORDS) + TILEDB_FILE_SUFFIX));
-      book_keepers.push_back(new BookKeeping(array_schema_, dense, fragment_name, TILEDB_ARRAY_READ));
-      if (book_keepers.back()->load(fs) != TILEDB_BK_OK) {
-        tiledb_ar_errmsg = tiledb_bk_errmsg;
-        return TILEDB_AR_ERR;
-      }
-      if(fragments_.back()->init(fragment_name, book_keepers.back(), TILEDB_ARRAY_READ) != TILEDB_FG_OK) {
-        tiledb_ar_errmsg = tiledb_fg_errmsg;
-        return TILEDB_AR_ERR;
-      }
+      fragments_.push_back(get_fragment_for_consolidation(fs, fragment_names_[fragment_i], this));
+    }
+    if (!last_batch_fragment_name.empty()) {
+      fragments_.push_back(get_fragment_for_consolidation(fs, last_batch_fragment_name, this));
     }
 
     array_read_state_ = new ArrayReadState(this);
@@ -455,14 +471,22 @@ int Array::consolidate(
     // Cleanup aftr batch consolidation
     delete array_read_state_;
     array_read_state_ = NULL;
-    assert(fragments_.size() == book_keepers.size());
     for (auto fragment_i = 0; fragment_i<fragments_.size(); fragment_i++) {
       fragments_[fragment_i]->finalize();
+      delete fragments_[fragment_i]->book_keeping();
       delete fragments_[fragment_i];
-      delete book_keepers[fragment_i];
     }
     fragments_.clear();
-    book_keepers.clear();
+
+    if (batch < (num_batches-1)) {
+      new_fragment->finalize();
+      last_batch_fragment_name = new_fragment->fragment_name();
+      new_fragment = NULL;
+    }
+
+#ifdef DO_MEMORY_PROFILING
+    print_memory_stats("End: batch " + std::to_string(batch+1) + "/" + std::to_string(num_batches));
+#endif
   }
 
   // Clean up
@@ -471,7 +495,7 @@ int Array::consolidate(
   free(buffer_sizes);
   free(buffers);
 
-#if 0
+#ifdef DO_MEMORY_PROFILING
   print_memory_stats("after final consolidation");
 #endif
 
