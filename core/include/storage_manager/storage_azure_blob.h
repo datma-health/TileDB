@@ -131,6 +131,8 @@ class AzureBlob : public StorageCloudFS {
     }
   };
 
+  size_t max_stream_size = 32;
+
   std::string get_path(const std::string& path);
 
   std::vector<std::string> generate_block_ids(const std::string& path, int num_blocks) {
