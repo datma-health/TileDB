@@ -252,6 +252,19 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
   CHECK(TileDBUtils::file_size(filename) == 1024); // for existing file
   CHECK(TileDBUtils::file_size("non-existing-file") == -1);
 
+  // Try renaming file and reading contents
+  std::string new_filename = filename+".old";
+  CHECK(TileDBUtils::move_across_filesystems(filename, new_filename) == TILEDB_OK);
+  CHECK(TileDBUtils::file_size(new_filename) == 1024);
+  CHECK(TileDBUtils::read_entire_file(new_filename, &read_buffer, &length) == TILEDB_OK);
+  CHECK(read_buffer);
+  CHECK(length == 1024);
+  for (auto i=0; i<1024; i++) {
+    char *ptr = (char *)(read_buffer)+i;
+    CHECK(*ptr == 'H');
+  }
+  free(read_buffer);
+
   // TODO: Should investigate why the hdfs java io exceptions are not being propagated properly from catch2.
   if (TileDBUtils::is_cloud_path(filename)) {
     return;

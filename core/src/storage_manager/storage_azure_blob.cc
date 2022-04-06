@@ -344,11 +344,15 @@ int AzureBlob::delete_file(const std::string& filename) {
 ssize_t AzureBlob::file_size(const std::string& filename) {
   auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(filename));
   if (blob_property.valid()) {
+    if (filename.find_last_of(".json") != std::string::npos) {
+      std::cerr << "Blob " << filename << " md5=" << blob_property.content_md5 << " size=" << blob_property.size<< std::endl;
+    }
     return blob_property.size;
   } else {
+    std::cerr << "No blob properties found for file=" << filename << std::endl;
     return TILEDB_FS_ERR;
   }
-  return 0;
+  return TILEDB_FS_OK;
 }
 
 int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
