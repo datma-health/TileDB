@@ -58,6 +58,9 @@ endif()
 set_target_properties(tiledb_static PROPERTIES OUTPUT_NAME "tiledb")
 set_target_properties(tiledb_shared PROPERTIES OUTPUT_NAME "tiledb")
 
+include(GNUInstallDirs)
+unset(CMAKE_LIBRARY_ARCHITECTURE)
+
 target_link_libraries(tiledb_static muparserx azure-storage-lite ${AWSSDK_LINK_LIBRARIES} ${GCSSDK_LINK_LIBRARIES})
 target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 
