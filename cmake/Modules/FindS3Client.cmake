@@ -155,6 +155,8 @@ elseif(NOT AWSSDK_FOUND)
     # add this explicitly even though CMAKE_FIND_FRAMEWORK is set to LAST
     list(APPEND AWSSDK_LINK_LIBRARIES "-framework CoreFoundation")
   endif()
+  # aws-c libraries have a dl dependency
+  list(APPEND AWSSDK_LINK_LIBRARIES dl)
   add_dependencies(aws-cpp-sdk-s3 awssdk-ep)
   message(STATUS "To be built AWS SDK headers: ${AWSSDK_INCLUDE_DIR}")
   message(STATUS "To be built AWS SDK libraries: ${AWSSDK_LINK_LIBRARIES}")
