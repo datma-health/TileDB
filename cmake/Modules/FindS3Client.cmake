@@ -131,7 +131,6 @@ elseif(NOT AWSSDK_FOUND)
   file(MAKE_DIRECTORY ${AWSSDK_INCLUDE_DIR})
     
   foreach(_AWSSDK_LIB ${_AWSSDK_LIBS})
-    message(STATUS "+++++ Processing _AWSSDK_LIB=${_AWSSDKSDK_LIB}")
     # aws-c-common -> AWS-C-COMMON
     string(TOUPPER ${_AWSSDK_LIB} _AWSSDK_LIB_UPPER)
     # AWS-C-COMMON -> AWS_C_COMMON
@@ -140,13 +139,11 @@ elseif(NOT AWSSDK_FOUND)
       _AWSSDK_STATIC_LIBRARY
       "${AWSSDK_PREFIX}/${AWSSDK_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${_AWSSDK_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}"
       )
-    message(STATUS "+++++ _AWSSDK_STATIC_LIBRARY=${_AWSSDK_STATIC_LIBRARY}")
     if(${_AWSSDK_LIB} MATCHES "^aws-cpp-sdk-")
       set(_AWSSDK_TARGET_NAME ${_AWSSDK_LIB})
     else()
       set(_AWSSDK_TARGET_NAME AWS::${_AWSSDK_LIB})
     endif()
-    message(STATUS "+++++ _AWSSDK_TARGET_NAME=${_AWSSDK_TARGET_NAME}")
     add_library(${_AWSSDK_TARGET_NAME} STATIC IMPORTED)
     set_target_properties(${_AWSSDK_TARGET_NAME} PROPERTIES
                 IMPORTED_LOCATION ${_AWSSDK_STATIC_LIBRARY}
@@ -158,6 +155,7 @@ elseif(NOT AWSSDK_FOUND)
     # add this explicitly even though CMAKE_FIND_FRAMEWORK is set to LAST
     list(APPEND AWSSDK_LINK_LIBRARIES "-framework CoreFoundation")
   endif()
+  # aws-c libraries have a dl dependency
   list(APPEND AWSSDK_LINK_LIBRARIES dl)
   add_dependencies(aws-cpp-sdk-s3 awssdk-ep)
   message(STATUS "To be built AWS SDK headers: ${AWSSDK_INCLUDE_DIR}")
