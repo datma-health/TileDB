@@ -16,3 +16,5 @@ The use of these Environment Variables will alter the behavior of TileDB. These 
 * TILEDB_USE_GCS_HDFS_CONNECTOR
      gs:// URLs, by default use the GCS SDK Client. But, this behavior can be overridden to use Google HDFS Connector if necesary.
 
+* TILEDB_MAX_STREAM_SIZE
+     For azure blob storage, use download_blob_to_stream to read lengths < TILEDB_MAX_STREAM_SIZE. If this is not set, the default is 32 bytes defined in core/include/storage_manager/storage_azure_blob.h.

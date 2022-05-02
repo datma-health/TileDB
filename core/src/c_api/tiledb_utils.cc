@@ -331,7 +331,6 @@ void print_md5_hash(unsigned char* buffer, size_t length) {
   MD5(buffer, length, md);
   for(auto i=0; i <MD5_DIGEST_LENGTH; i++) {
     fprintf(stderr, "%02x",md[i]);
-    //    std::cerr  << md[i];
   }
 }
 

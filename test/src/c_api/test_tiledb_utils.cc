@@ -231,6 +231,7 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
   char buffer[1024];
   memset(buffer, 'H', 1024);
   CHECK(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);
+  TileDBUtils::print_md5_hash((unsigned char *)buffer, 1024);
 
   void *read_buffer = NULL;
   size_t length;
@@ -241,6 +242,7 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
     char *ptr = (char *)(read_buffer)+i;
     CHECK(*ptr == 'H');
   }
+  TileDBUtils::print_md5_hash((unsigned char *)read_buffer, 1024);
   free(read_buffer);
 
   memset(buffer, 0, 1024);

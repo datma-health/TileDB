@@ -229,7 +229,7 @@ AzureBlob::AzureBlob(const std::string& home) {
   download_buffer_size_ = constants::default_block_size; // 8M
   upload_buffer_size_ = constants::default_block_size; // 8M
 
-  auto max_stream_size_var = getenv("MAX_STREAM_SIZE");
+  auto max_stream_size_var = getenv("TILEDB_MAX_STREAM_SIZE");
   if (max_stream_size_var) {
     max_stream_size = std::stoll(max_stream_size_var);
   }
@@ -344,9 +344,11 @@ int AzureBlob::delete_file(const std::string& filename) {
 ssize_t AzureBlob::file_size(const std::string& filename) {
   auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(filename));
   if (blob_property.valid()) {
+#ifdef DEBUG
     if (filename.find_last_of(".json") != std::string::npos) {
       std::cerr << "Blob " << filename << " md5=" << blob_property.content_md5 << " size=" << blob_property.size<< std::endl;
     }
+#endif
     return blob_property.size;
   } else {
     std::cerr << "No blob properties found for file=" << filename << std::endl;
