@@ -3,7 +3,7 @@
 #
 # The MIT License
 #
-# Copyright (c) 2021 Omics Data Automation, Inc.
+# Copyright (c) 2022 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ add_custom_target(gcssdk-ep)
 message(CHECK_START "Finding GCS SDK Library")
 
 include(GNUInstallDirs)
+
 if(GCSSDK_ROOT_DIR)
   set(GCSSDK_PREFIX "${GCSSDK_ROOT_DIR}")
 elseif(DEFINED ENV{GCSSDK_ROOT_DIR})
@@ -68,6 +69,7 @@ elseif(NOT GCSSDK_FOUND)
         -DCMAKE_CXX_STANDARD=11
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
+        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
     )
 
   # gcssdk has abseil as its dependency, so build that first
@@ -81,6 +83,7 @@ elseif(NOT GCSSDK_FOUND)
         -DCMAKE_CXX_STANDARD=11
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
+        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
         )
 
   ExternalProject_Add(crc32-build
@@ -95,6 +98,7 @@ elseif(NOT GCSSDK_FOUND)
         -DCMAKE_CXX_STANDARD=11
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
+        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
         )
 
   ExternalProject_Add(gcssdk-build
@@ -110,6 +114,7 @@ elseif(NOT GCSSDK_FOUND)
         -DCMAKE_CXX_VISIBILITY_PRESET=hidden
         -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
         -DCMAKE_PREFIX_PATH=${GCSSDK_PREFIX}
+        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
         )
 
   add_dependencies(gcssdk-build nlohmann-build)
