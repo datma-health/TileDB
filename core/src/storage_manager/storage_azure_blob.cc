@@ -228,6 +228,11 @@ AzureBlob::AzureBlob(const std::string& home) {
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
   upload_buffer_size_ = constants::default_block_size; // 8M
+
+  auto max_stream_size_var = getenv("TILEDB_MAX_STREAM_SIZE");
+  if (max_stream_size_var) {
+    max_stream_size = std::stoll(max_stream_size_var);
+  }
 }
 
 std::string AzureBlob::current_dir() {
@@ -339,14 +344,18 @@ int AzureBlob::delete_file(const std::string& filename) {
 ssize_t AzureBlob::file_size(const std::string& filename) {
   auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(filename));
   if (blob_property.valid()) {
+#ifdef DEBUG
+    if (filename.find_last_of(".json") != std::string::npos) {
+      std::cerr << "Blob " << filename << " md5=" << blob_property.content_md5 << " size=" << blob_property.size<< std::endl;
+    }
+#endif
     return blob_property.size;
   } else {
+    std::cerr << "No blob properties found for file=" << filename << std::endl;
     return TILEDB_FS_ERR;
   }
-  return 0;
+  return TILEDB_FS_OK;
 }
-
-#define GRAIN_SIZE (4*1024*1024)
 
 int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
   if (length == 0) {
@@ -356,7 +365,7 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   storage_outcome<void> read_result;
   // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
-  if (length < GRAIN_SIZE) {
+  if (length <= max_stream_size) {
     omemstream os_buf(buffer, length);
     read_result = bclient->download_blob_to_stream(container_name_, path, offset, length, os_buf).get();
   } else {
@@ -370,6 +379,7 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   }
 }
 
+#define GRAIN_SIZE (4*1024*1024)
 // This method is based on upload_block_blob_from_buffer from the SDK except for the put_block_list stage which happens in commit_path() now
 std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::string &blob, uint64_t block_size,
                                                                 int num_blocks, std::vector<std::string> block_ids,
