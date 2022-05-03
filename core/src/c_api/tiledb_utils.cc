@@ -352,10 +352,12 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
   int rc = read_file(tiledb_ctx, filename, 0, *buffer, size);
   if (!rc) {
     *length = size;
+#ifdef DEBUG
     // Calculate md5 hash for buffer
     std::cerr << "MD5 for buffer after reading : ";
     print_md5_hash((unsigned char *)(*buffer), size);
     std::cerr << std::endl;
+#endif
     rc = close_file(tiledb_ctx, filename);
   } else {
     memset(*buffer, 0, size+1);
