@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
       1,                          // a1
       TILEDB_VAR_NUM              // a2 
   };
-  /*const int compression[] = 
+  const int compression[] = 
   { 
         TILEDB_GZIP
         +TILEDB_BIT_SHUFFLE,      // a1
@@ -80,18 +80,6 @@ int main(int argc, char *argv[]) {
         0,                        // a1 - DON'T CARE
         TILEDB_GZIP
         +TILEDB_DELTA_ENCODE,     // a2
-  };*/
-
-  const int compression[] =
-  {
-        TILEDB_NO_COMPRESSION,    // a1
-        TILEDB_NO_COMPRESSION,    // a2
-        TILEDB_NO_COMPRESSION     // coordinates
-  };
-  const int offsets_compression[] =
-  {
-        TILEDB_NO_COMPRESSION,    // a1 - DON'T CARE
-        TILEDB_NO_COMPRESSION     // a2
   };
 
   int64_t tile_extents[] = 
@@ -223,8 +211,7 @@ int main(int argc, char *argv[]) {
   printf("coords\t a1\t   a2\n");
   printf("-----------------------\n");
   for(int i=0; i<result_num; ++i) {
-    //printf("(%" PRId64 ", %" PRId64 ", %" PRId64 ")", r_buffer_coords[3*i], r_buffer_coords[3*i+1], r_buffer_coords[3*i+2]);
-    printf("%d, %d, %d", r_buffer_coords[3*i], r_buffer_coords[3*i+1], r_buffer_coords[3*i+2]);
+    printf("%ld, %ld, %ld", (long)r_buffer_coords[3*i], (long)r_buffer_coords[3*i+1], (long)r_buffer_coords[3*i+2]);
     printf("\t %3d", r_buffer_a1[i]);
     size_t var_size = (i != result_num-1) ? r_buffer_a2[i+1] - r_buffer_a2[i]
                                           : r_buffer_sizes[2] - r_buffer_a2[i];
