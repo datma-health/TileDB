@@ -3,7 +3,7 @@
 #
 # The MIT License
 #
-# Copyright (c) 2021 Omics Data Automation, Inc.
+# Copyright (c) 2022 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ add_custom_target(awssdk-ep)
 message(CHECK_START "Finding AWS SDK Library")
 
 include(GNUInstallDirs)
+
 if(AWSSDK_ROOT_DIR)
   set(AWSSDK_PREFIX "${AWSSDK_ROOT_DIR}")
 elseif(DEFINED ENV{AWSSDK_ROOT_DIR})
@@ -60,21 +61,58 @@ elseif(NOT AWSSDK_FOUND)
   message(STATUS "Adding AWS SDK as an external project")
   include(ExternalProject)
 
+  ExternalProject_Add(aws-c-common-build
+    URL "https://github.com/awslabs/aws-c-common/archive/v0.6.9.tar.gz"
+    CMAKE_ARGS
+    -DBUILD_SHARED_LIBS=OFF
+    -DENABLE_TESTING=OFF
+    -DENABLE_UNITY_BUILD=ON
+    -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
+    -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
+    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR})
+
+  ExternalProject_Add(aws-checksums-build
+    URL "https://github.com/awslabs/aws-checksums/archive/v0.1.12.tar.gz"
+    CMAKE_ARGS 
+    -DBUILD_SHARED_LIBS=OFF
+    -DENABLE_TESTING=OFF
+    -DENABLE_UNITY_BUILD=ON
+    -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
+    -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
+    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
+    DEPENDS aws-c-common-build)
+  
+  ExternalProject_Add(aws-c-event-stream-build
+    URL "https://github.com/awslabs/aws-c-event-stream/archive/v0.1.5.tar.gz"
+    CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
+    -DBUILD_SHARED_LIBS=OFF
+    -DENABLE_TESTING=OFF
+    -DENABLE_UNITY_BUILD=ON
+    -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
+    -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
+    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
+    DEPENDS aws-checksums-build)
+
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
     PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk-build.patch
     CMAKE_ARGS
-        -DBUILD_SHARED_LIBS=OFF
-        -DENABLE_TESTING=OFF
-        -DENABLE_UNITY_BUILD=ON
-        -DCUSTOM_MEMORY_MANAGEMENT=OFF
-        -DBUILD_ONLY=config\\$<SEMICOLON>s3\\$<SEMICOLON>transfer\\$<SEMICOLON>identity-management\\$<SEMICOLON>sts
-        -DMINIMIZE_SIZE=ON
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
-        -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
-        )
+    -DBUILD_SHARED_LIBS=OFF
+    -DENABLE_TESTING=OFF
+    -DENABLE_UNITY_BUILD=ON
+    -DCUSTOM_MEMORY_MANAGEMENT=OFF
+    -DBUILD_DEPS=OFF
+    -DBUILD_ONLY=config\\$<SEMICOLON>s3\\$<SEMICOLON>transfer\\$<SEMICOLON>identity-management\\$<SEMICOLON>sts
+    -DMINIMIZE_SIZE=ON
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
+    -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
+    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR})
+
+  add_dependencies(awssdk-build aws-c-common-build)
+  add_dependencies(awssdk-build aws-c-event-stream-build)
+  add_dependencies(awssdk-build aws-checksums-build)
   add_dependencies(awssdk-ep awssdk-build)
 
    # AWS C++ SDK related libraries to link statically
@@ -117,6 +155,8 @@ elseif(NOT AWSSDK_FOUND)
     # add this explicitly even though CMAKE_FIND_FRAMEWORK is set to LAST
     list(APPEND AWSSDK_LINK_LIBRARIES "-framework CoreFoundation")
   endif()
+  # aws-c libraries have a dl dependency
+  list(APPEND AWSSDK_LINK_LIBRARIES dl)
   add_dependencies(aws-cpp-sdk-s3 awssdk-ep)
   message(STATUS "To be built AWS SDK headers: ${AWSSDK_INCLUDE_DIR}")
   message(STATUS "To be built AWS SDK libraries: ${AWSSDK_LINK_LIBRARIES}")

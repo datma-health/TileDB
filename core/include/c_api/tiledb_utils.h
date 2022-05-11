@@ -72,6 +72,8 @@ std::vector<std::string> get_files(const std::string& dirpath);
 
 ssize_t file_size(const std::string& filepath);
 
+void print_md5_hash(unsigned char* buffer, size_t length);
+
 /**
  * buffer is malloc'ed and has to be freed by calling function
  */

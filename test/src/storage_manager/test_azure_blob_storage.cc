@@ -36,6 +36,7 @@
 #include "utils.h"
 
 #include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -208,6 +209,11 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   CHECK(azure_blob->file_size(test_dir+"/foo") == 11);
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 11), TILEDB_FS_OK);
   CHECK(((char *)buffer)[10] == 'e');
+
+  REQUIRE(setenv("TILEDB_MAX_STREAM_SIZE", "4", 0) == 0);
+  CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 11), TILEDB_FS_OK);
+  CHECK(((char *)buffer)[10] == 'e');
+  REQUIRE(unsetenv("TILEDB_MAX_STREAM_SIZE") == 0);
 
   CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(azure_blob->delete_file(test_dir+"/foo"), TILEDB_FS_OK);

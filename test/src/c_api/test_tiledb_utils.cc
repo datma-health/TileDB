@@ -231,6 +231,7 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
   char buffer[1024];
   memset(buffer, 'H', 1024);
   CHECK(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);
+  TileDBUtils::print_md5_hash((unsigned char *)buffer, 1024);
 
   void *read_buffer = NULL;
   size_t length;
@@ -241,6 +242,7 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
     char *ptr = (char *)(read_buffer)+i;
     CHECK(*ptr == 'H');
   }
+  TileDBUtils::print_md5_hash((unsigned char *)read_buffer, 1024);
   free(read_buffer);
 
   memset(buffer, 0, 1024);
@@ -251,6 +253,19 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
 
   CHECK(TileDBUtils::file_size(filename) == 1024); // for existing file
   CHECK(TileDBUtils::file_size("non-existing-file") == -1);
+
+  // Try renaming file and reading contents
+  std::string new_filename = filename+".old";
+  CHECK(TileDBUtils::move_across_filesystems(filename, new_filename) == TILEDB_OK);
+  CHECK(TileDBUtils::file_size(new_filename) == 1024);
+  CHECK(TileDBUtils::read_entire_file(new_filename, &read_buffer, &length) == TILEDB_OK);
+  CHECK(read_buffer);
+  CHECK(length == 1024);
+  for (auto i=0; i<1024; i++) {
+    char *ptr = (char *)(read_buffer)+i;
+    CHECK(*ptr == 'H');
+  }
+  free(read_buffer);
 
   // TODO: Should investigate why the hdfs java io exceptions are not being propagated properly from catch2.
   if (TileDBUtils::is_cloud_path(filename)) {
