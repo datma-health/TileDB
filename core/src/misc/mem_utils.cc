@@ -37,6 +37,10 @@
 #include <string>
 #include <vector>
 
+#ifdef __linux
+#include <malloc.h>
+#endif
+
 typedef struct statm_t{
   unsigned long size=0,resident=0,share=0,text=0,lib=0,data=0,dt=0;
 } statm_t;
@@ -92,5 +96,15 @@ void print_memory_stats(const std::string& msg) {
 #else
   print_time();
   std::cerr << "TBD: Memory stats " << msg << std::endl;
+#endif
+}
+
+void trim_memory() {
+#ifdef __linux
+  if (malloc_trim(0)) {
+#ifdef DO_MEMORY_PROFILING
+    print_memory_stats("Memory from the heap was successfully trimmed");
+#endif
+  }
 #endif
 }

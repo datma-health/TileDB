@@ -34,3 +34,5 @@
 #pragma once
 
 void print_memory_stats(const std::string& msg);
+
+void trim_memory();

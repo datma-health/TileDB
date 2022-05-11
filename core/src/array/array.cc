@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019, 2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -355,8 +355,6 @@ bool Array::consolidate_mode() const {
 /*            MUTATORS            */
 /* ****************************** */
 
-//#define DO_MEMORY_PROFILING
-
 Fragment* get_fragment_for_consolidation(StorageFS *fs, std::string fragment_name, const Array *array) {
   Fragment* fragment = new Fragment(array);
   bool dense = !fs->is_file(fs->append_paths(fragment_name, std::string(TILEDB_COORDS) + TILEDB_FILE_SUFFIX));
@@ -381,17 +379,9 @@ int Array::consolidate(
   if(fragment_names_.size() <= 1)
     return TILEDB_AR_OK;
 
-  // Get new fragment name
-  std::string new_fragment_name = this->new_fragment_name();
-  if(new_fragment_name == "") {
-    std::string errmsg = "Cannot produce new fragment name";
-    PRINT_ERROR(errmsg);
-    tiledb_ar_errmsg = TILEDB_AR_ERRMSG + errmsg;
-    return TILEDB_AR_ERR;
-  }
-
-#if DO_MEMORY_PROFILING
+#ifdef DO_MEMORY_PROFILING
   std::cerr << "Using buffer_size=" << buffer_size << " for consolidation" << std::endl;
+  std::cerr << "Number of fragments to consolidate=" << fragment_names_.size() << std::endl;
   print_memory_stats("beginning consolidation");
 #endif
 
@@ -400,7 +390,7 @@ int Array::consolidate(
     batch_size = fragment_names_.size();
   }
   auto remaining = (fragment_names_.size()%batch_size);
-  int num_batches = fragment_names_.size()/batch_size+(fragment_names_.size()%batch_size)?1:0;
+  int num_batches = (fragment_names_.size()/batch_size)+(remaining?1:0);
 
   // Create the buffers
   int attribute_num = array_schema_->attribute_num();
@@ -417,7 +407,7 @@ int Array::consolidate(
   // Consolidating per batch
   std::string last_batch_fragment_name;
   for (auto batch=0; batch<num_batches; batch++) {
-#ifdef D_MEMORY_PROFILING
+#ifdef DO_MEMORY_PROFILING
     print_memory_stats("Start: batch " + std::to_string(batch+1) + "/" + std::to_string(num_batches));
 #endif
 
@@ -466,9 +456,13 @@ int Array::consolidate(
         delete new_fragment;
         return TILEDB_AR_ERR;
       }
+#ifdef DO_MEMORY_PROFILING
+      print_memory_stats("End: consolidating attribute " + array_schema_->attribute(i));
+#endif
+      trim_memory();
     }
 
-    // Cleanup aftr batch consolidation
+    // Cleanup after batch consolidation
     delete array_read_state_;
     array_read_state_ = NULL;
     for (auto fragment_i = 0; fragment_i<fragments_.size(); fragment_i++) {
@@ -481,12 +475,14 @@ int Array::consolidate(
     if (batch < (num_batches-1)) {
       new_fragment->finalize();
       last_batch_fragment_name = new_fragment->fragment_name();
+      old_fragment_names.push_back(last_batch_fragment_name);
       new_fragment = NULL;
     }
 
 #ifdef DO_MEMORY_PROFILING
     print_memory_stats("End: batch " + std::to_string(batch+1) + "/" + std::to_string(num_batches));
 #endif
+    trim_memory();
   }
 
   // Clean up
@@ -499,7 +495,7 @@ int Array::consolidate(
   print_memory_stats("after final consolidation");
 #endif
 
-  old_fragment_names = fragment_names_;
+  old_fragment_names.insert(std::end(old_fragment_names), std::begin(fragment_names_), std::end(fragment_names_));
 
   // Success
   return TILEDB_AR_OK;
@@ -544,7 +540,7 @@ int Array::consolidate(
     }
   }
 
-#if 0
+#ifdef DO_MEMORY_PROFILING
   print_memory_stats("after alloc for attribute="+array_schema_->attribute(attribute_id));
 #endif
 
