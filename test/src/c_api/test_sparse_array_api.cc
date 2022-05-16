@@ -287,10 +287,6 @@ TEMPLATE_TEST_CASE_METHOD(ArrayTestFixture1D, "Test Sparse 1D Array", "[test_spa
     CHECK_RC(AF::read_array(), TILEDB_OK);
     CHECK_RC(AF::write_array(), TILEDB_OK);
     CHECK_RC(AF::write_array(), TILEDB_OK);
-    CHECK_RC(AF::consolidate_array(200), TILEDB_OK);
-    CHECK_RC(AF::read_array(), TILEDB_OK);
-    CHECK_RC(AF::write_array(), TILEDB_OK);
-    CHECK_RC(AF::write_array(), TILEDB_OK);
     CHECK_RC(AF::consolidate_array(200, 2), TILEDB_OK);
     CHECK_RC(AF::read_array(), TILEDB_OK);
   }
@@ -315,7 +311,7 @@ TEMPLATE_TEST_CASE_METHOD(ArrayTestFixture1D, "Test Sparse 1D Array", "[test_spa
     CHECK_RC(AF::create_array(200, 0, 990, TILEDB_ROW_MAJOR, TILEDB_COL_MAJOR), TILEDB_OK);
     CHECK_RC(AF::write_array(), TILEDB_OK);
     CHECK_RC(AF::read_array(), TILEDB_OK);
-  } 
+  }
 }
 
 SparseArrayTestFixture::SparseArrayTestFixture() {
