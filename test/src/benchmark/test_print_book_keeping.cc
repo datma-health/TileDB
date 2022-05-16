@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
   rc |= print_tile_var_sizes();
   rc |= print_last_tile_cell_num();
 
-  if (!rc) {
+  if (rc) {
     std::cerr << "Something went wrong!!" << std::endl;
   }
   
