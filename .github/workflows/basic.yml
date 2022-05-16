@@ -103,7 +103,7 @@ jobs:
         export TILEDB_KEEP_FILE_HANDLES_OPEN=1
         time test/test_sparse_array_benchmark
         test/test_print_array_schema $GITHUB_WORKSPACE/test/inputs/examples_ws/sparse_arrays/my_array_B
-        test/test_print_array_schema $GITHUB_WORKSPACE/test/inputs/examples_ws/sparse_arrays/my_array_B/__4FECD19A-4F7D-4D21-B170-A2D111C8FCC44550772224_1652300381620
+        test/test_print_book_keeping $GITHUB_WORKSPACE/test/inputs/examples_ws/sparse_arrays/my_array_B/__4FECD19A-4F7D-4D21-B170-A2D111C8FCC44550772224_1652300381620
 
     - name: Cache AWS SDK
       uses: actions/cache@v2
