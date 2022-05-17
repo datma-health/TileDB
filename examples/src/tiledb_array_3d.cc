@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
       1,                          // a1
       TILEDB_VAR_NUM              // a2 
   };
-  const int compression[] = 
+  /*const int compression[] = 
   { 
         TILEDB_GZIP
         +TILEDB_BIT_SHUFFLE,      // a1
@@ -74,13 +74,17 @@ int main(int argc, char *argv[]) {
 #endif
         TILEDB_GZIP
         +TILEDB_DELTA_ENCODE      // coordinates
-  };
-  const int offsets_compression[] =
+  };*/
+  std::vector<int> compression_vec(4, TILEDB_NO_COMPRESSION);
+  const int* compression = compression_vec.data();
+
+  /*const int offsets_compression[] =
   {
         0,                        // a1 - DON'T CARE
         TILEDB_GZIP
         +TILEDB_DELTA_ENCODE,     // a2
-  };
+  };*/
+  const int* offsets_compression = compression_vec.data();
 
   int64_t tile_extents[] = 
   { 
@@ -132,7 +136,13 @@ int main(int argc, char *argv[]) {
 
   // ================================== ARRAY WRITE ======================
 
-  CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
+  if (argc > 1) {
+    TileDB_Config tiledb_config;
+    tiledb_config.home_ = argv[1];
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
+  } else {
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
+  }
 
   // Initialize array
   TileDB_Array* tiledb_array;
@@ -175,7 +185,14 @@ int main(int argc, char *argv[]) {
 
   // ================================== ARRAY READ ======================
 
-  CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
+  if (argc > 1) {
+    TileDB_Config tiledb_config;
+    tiledb_config.home_ = argv[1];
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
+  } else {
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, NULL));
+  }
+
 
   // Initialize array
   CHECK_RC(tiledb_array_init(
