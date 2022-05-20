@@ -113,11 +113,11 @@ class StorageManagerConfig {
    */
   int init(
       const char* home,
-      MPI_Comm* mpi_comm,
-      int read_method,
-      int write_methods,
-      const bool enable_shared_posixfs_optimizations,
-      const bool use_gcs_hdfs_connector);
+      MPI_Comm* mpi_comm = NULL,
+      int read_method = TILEDB_IO_READ,
+      int write_methods = TILEDB_IO_WRITE,
+      const bool enable_shared_posixfs_optimizations = false,
+      const bool use_gcs_hdfs_connector = false);
 #else
   /**
    * Initializes the configuration parameters.
@@ -142,10 +142,10 @@ class StorageManagerConfig {
    */
   int init(
       const char* home,
-      int read_method,
-      int write_method,
-      const bool enable_shared_posixfs_optimizations,
-      const bool use_gcs_hdfs_connector);
+      int read_method = TILEDB_IO_READ,
+      int write_method = TILEDB_IO_WRITE,
+      const bool enable_shared_posixfs_optimizations = false,
+      const bool use_gcs_hdfs_connector = false);
 #endif
  
   /* ********************************* */

@@ -5,7 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
-# Copyright (c) 2018-2021 Omics Data Automation, Inc.
+# Copyright (c) 2018-2022 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -78,6 +78,8 @@ set(COMPRESSION_LEVEL_BLOSC "" CACHE STRING "Compression level for Blosc.")
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
+
+set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of TileDB - high overhead")
 
 # Find required library dependencies
 find_package(ZLIB REQUIRED)
@@ -229,6 +231,10 @@ endif()
 if(COMPRESSION_LEVEL_BLOSC)
   add_definitions(-DTILEDB_COMPRESSION_LEVEL_BLOSC=${COMPRESSION_LEVEL_BLOSC})
   message(STATUS "Set Blosc compression level to ${COMPRESSION_LEVEL_BLOSC}.")
+endif()
+if(DO_MEMORY_PROFILING)
+    message(STATUS "Enabling memory consumption profiling during consolidation")
+    add_definitions(-DDO_MEMORY_PROFILING=1)
 endif()
 
 # Build TileDB library

@@ -799,7 +799,9 @@ int tiledb_array_overflow(
 
 int tiledb_array_consolidate(
     const TileDB_CTX* tiledb_ctx,
-    const char* array) {
+    const char* array,
+    size_t buffer_size,
+    int batch_size) {
   // Check array name length
   if(array == NULL || strlen(array) > TILEDB_NAME_MAX_LEN) {
     std::string errmsg = "Invalid array name length";
@@ -809,7 +811,7 @@ int tiledb_array_consolidate(
   }
 
   // Consolidate
-  if(tiledb_ctx->storage_manager_->array_consolidate(array) != TILEDB_SM_OK) {
+  if(tiledb_ctx->storage_manager_->array_consolidate(array, buffer_size, batch_size) != TILEDB_SM_OK) {
     strcpy(tiledb_errmsg, tiledb_sm_errmsg.c_str());
     return TILEDB_ERR;
   }

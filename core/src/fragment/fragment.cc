@@ -115,6 +115,10 @@ int Fragment::mode() const {
   return mode_;
 }
 
+BookKeeping* Fragment::book_keeping() const {
+  return book_keeping_;
+}
+
 inline
 bool Fragment::read_mode() const {
   return array_read_mode(mode_);
@@ -234,10 +238,21 @@ int Fragment::init(
 
 int Fragment::init(
     const std::string& fragment_name, 
-    BookKeeping* book_keeping) {
+    BookKeeping* book_keeping,
+    int mode) {
   // Set member attributes
   fragment_name_ = fragment_name;
-  mode_ = array_->mode();
+  mode_ = mode;
+
+  // Sanity check
+  if(!read_mode()) {
+    std::string errmsg = "Cannot initialize fragment;  Invalid mode";
+    PRINT_ERROR(errmsg);
+    tiledb_fg_errmsg = TILEDB_FG_ERRMSG + errmsg;
+    return TILEDB_FG_ERR;
+  }
+
+  // Set book_keeping and initialize read/write state
   book_keeping_ = book_keeping;
   dense_ = book_keeping_->dense();
   write_state_ = NULL;

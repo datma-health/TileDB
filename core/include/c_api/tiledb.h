@@ -634,11 +634,16 @@ TILEDB_EXPORT int tiledb_array_overflow(
  * 
  * @param tiledb_ctx The TileDB context.
  * @param array The name of the TileDB array to be consolidated.
+ * @param buffer_size (Optional) The size of buffers for reading/writing attributes during consolidation. Default is 10M.
+ * @param batch size (Optional) When specified, consolidation will occur batch-wise with a smaller batch_size set of
+ *     fragments getting consolidating together. Default is all fragments.
  * @return TILEDB_OK on success, and TILEDB_ERR on error.
  */
 TILEDB_EXPORT int tiledb_array_consolidate(
     const TileDB_CTX* tiledb_ctx,
-    const char* array);
+    const char* array,
+    size_t buffer_size = TILEDB_CONSOLIDATION_BUFFER_SIZE,
+    int batch_size = -1);
 
 /** 
  * Finalizes a TileDB array, properly freeing its memory space. 

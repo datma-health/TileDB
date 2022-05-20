@@ -402,8 +402,8 @@ int BookKeeping::load(StorageFS *fs) {
 
   // Free up StorageBuffer
   buffer_->finalize();
-  buffer_ = 0;
   delete buffer_;
+  buffer_ = 0;
 
   // Success
   return TILEDB_BK_OK;
