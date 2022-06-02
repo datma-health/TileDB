@@ -351,7 +351,9 @@ ssize_t AzureBlob::file_size(const std::string& filename) {
 #endif
     return blob_property.size;
   } else {
+#ifdef DEBUG
     std::cerr << "No blob properties found for file=" << filename << std::endl;
+#endif
     return TILEDB_FS_ERR;
   }
   return TILEDB_FS_OK;
