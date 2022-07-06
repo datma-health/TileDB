@@ -42,6 +42,7 @@
 #include <aws/s3/model/CompletedPart.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/HeadBucketRequest.h>
 #include <aws/s3/model/HeadObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
@@ -94,23 +95,11 @@ S3::S3(const std::string& home) {
   }
   client_ = std::make_shared<Aws::S3::S3Client>(client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAddressing);
 
-  bool bucket_exists = false;
-  Aws::S3::Model::ListBucketsOutcome outcome = client_->ListBuckets();
-  if (outcome.IsSuccess()) {
-    Aws::Vector<Aws::S3::Model::Bucket> buckets = outcome.GetResult().GetBuckets();
-    for (Aws::S3::Model::Bucket& bucket : buckets) {
-      if (bucket.GetName().compare(path_uri.bucket()) == 0) {
-	bucket_exists = true;
-	break;
-      }
-    }
-  } else {
-    throw std::system_error(EIO, std::generic_category(),
-			    std::string("S3 FS error while trying to locate bucket for ")+
-			    home+"\n"+ outcome.GetError().GetMessage());
-  }
-
-  if (!bucket_exists) {
+  Aws::S3::Model::HeadBucketRequest head_request;
+  head_request.WithBucket(path_uri.bucket());
+  auto outcome = client_->HeadBucket(head_request);
+  if (!outcome.IsSuccess()) {
+    S3_ERROR1("Failed to locate bucket", outcome, home);
     throw std::system_error(EIO, std::generic_category(), "S3 FS only supports already existing buckets. Create bucket from either the aws CLI or the aws storage portal before restarting operation");
   }
 

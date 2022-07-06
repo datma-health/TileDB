@@ -185,9 +185,7 @@ TEST_CASE_METHOD(S3TestFixture, "Test S3 read/write file", "[read-write]") {
   CHECK_RC(s3_instance->sync_path(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(s3_instance->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   auto files = s3_instance->get_files(test_dir);
-  for(auto f: files) {
-    std::cerr << "file=" << f << std::endl;
-  }
+  CHECK(files.size() == 1);
   REQUIRE(s3_instance->is_file(test_dir+"/foo"));
   CHECK(s3_instance->file_size(test_dir+"/foo") == 5);
 
