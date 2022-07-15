@@ -161,7 +161,7 @@ T get_value(const void *buffer, const uint64_t offset) {
 }
 
 inline mup::Value get_single_cell_value(const int attribute_type, void** buffers,
-                                 const uint64_t buffer_index, const int64_t position) {
+                                 const uint64_t buffer_index, const uint64_t position) {
   switch (attribute_type) {
     case TILEDB_CHAR:
       return mup::int_type(get_value<char>(buffers[buffer_index], position));
@@ -191,17 +191,17 @@ inline mup::Value get_single_cell_value(const int attribute_type, void** buffers
 }
 
 void Expression::assign_single_cell_value(const int attribute_id, void** buffers,
-                                          const uint64_t buffer_index, const int64_t position) {
+                                          const uint64_t buffer_index, const uint64_t position) {
   auto& attribute_name = array_schema_->attribute(attribute_id);
   attribute_map_[attribute_name] = get_single_cell_value(array_schema_->type(attribute_id), buffers,
                                                          buffer_index, position);
 }
 
 void Expression::assign_fixed_cell_values(const int attribute_id, void** buffers,
-                                          const uint64_t buffer_index, const int64_t position) {
+                                          const uint64_t buffer_index, const uint64_t position) {
   auto& attribute_name = array_schema_->attribute(attribute_id);
   auto attribute_type = array_schema_->type(attribute_id);
-  int num_cells = array_schema_->cell_val_num(attribute_id);
+  long num_cells = array_schema_->cell_val_num(attribute_id);
   switch (attribute_type) {
     case TILEDB_CHAR: {
       attribute_map_[attribute_name] = mup::string_type(get_value<char>(buffers[buffer_index], position*num_cells), num_cells);
@@ -220,7 +220,7 @@ void Expression::assign_fixed_cell_values(const int attribute_id, void** buffers
 // returns offset and length for the cell under consideration
 template<typename T>
 std::pair<size_t, size_t> get_var_cell_info(void** buffers, size_t* buffer_sizes, const uint64_t buffer_index,
-                                            const int64_t buffer_position) {
+                                            const uint64_t buffer_position) {
   size_t offset = get_value<size_t>(buffers[buffer_index], buffer_position);
   size_t length;
   if ((buffer_position+1) < (buffer_sizes[buffer_index]/sizeof(size_t))) {
@@ -232,7 +232,7 @@ std::pair<size_t, size_t> get_var_cell_info(void** buffers, size_t* buffer_sizes
 }
 
 void Expression::assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
-                                        const uint64_t buffer_index, const int64_t position) {
+                                        const uint64_t buffer_index, const uint64_t position) {
   auto& attribute_name = array_schema_->attribute(attribute_id);
   auto attribute_type = array_schema_->type(attribute_id);
   switch (attribute_type) {
@@ -287,18 +287,20 @@ bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, std::vector
   }
 
   for (auto i = 0u, j = 0u; i < attributes_.size(); i++, j++) {
+    assert(positions[i] >= 0);
+    uint64_t position = (uint64_t)positions[i];
     int attribute_id = array_schema_->attribute_id(attributes_[i]);
     if (attribute_map_.find(attributes_[i]) != attribute_map_.end()) {
       try {
         switch (array_schema_->cell_val_num(attribute_id)) {
           case 1:
-            assign_single_cell_value(attribute_id, buffers, j, positions[i]);
+            assign_single_cell_value(attribute_id, buffers, j, position);
             break;
           case TILEDB_VAR_NUM :
-            assign_var_cell_values(attribute_id, buffers, buffer_sizes, j, positions[i]);
+            assign_var_cell_values(attribute_id, buffers, buffer_sizes, j, position);
             break;
           default:
-            assign_fixed_cell_values(attribute_id, buffers, j, positions[i]);
+            assign_fixed_cell_values(attribute_id, buffers, j, position);
         }
       } catch (EmptyValueException& e) {
         return true; // TODO: Filter expressions do not handle empty values yet.
@@ -400,7 +402,7 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, size
   }
 
   auto max_num_cells = std::max_element(num_cells.begin(), num_cells.end());
-  for (int current_cell=0, next_cell=0; next_cell < *max_num_cells; current_cell++, next_cell++) {
+  for (auto current_cell=0ul, next_cell=0ul; next_cell < *max_num_cells; current_cell++, next_cell++) {
     size_t reduce_by = 0;
     bool next_cell_dropped = false;
     do {
