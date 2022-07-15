@@ -109,9 +109,9 @@ class Expression {
 
   std::vector<int64_t> last_processed_buffer_index_;
 
-  void assign_single_cell_value(const int attribute_id, void** buffers, const uint64_t buffer_index, const int64_t position);
-  void assign_fixed_cell_values(const int attribute_id, void** buffers, const uint64_t buffer_index, const int64_t position);
-  void assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes, const uint64_t buffer_index, const int64_t position);
+  void assign_single_cell_value(const int attribute_id, void** buffers, const uint64_t buffer_index, const uint64_t position);
+  void assign_fixed_cell_values(const int attribute_id, void** buffers, const uint64_t buffer_index, const uint64_t position);
+  void assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes, const uint64_t buffer_index, const uint64_t position);
 
   inline const int get_cell_val_num(const std::string& attribute_name) const {
     return array_schema_->cell_val_num(array_schema_->attribute_id(attribute_name));
