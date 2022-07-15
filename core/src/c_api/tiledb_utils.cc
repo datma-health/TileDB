@@ -324,7 +324,6 @@ static int check_file_for_read(TileDB_CTX *tiledb_ctx, std::string filename) {
   return TILEDB_OK;
 }
 
-#if(0)
 #include <openssl/md5.h>
 void print_md5_hash(unsigned char* buffer, size_t length) {
   unsigned char md[MD5_DIGEST_LENGTH];
@@ -333,7 +332,6 @@ void print_md5_hash(unsigned char* buffer, size_t length) {
     fprintf(stderr, "%02x",md[i]);
   }
 }
-#endif
 
 /** Allocates buffer, responsibility of caller to release buffer */
 int read_entire_file(const std::string& filename, void **buffer, size_t *length) {
