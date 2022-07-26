@@ -386,7 +386,7 @@ int Array::consolidate(
 #endif
 
   // Consolidate on a per-batch and per-attribute basis
-  if (batch_size <= 0 || batch_size > fragment_names_.size()) {
+  if (batch_size <= 0 || (size_t)batch_size > fragment_names_.size()) {
     batch_size = fragment_names_.size();
   }
   auto remaining = (fragment_names_.size()%batch_size);
@@ -443,7 +443,7 @@ int Array::consolidate(
     array_read_state_ = new ArrayReadState(this);
 
     // Consolidating per batch per attribute
-    for (auto i=0u,j=0u; i<array_schema_->attribute_num()+1; ++i,++j) {
+    for (auto i=0u,j=0u; i<(size_t)array_schema_->attribute_num()+1; ++i,++j) {
       buffers[j] = buffer;
       buffer_sizes[j] = buffer_size;
       if (array_schema_->var_size(i)) {
@@ -465,7 +465,7 @@ int Array::consolidate(
     // Cleanup after batch consolidation
     delete array_read_state_;
     array_read_state_ = NULL;
-    for (auto fragment_i = 0; fragment_i<fragments_.size(); fragment_i++) {
+    for (auto fragment_i = 0u; fragment_i<fragments_.size(); fragment_i++) {
       fragments_[fragment_i]->finalize();
       delete fragments_[fragment_i]->book_keeping();
       delete fragments_[fragment_i];
