@@ -1044,15 +1044,17 @@ int ArrayReadState::get_next_fragment_cell_ranges_sparse() {
   //MBR overlap does not guarantee existence of cells in the subarray
   //compute_unsorted_fragment_cell_ranges_sparse might determine no cells
   //exist in the subarray
-  done_ = true;
+  bool not_found = true;
   for(const auto& vec : unsorted_fragment_cell_ranges) {
     if(!vec.empty()) {
-      done_ = false;
+      not_found = false;
       break;
     }
   }
-  if(done_)
-    return TILEDB_ARS_OK;
+  if(not_found) {
+    // TODO: Replace recursion
+    return get_next_fragment_cell_ranges_sparse<T>();
+  }
 
   // Sort fragment cell ranges
   FragmentCellRanges fragment_cell_ranges;

@@ -110,7 +110,8 @@ class SparseArrayTestFixture : TempDir {
       const int64_t domain_0_hi,
       const int64_t domain_1_lo,
       const int64_t domain_1_hi,
-      const int read_mode);
+      const int read_mode,
+      const ssize_t expected_num_cells = -1);
 
   /** Sets the array name for the current test. */
   void set_array_name(const char *);
