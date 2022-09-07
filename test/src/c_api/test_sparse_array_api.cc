@@ -792,13 +792,10 @@ class SparseArrayIntersectingTileTestFixture : SparseArrayTestFixture {
     }
     delete [] array;
 
-    // Failing test
     array = read_sparse_array_2D(0, 100, 2, 2, TILEDB_ARRAY_READ, 4);
     CHECK(array != NULL);
     for (int i=0; i<4; i++) {
-      int *b_a1 = (int *)array;
-      std::cerr << "i=" << i << " val=" << b_a1[i] << std::endl;
-      //      CHECK(*(array+i*4+j) == j);
+      CHECK(*(array+i) == 1);
     }
     delete [] array;
 
