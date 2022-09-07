@@ -1144,9 +1144,9 @@ void ArrayReadState::get_next_overlapping_tiles_sparse() {
   int dim_num = array_schema_->dim_num();
 
   // Get the first overlapping tile for each fragment
-  if(fragment_cell_pos_ranges_vec_.size() == 0) {
+  if(fragment_bounding_coords_.size() == 0) {
     // Initializations 
-    assert(fragment_bounding_coords_.size() == 0);
+    assert(fragment_cell_pos_ranges_vec_.size() == 0);
     fragment_bounding_coords_.resize(fragment_num_);
 
     // Get next overlapping tile and bounding coordinates 
