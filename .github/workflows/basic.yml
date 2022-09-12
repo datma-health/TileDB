@@ -62,6 +62,7 @@ jobs:
         sudo apt-get update
         sudo apt-get -y install cmake lcov
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
+        sudo apt-get -y install catch2
         export ENABLE_ZSTD=0
         export ENABLE_BLOSC=0
         if [[ ${{matrix.type}} == "basic-no-hdfs" ]]; then
@@ -85,6 +86,7 @@ jobs:
         brew list lcov &>/dev/null || brew install lcov
         brew list openssl@1.1 &>/dev/null || brew install openssl@1.1
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
+        brew list catch2  &>/dev/null || brew install catch2
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4

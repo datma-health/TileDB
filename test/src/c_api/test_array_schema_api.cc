@@ -37,9 +37,6 @@
 
 #include "catch.h"
 
-using Catch::Equals;
-using Catch::EndsWith;
-
 ArraySchemaTestFixture::ArraySchemaTestFixture() {
   // Error code
   int rc;

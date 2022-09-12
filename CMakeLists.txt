@@ -242,6 +242,7 @@ add_subdirectory(core)
 
 # Enable testing
 if(NOT TILEDB_DISABLE_TESTING)
+  find_package(Catch2 REQUIRED)
   enable_testing()
   add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND} -V)
 

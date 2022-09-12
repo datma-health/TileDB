@@ -33,17 +33,16 @@
 #ifndef __TILEDB_CATCH_H__
 #define __TILEDB_CATCH_H__
 
-#define CATCH_CONFIG_RUNNER
-#include "catch.hpp"
+#include <catch2/catch_all.hpp>
 
 #include "tiledb_utils.h"
 
 // Matchers
-using Catch::Equals;
-using Catch::StartsWith;
-using Catch::EndsWith;
-using Catch::Contains;
-using Catch::Matches;
+using Catch::Matchers::Equals;
+using Catch::Matchers::Matches;
+using Catch::startsWith;
+using Catch::endsWith;
+using Catch::contains;
 
 #define CHECK_RC(rc, expected) CHECK(rc == expected)
 
@@ -117,7 +116,7 @@ int main( int argc, char* argv[] )
   Catch::Session session; // There must be exactly one instance
 
   // Build a new parser on top of Catch's
-  using namespace Catch::clara;
+  using namespace Catch::Clara;
   auto cli
     = session.cli() // Get Catch's composite command line parser
       | Opt( g_test_dir, "test-dir-url" ) // bind variable to a new option, with a hint string

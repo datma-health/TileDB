@@ -45,7 +45,7 @@ foreach(TILEDB_TEST_SOURCE ${TILEDB_TEST_SOURCES})
   string(REGEX REPLACE ".cc$" "" TARGET ${FILENAME})
   
   add_executable(${TARGET} EXCLUDE_FROM_ALL ${TILEDB_TEST_SOURCE})
-  target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES} -ldl)
+  target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES} -ldl Catch2::Catch2)
 
   add_test(${TARGET} ${TARGET})
   set(ALL_CMDS ${ALL_CMDS} ${TARGET})
