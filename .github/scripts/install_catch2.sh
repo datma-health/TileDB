@@ -29,7 +29,7 @@
 # Error out on first failure
 set -e
 
-if [[ -d /usr/local/include/catch2 ]]; then
+if [[ ! -d /usr/local/include/catch2 ]]; then
   git clone https://github.com/catchorg/Catch2.git -b v3.1.0
   cd Catch2
   cmake -Bbuild -H. -DBUILD_TESTING=OFF
