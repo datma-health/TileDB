@@ -1,3 +1,29 @@
+#
+# basic.yml
+#
+# The MIT License
+#
+# Copyright (c) 2020-2022 Omics Data Automation, Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+
 name: build 
 
 on:
@@ -14,6 +40,9 @@ env:
   HADOOP_VER: 3.2.2
   AWSSDK_VER: 1.8.114
   AWSSDK_ROOT_DIR: ${{github.workspace}}/awssdk
+  GCSSDK_VER: v1.24.0
+  GCSSDK_ROOT_DIR:  ${{github.workspace}}/gcssdk
+  CATCH2_VER: v3.1.0
 
 jobs:
   build:
@@ -54,6 +83,33 @@ jobs:
       run: |
         mkdir -p $CMAKE_BUILD_DIR
 
+    - name: Cache AWS SDK
+      uses: actions/cache@v2
+      with:
+        path: ${{env.AWSSDK_ROOT_DIR}}
+        key: aws-${{env.AWSSDK_VER}}-${{matrix.os}}
+
+    - name: Cache GCS SDK
+      uses: actions/cache@v2
+      with:
+        path: ${{env.AWSSDK_ROOT_DIR}}
+        key: aws-${{env.GCSSDK_VER}}-${{matrix.os}}
+
+    - name: Cache Catch2 artifacts
+      if: startsWith(matrix.os,'ubuntu')
+      with:
+        path: |
+          /usr/local/**/Catch2
+          /usr/local/**/catch2
+        key: catch2-${{env.CATCH2_VER}}-${{matrix.os}}
+        
+    - name: Cache Distributed FileSystems
+      if: matrix.type == 'hdfs' || matrix.type == 'gcs'
+      uses: actions/cache@v2-${{matrix.os}}
+      with:
+        path: ~/hadoop-${{env.HADOOP_VER}}
+        key: dfs-${{env.HADOOP_VER}}-v1
+
     - name: Install Prereqs and Configure CMake - Ubuntu
       if: startsWith(matrix.os,'ubuntu')
       shell: bash
@@ -62,7 +118,8 @@ jobs:
         sudo apt-get update
         sudo apt-get -y install cmake lcov
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
-        sudo apt-get -y install catch2
+        # sudo apt-get -y install catch2
+        $GITHUB_WORKSPACE/.github/scripts/install_catch2.sh
         export ENABLE_ZSTD=0
         export ENABLE_BLOSC=0
         if [[ ${{matrix.type}} == "basic-no-hdfs" ]]; then
@@ -73,9 +130,11 @@ jobs:
         fi
         echo "CMAKE VERSION=$(cmake --version)"
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
-               -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC -DAWSSDK_URL=$AWSSDK_URL $USE_HDFS
+               -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC \
+               -DAWSSDK_URL=$AWSSDK_URL -DGCSSDK_URL=$GCSSDK_URL $USE_HDFS
       env:
         AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
+        GCSSDK_URL: https://github.com/googleapis/google-cloud-cpp/archive/${{env.GCSSDK_VER}}.zip
 
     - name: Install Prereqs and Configure CMake - MacOS
       if: startsWith(matrix.os, 'macOS')
@@ -87,12 +146,13 @@ jobs:
         brew list openssl@1.1 &>/dev/null || brew install openssl@1.1
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         brew list catch2  &>/dev/null || brew install catch2
-        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL -DGCSSDK_URL=$GCSSDK_URL
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4
       env:
         OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
         AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
+        GCSSDK_URL: https://github.com/googleapis/google-cloud-cpp/archive/${{env.GCSSDK_VER}}.zip
 
     - name: Build and Test
       if: startsWith(matrix.type, 'basic')
@@ -109,19 +169,6 @@ jobs:
         time test/test_sparse_array_benchmark
         test/test_print_array_schema $GITHUB_WORKSPACE/test/inputs/examples_ws/sparse_arrays/my_array_B
         test/test_print_book_keeping $GITHUB_WORKSPACE/test/inputs/examples_ws/sparse_arrays/my_array_B/__4FECD19A-4F7D-4D21-B170-A2D111C8FCC44550772224_1652300381620
-
-    - name: Cache AWS SDK
-      uses: actions/cache@v2
-      with:
-        path: ${{env.AWSSDK_ROOT_DIR}}
-        key: aws-${{env.AWSSDK_VER}}-v3
-
-    - name: Cache Distributed FileSystems
-      if: matrix.type == 'hdfs' || matrix.type == 'gcs'
-      uses: actions/cache@v2
-      with:
-        path: ~/hadoop-${{env.HADOOP_VER}}
-        key: dfs-${{env.HADOOP_VER}}-v1
         
     - name: Build and Test - Distributed FileSystems
       if: startsWith(matrix.type, 'basic') != true

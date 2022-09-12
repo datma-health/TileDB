@@ -171,8 +171,10 @@ if(APPLE)
   set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} "-framework CoreFoundation")
 endif()
 
-# Set C++ 2011 flag
-include(SetCXX2011Flag)
+# Set C++17 as required standard for all C++ targets.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
