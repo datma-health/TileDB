@@ -103,7 +103,7 @@ int StorageManagerConfig::init(
          fs_ = new AzureBlob(home_);
        } catch(std::system_error& ex) {
          PRINT_ERROR(ex.what());
-	 tiledb_smc_errmsg = "Azure Storage Blob intialization failed for home=" + home_;
+	 tiledb_smc_errmsg = "Azure Storage Blob initialization failed for home=" + home_;
 	 return TILEDB_SMC_ERR;
        }
      } else if (is_s3_storage_path(home_)) {
@@ -111,7 +111,7 @@ int StorageManagerConfig::init(
           fs_ = new S3(home_);
        } catch(std::system_error& ex) {
          PRINT_ERROR(ex.what());
-	 tiledb_smc_errmsg = "S3 Storage intialization failed for home=" + home_;
+	 tiledb_smc_errmsg = "S3 Storage initialization failed for home=" + home_;
 	 return TILEDB_SMC_ERR;
        }
      } else if (is_gcs_path(home_) && !is_env_set("TILEDB_USE_GCS_HDFS_CONNECTOR") && !use_gcs_hdfs_connector) {
@@ -119,7 +119,7 @@ int StorageManagerConfig::init(
           fs_ = new GCS(home_);
        } catch(std::system_error& ex) {
          PRINT_ERROR(ex.what());
-	 tiledb_smc_errmsg = "GCS Storage intialization failed for home=" + home_;
+	 tiledb_smc_errmsg = "GCS Storage initialization failed for home=" + home_;
 	 return TILEDB_SMC_ERR;
        }
      } else if (is_supported_cloud_path(home_)) {
@@ -131,7 +131,7 @@ int StorageManagerConfig::init(
 #endif
        } catch(std::system_error& ex) {
 	 PRINT_ERROR(ex.what());
-	 tiledb_smc_errmsg = "HDFS intialization failed for home=" + home_;
+	 tiledb_smc_errmsg = "HDFS initialization failed for home=" + home_;
 	 return TILEDB_SMC_ERR;
        }
      } else {
