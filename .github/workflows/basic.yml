@@ -97,6 +97,7 @@ jobs:
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
+      uses: actions/cache@v2
       with:
         path: |
           /usr/local/**/Catch2
@@ -105,10 +106,10 @@ jobs:
         
     - name: Cache Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs'
-      uses: actions/cache@v2-${{matrix.os}}
+      uses: actions/cache@v2
       with:
         path: ~/hadoop-${{env.HADOOP_VER}}
-        key: dfs-${{env.HADOOP_VER}}-v1
+        key: dfs-${{env.HADOOP_VER}}-v1-${{matrix.os}}
 
     - name: Install Prereqs and Configure CMake - Ubuntu
       if: startsWith(matrix.os,'ubuntu')
