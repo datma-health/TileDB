@@ -39,9 +39,7 @@ env:
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
   HADOOP_VER: 3.2.2
   AWSSDK_VER: 1.8.114
-  AWSSDK_ROOT_DIR: ${{github.workspace}}/awssdk
   GCSSDK_VER: v1.24.0
-  GCSSDK_ROOT_DIR:  ${{github.workspace}}/gcssdk
   CATCH2_VER: v3.1.0
 
 jobs:
@@ -86,14 +84,14 @@ jobs:
     - name: Cache AWS SDK
       uses: actions/cache@v2
       with:
-        path: ${{env.AWSSDK_ROOT_DIR}}
-        key: aws-${{env.AWSSDK_VER}}-${{matrix.os}}
+        path: ~/awssdk-install
+        key: awssdk-${{env.AWSSDK_VER}}-${{matrix.os}}
 
     - name: Cache GCS SDK
       uses: actions/cache@v2
       with:
-        path: ${{env.AWSSDK_ROOT_DIR}}
-        key: aws-${{env.GCSSDK_VER}}-${{matrix.os}}
+        path: ~/gcssdk-install
+        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
@@ -108,7 +106,7 @@ jobs:
       if: matrix.type == 'hdfs' || matrix.type == 'gcs'
       uses: actions/cache@v2
       with:
-        path: ~/hadoop-${{env.HADOOP_VER}}
+        path: ${{runner.workspace}}/hadoop-${{env.HADOOP_VER}}
         key: dfs-${{env.HADOOP_VER}}-v1-${{matrix.os}}
 
     - name: Install Prereqs and Configure CMake - Ubuntu
@@ -147,7 +145,8 @@ jobs:
         brew list openssl@1.1 &>/dev/null || brew install openssl@1.1
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         brew list catch2  &>/dev/null || brew install catch2
-        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL -DGCSSDK_URL=$GCSSDK_URL
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL \
+              -DGCSSDK_URL=$GCSSDK_URL
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4
       env:
