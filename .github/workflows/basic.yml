@@ -130,6 +130,7 @@ jobs:
         fi
         echo "CMAKE VERSION=$(cmake --version)"
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
+               -DCMAKE_PREFIX_PATH=~/catch2-install \
                -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC \
                -DAWSSDK_URL=$AWSSDK_URL -DGCSSDK_URL=$GCSSDK_URL $USE_HDFS
       env:
