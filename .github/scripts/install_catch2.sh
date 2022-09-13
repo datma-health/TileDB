@@ -29,9 +29,12 @@
 # Error out on first failure
 set -e
 
-if [[ ! -d /usr/local/include/catch2 ]]; then
-  git clone https://github.com/catchorg/Catch2.git -b v3.1.0
+INSTALL_DIR=${INSTALL_DIR:/usr/local}
+CATCH2_VER=${CATCH2_VER:v3.1.0}
+
+if [[ ! -d $INSTALL_DIR ]]; then
+  git clone https://github.com/catchorg/Catch2.git -b $CATCH2_VER
   cd Catch2
-  cmake -Bbuild -H. -DBUILD_TESTING=OFF
-  sudo cmake --build build/ --target install
+  cmake -Bbuild -H. -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR
+  cmake --build build/ --target install
 fi
