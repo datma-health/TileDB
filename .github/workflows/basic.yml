@@ -115,7 +115,7 @@ jobs:
       shell: bash
       working-directory: ${{env.CMAKE_BUILD_DIR}}
       run: |
-        sudo apt-get update
+        sudo apt-get update -q
         sudo apt-get -y install cmake lcov
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         # sudo apt-get -y install catch2
