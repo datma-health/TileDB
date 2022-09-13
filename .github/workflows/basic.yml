@@ -80,7 +80,9 @@ jobs:
       shell: bash
       run: |
         mkdir -p $CMAKE_BUILD_DIR
+        # For extracting cached Catch2
         sudo chmod a+rwx /usr/local/include /usr/local/lib /usr/local/share /usr/local/share/doc
+        mkdir -p /usr/local/share/vcpkg/ports
 
     - name: Cache AWS SDK
       uses: actions/cache@v2
