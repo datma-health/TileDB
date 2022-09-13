@@ -130,6 +130,3 @@ gpg --quiet --batch --yes --decrypt --passphrase="$R_TAR" --output $INSTALL_DIR/
 tar xf $INSTALL_DIR/r.tar -C $GITHUB_WORKSPACE/.github &&
 install_hadoop
 
-echo "Check Hadoop Installation..."
-ls -l $INSTALL_DIR
-echo "Check Hadoop Installation DONE"
