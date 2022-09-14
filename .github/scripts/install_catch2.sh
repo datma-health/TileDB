@@ -34,13 +34,15 @@ CATCH2_VER=${CATCH2_VER:-v3.1.0}
 
 if [[ $INSTALL_DIR == "/usr/local" ]]; then
   SUDO="sudo"
+  INSTALL_PREFIX=""
 else
   SUDO=""
+  INSTALL_PREFIX="-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR"
 fi
 
 if [[ ! -d $INSTALL_DIR ]]; then
   git clone https://github.com/catchorg/Catch2.git -b $CATCH2_VER
   cd Catch2
-  cmake -Bbuild -H. -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR
+  cmake -Bbuild -H. -DBUILD_TESTING=OFF $INSTALL_PREFIX
   $SUDO cmake --build build/ --target install
 fi
