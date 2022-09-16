@@ -40,7 +40,10 @@ env:
   HADOOP_VER: 3.2.2
   AWSSDK_VER: 1.8.114
   GCSSDK_VER: v1.24.0
-  CATCH2_VER: v3.1.0
+  # Only used to install Catch2 on Ubuntu from source
+  # MacOS uses brew that install v3.1.0
+  # Ubuntu distributions are currently on v2.13.9
+  CATCH2_VER: v2.13.9
 
 jobs:
   build:

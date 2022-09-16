@@ -1,5 +1,5 @@
 #
-# install_catch2.sh
+# cmake/Modules/SetCatch2Version.cmake
 #
 # The MIT License
 #
@@ -23,26 +23,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
+# Find Catch2 installation and setup Catch2 version to allow
+# test/include/Catch2/catch.h to support both major versions, 2 and 3 for now.
+#
 
-#!/bin/bash
+find_package(Catch2 REQUIRED)
 
-# Error out on first failure
-set -e
+set(CATCH2_HEADER "catch2/catch.hpp")
+find_path(CATCH2_INCLUDE_FILE ${CATCH2_HEADER})
+if(CATCH2_INCLUDE_FILE)
+  set(CATCH2_MAJOR_VERSION 2)
+else()
+  set(CATCH2_HEADER "catch2/catch_all.hpp")
+  find_path(CATCH2_INCLUDE_FILE ${CATCH2_HEADER})
+  if(CATCH2_INCLUDE_FILE)
+    set(CATCH2_MAJOR_VERSION 3)
+  else()
+    message(FATAL "Could not figure out Catch2 versions. Try using CMAKE_PREFIX_PATH to point to a Catch2 installation")
+  endif()
+endif()
 
-INSTALL_DIR=${INSTALL_DIR:-/usr/local}
-CATCH2_VER=${CATCH2_VER:-v3.1.0}
-
-if [[ $INSTALL_DIR == "/usr/local" ]]; then
-  SUDO="sudo"
-  INSTALL_PREFIX=""
-else
-  SUDO=""
-  INSTALL_PREFIX="-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR"
-fi
-
-if [[ ! -d $INSTALL_DIR/include/catch2 ]]; then
-  git clone https://github.com/catchorg/Catch2.git -b $CATCH2_VER
-  cd Catch2
-  cmake -Bbuild -H. -DBUILD_TESTING=OFF $INSTALL_PREFIX
-  $SUDO cmake --build build/ --target install
-fi
+message(STATUS "Found Catch2: ${CATCH2_INCLUDE_FILE}/${CATCH2_HEADER} Version=${CATCH2_MAJOR_VERSION}")
+add_definitions(-DCATCH2_MAJOR_VERSION=${CATCH2_MAJOR_VERSION})
