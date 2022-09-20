@@ -5,7 +5,7 @@
  *
  * The MIT License
  * 
- * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2020,2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -59,8 +59,7 @@ int main(int argc, char *argv[]) {
   std::string array_schema_filename(array+'/'+TILEDB_ARRAY_SCHEMA_FILENAME);
     
   TileDB_CTX* tiledb_ctx;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = array.c_str();
   CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config));
 

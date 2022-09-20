@@ -232,8 +232,6 @@ TEST_CASE_METHOD(TestBufferedWrite, "Test Storage Buffer with buffered reading/w
   read_with_implicit_offset(filename, &read_storage_buffer_with_compression, read_buffer.data(), size);
   CHECK(memcmp(buffer.data(), read_buffer.data(), size) == 0);
 
-  std::cerr << "+++ we are here 2" << std::endl;
-
   // Buffered write with compression and buffer set to all one's
   filename += ".simple";
   memset(buffer.data(), 'R', size);

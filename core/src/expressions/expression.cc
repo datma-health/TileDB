@@ -86,7 +86,7 @@ void Expression::add_attribute(std::string name) {
   switch (attribute_type) {
     case TILEDB_CHAR: {
       if (attribute_cell_val_num == 1) {
-        mup::Value x_int(mup::int_type(""));
+        mup::Value x_int(mup::int_type(0));
         attribute_map_.insert(std::make_pair(name, x_int));
       } else {
         mup::Value x_str(mup::string_type(""));

@@ -39,13 +39,16 @@ file(GLOB_RECURSE TILEDB_TEST_SOURCES "src/*/test*.cc")
 # Add TILEDB_TEST_DIR macro
 add_definitions(-DTILEDB_TEST_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
+# Catch2 major versions are both supported, so find Catch2 and set version
+include(SetCatch2Version)
+
 # Build one executable per test
 foreach(TILEDB_TEST_SOURCE ${TILEDB_TEST_SOURCES})
   get_filename_component(FILENAME ${TILEDB_TEST_SOURCE} NAME)
   string(REGEX REPLACE ".cc$" "" TARGET ${FILENAME})
   
   add_executable(${TARGET} EXCLUDE_FROM_ALL ${TILEDB_TEST_SOURCE})
-  target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES} -ldl)
+  target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES} -ldl Catch2::Catch2)
 
   add_test(${TARGET} ${TARGET})
   set(ALL_CMDS ${ALL_CMDS} ${TARGET})

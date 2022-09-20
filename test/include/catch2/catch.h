@@ -33,17 +33,35 @@
 #ifndef __TILEDB_CATCH_H__
 #define __TILEDB_CATCH_H__
 
+#if CATCH2_MAJOR_VERSION == 3
+
+#include <catch2/catch_all.hpp>
+using Catch::Matchers::Equals;
+using Catch::Matchers::Matches;
+using Catch::startsWith;
+using Catch::endsWith;
+using Catch::contains;
+
+using namespace Catch::Clara;
+
+#elif CATCH2_MAJOR_VERSION == 2
+
 #define CATCH_CONFIG_RUNNER
-#include "catch.hpp"
-
-#include "tiledb_utils.h"
-
-// Matchers
+#include <catch2/catch.hpp>
 using Catch::Equals;
 using Catch::StartsWith;
 using Catch::EndsWith;
 using Catch::Contains;
 using Catch::Matches;
+
+using namespace Catch::clara;
+
+#else
+#  error Could not figure out CATCH2_MAJOR_VERSION
+#endif
+
+
+#include "tiledb_utils.h"
 
 #define CHECK_RC(rc, expected) CHECK(rc == expected)
 
@@ -117,7 +135,6 @@ int main( int argc, char* argv[] )
   Catch::Session session; // There must be exactly one instance
 
   // Build a new parser on top of Catch's
-  using namespace Catch::clara;
   auto cli
     = session.cli() // Get Catch's composite command line parser
       | Opt( g_test_dir, "test-dir-url" ) // bind variable to a new option, with a hint string
