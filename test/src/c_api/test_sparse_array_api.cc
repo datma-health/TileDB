@@ -417,7 +417,8 @@ int* SparseArrayTestFixture::read_sparse_array_2D(
     const int64_t domain_0_hi,
     const int64_t domain_1_lo,
     const int64_t domain_1_hi,
-    const int read_mode) {
+    const int read_mode,
+    const ssize_t expected_num_cells) {
   // Error code
   int rc;
 
@@ -460,6 +461,13 @@ int* SparseArrayTestFixture::read_sparse_array_2D(
   if(rc != TILEDB_OK) {
     tiledb_array_finalize(tiledb_array);
     return NULL;
+  }
+
+  // Check buffer sizes
+  if (expected_num_cells >= 0) {
+    CHECK(buffer_sizes[0] == (size_t)expected_num_cells*sizeof(int));
+  } else {
+    CHECK(buffer_sizes[0] == (size_t)cell_num*sizeof(int));
   }
 
   // Finalize the array
@@ -684,7 +692,9 @@ class SparseArrayEnvTestFixture : SparseArrayTestFixture {
   }
 
   int read_array() {
-    CHECK(read_sparse_array_2D(4, 0, 4, 0, TILEDB_ARRAY_READ) != NULL);
+    int *contents = read_sparse_array_2D(0, 4, 0, 4, TILEDB_ARRAY_READ);
+    CHECK(contents != NULL);
+    delete [] contents;
     return 0;
   }
 
@@ -722,4 +732,79 @@ TEST_CASE_METHOD(SparseArrayEnvTestFixture, "Test reading/writing with env set",
   // TILEDB_DISABLE_FILE_LOCK=1
   set_disable_file_locking();
   read_array();
+}
+
+class SparseArrayIntersectingTileTestFixture : SparseArrayTestFixture {
+ public:
+
+  // Write an array with intersecting tiles
+  int write_array() {
+    // Set array name
+    set_array_name("sparse_test_intersecting_tile");
+    CHECK_RC(create_sparse_array_2D(4, 4, 0, 100, 0, 100, 3/*tile capacity*/, false, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR), TILEDB_OK);
+
+    // Initialize the array
+    TileDB_Array* tiledb_array;
+    int rc = tiledb_array_init(
+        tiledb_ctx_,
+        &tiledb_array,
+        array_name_.c_str(),
+        TILEDB_ARRAY_WRITE,
+        NULL,
+        NULL,
+        0);
+    if(rc != TILEDB_OK) return TILEDB_ERR;
+
+    // Prepare buffers
+    int buffer_a1[] = {
+      0, 1, 2, 3,
+      0, 1, 2, 3,
+      0, 1, 2, 3,
+      0, 1, 2, 3 };
+    int64_t buffer_coords[] = {
+      23, 1, 23, 2, 23, 3, 23, 4,
+      30, 1, 30, 2, 30, 3, 30, 4,
+      45, 1, 45, 2, 45, 3, 45, 4,
+      97, 1, 97, 2, 97, 3, 97, 4 };
+
+    // Write to array
+    const void* buffers[] = { buffer_a1, buffer_coords };
+    size_t buffer_sizes[2];
+    buffer_sizes[0] = sizeof(buffer_a1);
+    buffer_sizes[1] = sizeof(buffer_coords);
+    rc = tiledb_array_write(tiledb_array, buffers, buffer_sizes);
+    if(rc != TILEDB_OK) return TILEDB_ERR;
+
+    // Finalize the array
+    rc = tiledb_array_finalize(tiledb_array);
+    if(rc != TILEDB_OK) return TILEDB_ERR;
+
+    return TILEDB_OK;
+  }
+
+  int read_array() {
+    int *array = read_sparse_array_2D(23, 100, 0, 100, TILEDB_ARRAY_READ, 16);
+    CHECK(array != NULL);
+    for (int i=0; i<4; i++) {
+      for (int j=0; j<4; j++) {
+        CHECK(*(array+i*4+j) == j);
+      }
+    }
+    delete [] array;
+
+    array = read_sparse_array_2D(0, 100, 2, 2, TILEDB_ARRAY_READ, 4);
+    CHECK(array != NULL);
+    for (int i=0; i<4; i++) {
+      CHECK(*(array+i) == 1);
+    }
+    delete [] array;
+
+    return TILEDB_OK;
+  }
+};
+
+
+TEST_CASE_METHOD(SparseArrayIntersectingTileTestFixture, "Test case with intersecting tiles", "[test_sparse_array_intersecting_tiles]") {
+  CHECK_RC(write_array(), TILEDB_OK);
+  CHECK_RC(read_array(), TILEDB_OK);
 }

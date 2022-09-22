@@ -226,6 +226,15 @@ int main(int argc, char *argv[]) {
   }
   
   std::string array_fragment(argv[1]); // from argv[1]
+  if (!TileDBUtils::is_file(array_fragment+"/"+TILEDB_FRAGMENT_FILENAME)) {
+    std::cerr << "Specified input=\"" << array_fragment << "\" does not seem to be a fragment" << std::endl;
+    return -1;
+  }
+
+  if (array_fragment.find("://") == std::string::npos) {
+    PosixFS fs;
+    array_fragment = fs.real_dir(array_fragment);
+  }
 
   // Get Array Schema
   std::string array_name = parent_dir(array_fragment);
