@@ -66,7 +66,7 @@ int print_non_empty_domain() {
   if(domain_size != 0) {
     CHECK_RC(bk_buffer->read_buffer(&domain[0], domain_size));
     std::cerr << "Domain coords =";
-    for (auto i = 0; i<domain_size/sizeof(domain_size); i++) {
+    for (auto i = 0ul; i<domain_size/sizeof(domain_size); i++) {
       std::cerr << domain[i] << " ";
     }
     std::cerr << std::endl;
@@ -100,7 +100,7 @@ int print_mbrs() {
   int64_t mbr[mbr_size/sizeof(size_t)];
   for(int64_t i=0; i<mbr_num; ++i) {
     CHECK_RC(bk_buffer->read_buffer(&mbr[0], mbr_size));
-    for (auto j = 0; j<mbr_size/sizeof(size_t); j++) {
+    for (auto j = 0ul; j<mbr_size/sizeof(size_t); j++) {
       std::cerr << mbr[j] << " ";
     }
     std::cerr << std::endl;
@@ -124,7 +124,7 @@ int print_bounding_coords() {
   int64_t bounding_coords[bounding_coords_size/sizeof(int64_t)];
   for(int64_t i=0; i<bounding_coords_num; ++i) {
     CHECK_RC(bk_buffer->read_buffer(&bounding_coords[0], bounding_coords_size));
-    for (auto j = 0; j<bounding_coords_size/sizeof(int64_t); j++) {
+    for (auto j = 0ul; j<bounding_coords_size/sizeof(int64_t); j++) {
       std::cerr << bounding_coords[j] << " ";
     }
     std::cerr << std::endl;

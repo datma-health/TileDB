@@ -44,6 +44,8 @@
 #include "storage_hdfs.h"
 #include "storage_gcs.h"
 
+#include "tiledb_constants.h"
+
 /* ********************************* */
 /*             CONSTANTS             */
 /* ********************************* */

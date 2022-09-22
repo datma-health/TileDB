@@ -81,6 +81,14 @@ endif()
 
 set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of TileDB - high overhead")
 
+# The DOWNLOAD_EXTRACT_TIMESTAMP option to the ExternalProject_Add() command is used to explicitly specify
+# how timestamps should be handled. The default behavior is to set the timestamps of extracted contents to
+# the time of extraction.
+# https://cmake.org/cmake/help/latest/policy/CMP0135.html#policy:CMP0135
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 # Find required library dependencies
 find_package(ZLIB REQUIRED)
 include_directories(${ZLIB_INCLUDE_DIR})
@@ -171,8 +179,10 @@ if(APPLE)
   set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} "-framework CoreFoundation")
 endif()
 
-# Set C++ 2011 flag
-include(SetCXX2011Flag)
+# Set C++17 as required standard for all C++ targets.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
