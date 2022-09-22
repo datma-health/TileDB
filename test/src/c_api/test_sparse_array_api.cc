@@ -467,7 +467,7 @@ int* SparseArrayTestFixture::read_sparse_array_2D(
   if (expected_num_cells >= 0) {
     CHECK(buffer_sizes[0] == (size_t)expected_num_cells*sizeof(int));
   } else {
-    CHECK(buffer_sizes[0] == cell_num*sizeof(int));
+    CHECK(buffer_sizes[0] == (size_t)cell_num*sizeof(int));
   }
 
   // Finalize the array
