@@ -245,12 +245,29 @@ int AzureBlob::set_working_dir(const std::string& dir) {
 }
 
 bool AzureBlob::path_exists(const std::string& path) {
-  bool exists = blob_client_wrapper_->blob_exists(container_name_, get_path(path));
-  if (!exists && path[path.size()-1] == '/') {
+  auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(path));
+  if (blob_property.valid()) {
+    if (blob_property.content_type == "application/octet-stream") {
+      return path.back() != '/';
+    } else if (path.back() == '/') { // Directories in hierarchical namespaces
+      auto metadata = blob_property.metadata;
+      for (auto prop : metadata) {
+        if (prop.first == "hdi_isfolder" && prop.second == "true") {
+          return true;
+        }
+      }
+    } else {
+      AZ_BLOB_ERROR("Path is valid but of unknown content type", path);
+      return false;
+    }
+  } else if (path.back() == '/') {
+    // Check directories in non-hierarchical namespaces by checking for children as they are not explicitly
+    // created as in hierarchical namespaces
     auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  "", get_path(path), 1);
-    exists = response.blobs.size() > 0;
+    return response.blobs.size() > 0;
+  } else {
+    return false;
   }
-  return exists;
 }
 
 std::string AzureBlob::real_dir(const std::string& dir) {
@@ -280,15 +297,17 @@ int AzureBlob::create_dir(const std::string& dir) {
 int AzureBlob::delete_dir(const std::string& dir) {
   int rc = TILEDB_FS_OK;
   std::string continuation_token = "";
+  auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
   do {
     for (auto i=0u; i<response.blobs.size(); i++) {
       if (response.blobs[i].is_directory) {
         delete_dir(response.blobs[i].name);
       } else {
-        blob_client_wrapper_->delete_blob(container_name_, response.blobs[i].name);
-        if (blob_client_wrapper_->blob_exists(container_name_, response.blobs[i].name)) {
-          AZ_BLOB_ERROR("File still exists after deletion", response.blobs[i].name);
+        auto result = bclient->delete_blob(container_name_, response.blobs[i].name, false).get();
+        if (!result.success()) {
+          AZ_BLOB_ERROR("File could not be deleted", response.blobs[i].name);
+          rc = TILEDB_FS_ERR;
         }
       }
     }
@@ -343,7 +362,7 @@ int AzureBlob::delete_file(const std::string& filename) {
 
 ssize_t AzureBlob::file_size(const std::string& filename) {
   auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(filename));
-  if (blob_property.valid()) {
+  if (blob_property.valid() && blob_property.content_type == "application/octet-stream") {
 #ifdef DEBUG
     if (filename.find_last_of(".json") != std::string::npos) {
       std::cerr << "Blob " << filename << " md5=" << blob_property.content_md5 << " size=" << blob_property.size<< std::endl;
