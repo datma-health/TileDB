@@ -60,9 +60,6 @@
 
 #define AZ_BLOB_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, "Azure: "+MSG, PATH, tiledb_fs_errmsg)
 
-
-#include "adls_client.h"
-
 using namespace azure::storage_lite;
 
 static std::string run_command(const std::string& command) {
@@ -203,10 +200,6 @@ AzureBlob::AzureBlob(const std::string& home) {
   }
 
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
-  if (account == nullptr) {
-    throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". " 
-                            "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
-  }
 
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
@@ -229,10 +222,6 @@ AzureBlob::AzureBlob(const std::string& home) {
   working_dir_ = get_path(path_uri.path());
 
   adls_client_ = std::make_shared<azure::storage_adls::adls_client>(account, std::thread::hardware_concurrency()/2, false);
-  adls_client_->directory_exists(container_name_, ".__TILEDB_CHECK_IF_ADLS__");
-  if (errno > 0) {
-    adls_client_ = nullptr;
-  }
 
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
@@ -296,10 +285,8 @@ int AzureBlob::create_dir(const std::string& dir) {
 
 int AzureBlob::delete_dir(const std::string& dir) {
   int rc = TILEDB_FS_OK;
-  if (adls_client_ != nullptr) {
-    adls_client_->delete_directory(container_name_, get_path(dir));
-  }
-  if (errno > 0 || adls_client_ == nullptr) {
+  adls_client_->delete_directory(container_name_, get_path(dir));
+  if (errno > 0) {
     // Try again using the blob client directly for non-hierarchical filesystems
     std::string continuation_token = "";
     auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());

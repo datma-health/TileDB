@@ -26,6 +26,7 @@ setup_azurite() {
 
 run_azure_tests() {
   source $1
+  echo "Running with $1"
   echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema storage buffer test" && $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
@@ -67,12 +68,10 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
-  echo "Running with non-hierarchical container"
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh
-  echo "Running with non-hierarchical container DONE"
-  echo "Running with hierarchical container"
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh
-  echo "Running with hierarchical container DONE"
+  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh &
+  sleep(10)
+  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh &
+  wait
   echo "Running Azure tests DONE"
 
 elif [[ $INSTALL_TYPE == azurite ]]; then
