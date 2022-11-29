@@ -69,7 +69,7 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
   run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh &
-  sleep(10)
+  sleep 10
   run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh &
   wait
   echo "Running Azure tests DONE"
