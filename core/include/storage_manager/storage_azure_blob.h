@@ -36,6 +36,7 @@
 
 #include "storage_fs.h"
 
+#include "adls_client.h"
 #include "base64.h"
 #include "blob/blob_client.h"
 #include "storage_account.h"
@@ -79,6 +80,8 @@ class AzureBlob : public StorageCloudFS {
   std::string account_name_;
   std::string container_name_;
   std::string working_dir_;
+
+  std::shared_ptr<azure::storage_adls::adls_client> adls_client_ = nullptr;
 
   std::mutex write_map_mtx_;
   std::unordered_map<std::string, std::vector<put_block_list_request_base::block_item>> write_map_;

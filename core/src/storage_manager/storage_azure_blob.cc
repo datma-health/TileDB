@@ -60,6 +60,9 @@
 
 #define AZ_BLOB_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, "Azure: "+MSG, PATH, tiledb_fs_errmsg)
 
+
+#include "adls_client.h"
+
 using namespace azure::storage_lite;
 
 static std::string run_command(const std::string& command) {
@@ -201,7 +204,7 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
   if (account == nullptr) {
-    throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". " +
+    throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". " 
                             "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
   }
 
@@ -225,6 +228,8 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   working_dir_ = get_path(path_uri.path());
 
+  adls_client_ = std::make_shared<azure::storage_adls::adls_client>(account, std::thread::hardware_concurrency()/2, false);
+
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
   upload_buffer_size_ = constants::default_block_size; // 8M
@@ -247,27 +252,18 @@ int AzureBlob::set_working_dir(const std::string& dir) {
 bool AzureBlob::path_exists(const std::string& path) {
   auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(path));
   if (blob_property.valid()) {
-    if (blob_property.content_type == "application/octet-stream") {
-      return path.back() != '/';
-    } else if (path.back() == '/') { // Directories in hierarchical namespaces
-      auto metadata = blob_property.metadata;
-      for (auto prop : metadata) {
-        if (prop.first == "hdi_isfolder" && prop.second == "true") {
-          return true;
-        }
-      }
-    } else {
-      AZ_BLOB_ERROR("Path is valid but of unknown content type", path);
-      return false;
+    if (blob_property.content_type.empty() && path.back() == '/') {
+      return true;
+    } else if (!blob_property.content_type.empty() && path.back() != '/') {
+      return true;
     }
   } else if (path.back() == '/') {
     // Check directories in non-hierarchical namespaces by checking for children as they are not explicitly
     // created as in hierarchical namespaces
     auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  "", get_path(path), 1);
     return response.blobs.size() > 0;
-  } else {
-    return false;
   }
+  return false;
 }
 
 std::string AzureBlob::real_dir(const std::string& dir) {
@@ -296,22 +292,29 @@ int AzureBlob::create_dir(const std::string& dir) {
 
 int AzureBlob::delete_dir(const std::string& dir) {
   int rc = TILEDB_FS_OK;
-  std::string continuation_token = "";
-  auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
-  auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
-  do {
-    for (auto i=0u; i<response.blobs.size(); i++) {
-      if (response.blobs[i].is_directory) {
-        delete_dir(response.blobs[i].name);
-      } else {
-        auto result = bclient->delete_blob(container_name_, response.blobs[i].name, false).get();
-        if (!result.success()) {
-          AZ_BLOB_ERROR("File could not be deleted", response.blobs[i].name);
-          rc = TILEDB_FS_ERR;
+  if (adls_client_ != nullptr) {
+    adls_client_->delete_directory(container_name_, get_path(dir));
+  }
+  if (errno > 0 || adls_client_ == nullptr) {
+    // Try again using the blob client directly for non-hierarchical filesystems
+    std::string continuation_token = "";
+    auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
+    auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token,
+                                                               slashify(get_path(dir)), INT_MAX);
+    do {
+      for (auto i=0u; i<response.blobs.size(); i++) {
+        if (response.blobs[i].is_directory) {
+          delete_dir(response.blobs[i].name);
+        } else {
+          auto result = bclient->delete_blob(container_name_, response.blobs[i].name, false).get();
+          if (!result.success()) {
+            AZ_BLOB_ERROR(read_result.error().message, response.blobs[i].name);
+            rc = TILEDB_FS_ERR;
+          }
         }
       }
-    }
-  } while (!continuation_token.empty());
+    } while (!continuation_token.empty());
+  }
   return rc;
 }
 
