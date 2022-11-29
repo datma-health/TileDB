@@ -229,6 +229,10 @@ AzureBlob::AzureBlob(const std::string& home) {
   working_dir_ = get_path(path_uri.path());
 
   adls_client_ = std::make_shared<azure::storage_adls::adls_client>(account, std::thread::hardware_concurrency()/2, false);
+  adls_client_->directory_exists(container_name_, ".__TILEDB_CHECK_IF_ADLS__");
+  if (errno > 0) {
+    adls_client_ = nullptr;
+  }
 
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
