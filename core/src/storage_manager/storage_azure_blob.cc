@@ -308,7 +308,7 @@ int AzureBlob::delete_dir(const std::string& dir) {
         } else {
           auto result = bclient->delete_blob(container_name_, response.blobs[i].name, false).get();
           if (!result.success()) {
-            AZ_BLOB_ERROR(read_result.error().message, response.blobs[i].name);
+            AZ_BLOB_ERROR(result.error().message, response.blobs[i].name);
             rc = TILEDB_FS_ERR;
           }
         }
