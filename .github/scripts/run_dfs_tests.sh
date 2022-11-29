@@ -67,9 +67,12 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh &
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh &
-  wait
+  echo "Running with non-hierarchical container"
+  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh
+  echo "Running with non-hierarchical container DONE"
+  echo "Running with hierarchical container"
+  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh
+  echo "Running with hierarchical container DONE"
   echo "Running Azure tests DONE"
 
 elif [[ $INSTALL_TYPE == azurite ]]; then
