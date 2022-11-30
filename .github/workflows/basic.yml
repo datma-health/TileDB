@@ -49,11 +49,9 @@ jobs:
   build:
     strategy:
       matrix:
-        #os: [ubuntu-18.04, ubuntu-latest, macOS-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-18.04, ubuntu-latest, macOS-latest]
         # All supported types
-        #type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
-        type: [basic, azure]
+        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
         exclude:
           - os: macos-latest
             type: basic-no-hdfs
