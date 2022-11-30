@@ -24,13 +24,31 @@ setup_azurite() {
   export AZURE_BLOB_ENDPOINT="https://127.0.0.1:10000/devstoreaccount1"
 }
 
+check_results() {
+  INDEX=$1
+  if [[ -f $TEST.log ]]; then
+    if diff $TEST.log  $GITHUB_WORKSPACE/examples/expected_results; then
+      CHECK_RESULTS[$INDEX]=0
+    else
+      echo "$TEST.log from run_examples.sh for $INDEX is different from expected results"
+      CHECK_RESULTS[$INDEX]=-1
+    fi
+  else
+    echo "$TEST.log from run_examples.sh for $INDEX does not seem to exist. Check the results of running run_examples.sh"
+    CHECK_RESULTS[$INDEX]=-1
+  fi
+}
+
 run_azure_tests() {
   source $1
+  azure_test_index=$2
   echo "Running with $1"
   echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema storage buffer test" && $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
-    echo "az schema examples" && time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST"
+    echo "az schema examples" && time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
+    echo "Running with $1 DONE" &&
+    check_results $azure_test_index
 }
 
 make -j4 &&
@@ -68,11 +86,17 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh &
-  sleep 10
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh &
-  wait
-  echo "Running Azure tests DONE"
+  CHECK_RESULTS=(-2 -2)
+  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh 0 &
+  TEST=github_test_$RANDOM_adls run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh 1 &
+  if wait; then
+    if [[ ${CHECK_RESULTS[0]} == 0 && ${CHECK_RESULTS[1]} == 0 ]]; then
+      echo "Running Azure tests DONE"
+      exit 0
+    fi;
+  fi
+  echo "Failure in some Azure tests: ${CHECK_RESULTS[0]}  ${CHECK_RESULTS[1]}"
+  exit 1
 
 elif [[ $INSTALL_TYPE == azurite ]]; then
   setup_azurite
