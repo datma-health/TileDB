@@ -126,9 +126,9 @@ include_directories(${CURL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CURL_LIBRARIES})
 
 # Build Azure cpp lite client added as a dependency
-include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include)
+include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include ${AZURE_FSCLIENT_SOURCE_DIR}/adls/include)
 add_subdirectory(${AZURE_FSCLIENT_SOURCE_DIR})
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite)
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite azure-storage-adls)
 
 # Build AWS S3 client static libraries
 find_package(S3Client REQUIRED)

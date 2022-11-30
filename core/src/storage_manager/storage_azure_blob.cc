@@ -200,10 +200,6 @@ AzureBlob::AzureBlob(const std::string& home) {
   }
 
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
-  if (account == nullptr) {
-    throw std::system_error(EIO, std::generic_category(), "Could not create azure storage account=" + azure_account + ". " +
-                            "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
-  }
 
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
@@ -225,6 +221,8 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   working_dir_ = get_path(path_uri.path());
 
+  adls_client_ = std::make_shared<azure::storage_adls::adls_client>(account, std::thread::hardware_concurrency()/2, false);
+
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
   upload_buffer_size_ = constants::default_block_size; // 8M
@@ -245,12 +243,20 @@ int AzureBlob::set_working_dir(const std::string& dir) {
 }
 
 bool AzureBlob::path_exists(const std::string& path) {
-  bool exists = blob_client_wrapper_->blob_exists(container_name_, get_path(path));
-  if (!exists && path[path.size()-1] == '/') {
+  auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(path));
+  if (blob_property.valid()) {
+    if (blob_property.content_type.empty() && path.back() == '/') {
+      return true;
+    } else if (!blob_property.content_type.empty() && path.back() != '/') {
+      return true;
+    }
+  } else if (path.back() == '/') {
+    // Check directories in non-hierarchical namespaces by checking for children as they are not explicitly
+    // created as in hierarchical namespaces
     auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  "", get_path(path), 1);
-    exists = response.blobs.size() > 0;
+    return response.blobs.size() > 0;
   }
-  return exists;
+  return false;
 }
 
 std::string AzureBlob::real_dir(const std::string& dir) {
@@ -279,20 +285,27 @@ int AzureBlob::create_dir(const std::string& dir) {
 
 int AzureBlob::delete_dir(const std::string& dir) {
   int rc = TILEDB_FS_OK;
-  std::string continuation_token = "";
-  auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token, slashify(get_path(dir)), INT_MAX);
-  do {
-    for (auto i=0u; i<response.blobs.size(); i++) {
-      if (response.blobs[i].is_directory) {
-        delete_dir(response.blobs[i].name);
-      } else {
-        blob_client_wrapper_->delete_blob(container_name_, response.blobs[i].name);
-        if (blob_client_wrapper_->blob_exists(container_name_, response.blobs[i].name)) {
-          AZ_BLOB_ERROR("File still exists after deletion", response.blobs[i].name);
+  adls_client_->delete_directory(container_name_, get_path(dir));
+  if (errno > 0) {
+    // Try again using the blob client directly for non-hierarchical filesystems
+    std::string continuation_token = "";
+    auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
+    auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  continuation_token,
+                                                               slashify(get_path(dir)), INT_MAX);
+    do {
+      for (auto i=0u; i<response.blobs.size(); i++) {
+        if (response.blobs[i].is_directory) {
+          delete_dir(response.blobs[i].name);
+        } else {
+          auto result = bclient->delete_blob(container_name_, response.blobs[i].name, false).get();
+          if (!result.success()) {
+            AZ_BLOB_ERROR(result.error().message, response.blobs[i].name);
+            rc = TILEDB_FS_ERR;
+          }
         }
       }
-    }
-  } while (!continuation_token.empty());
+    } while (!continuation_token.empty());
+  }
   return rc;
 }
 
@@ -343,15 +356,15 @@ int AzureBlob::delete_file(const std::string& filename) {
 
 ssize_t AzureBlob::file_size(const std::string& filename) {
   auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(filename));
-  if (blob_property.valid()) {
-#ifdef DEBUG
+  if (blob_property.valid() && !blob_property.content_type.empty()) {
+#if 0
     if (filename.find_last_of(".json") != std::string::npos) {
       std::cerr << "Blob " << filename << " md5=" << blob_property.content_md5 << " size=" << blob_property.size<< std::endl;
     }
 #endif
     return blob_property.size;
   } else {
-#ifdef DEBUG
+#if 0
     std::cerr << "No blob properties found for file=" << filename << std::endl;
 #endif
     return TILEDB_FS_ERR;
