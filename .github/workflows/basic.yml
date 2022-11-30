@@ -37,7 +37,7 @@ on:
 env:
   CMAKE_BUILD_TYPE: Coverage
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
-  HADOOP_VER: 3.2.2
+  HADOOP_VER: 3.2.4
   AWSSDK_VER: 1.8.114
   GCSSDK_VER: v1.24.0
   # Only used to install Catch2 on Ubuntu from source
@@ -49,7 +49,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-18.04, ubuntu-latest, macOS-latest]
+        os: [ubuntu-20.04, macOS-latest]
         # All supported types
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
         exclude:
@@ -69,15 +69,11 @@ jobs:
             type: aws
           - os: macos-latest
             type: minio
-          - os: ubuntu-latest
-            type: hdfs
-          - os: ubuntu-latest
-            type: gcs
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Create Build Environment
       shell: bash
@@ -88,27 +84,27 @@ jobs:
         mkdir -p /usr/local/share/vcpkg/ports
 
     - name: Cache AWS SDK
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/awssdk-install
         key: awssdk-${{env.AWSSDK_VER}}-${{matrix.os}}
 
     - name: Cache GCS SDK
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/gcssdk-install
         key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/catch2-install
         key: catch2-${{env.CATCH2_VER}}-v0-${{matrix.os}}
         
     - name: Cache Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs'
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{runner.workspace}}/hadoop-${{env.HADOOP_VER}}
         key: dfs-${{env.HADOOP_VER}}-v1-${{matrix.os}}
@@ -198,4 +194,4 @@ jobs:
         AWS_TAR: ${{secrets.AWS_TAR}}
 
     - name: Upload Report to CodeCov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
