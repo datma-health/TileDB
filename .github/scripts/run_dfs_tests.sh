@@ -87,8 +87,10 @@ elif [[ $INSTALL_TYPE == azure ]]; then
   CHECK_RESULTS=(-1 -1)
   run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh 0 & pids[0]=$!
   TEST=github_test_$RANDOM_adls run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh 1 & pids[1]=$!
-  wait ${pids[0]} && CHECK_RESULTS[0] = 0
-  wait ${pids[1]} && CHECK_RESULTS[1] = 0
+  wait ${pids[0]}
+  CHECK_RESULTS[0]=$?
+  wait ${pids[1]}
+  CHECK_RESULTS[1]=$?
   if [[ ${CHECK_RESULTS[0]} != 0 || ${CHECK_RESULTS[1]} != 0 ]]; then
     echo "Failure in some Azure tests: ${CHECK_RESULTS[0]}  ${CHECK_RESULTS[1]}"
     exit 1
