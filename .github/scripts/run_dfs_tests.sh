@@ -25,17 +25,19 @@ setup_azurite() {
 }
 
 check_results_from_examples() {
+  echo "check_results_from_examples for $TEST.log"
    if [[ -f $TEST.log ]]; then
-      if diff $TEST.log  $GITHUB_WORKSPACE/examples/expected_results; then
-        exit 0
-      else
-        echo "$TEST.log from run_examples.sh is different from expected results"
-        exit 1
-      fi
-    else
-      echo "$TEST.log from run_examples.sh does not seem to exist. Check the results of running run_examples.sh"
-      exit 1
-    fi
+     if diff $TEST.log  $GITHUB_WORKSPACE/examples/expected_results; then
+       echo "check_results_from_examples for $TEST.log DONE"
+       exit 0
+     else
+       echo "$TEST.log from run_examples.sh is different from expected results"
+       exit 1
+     fi
+   else
+     echo "$TEST.log from run_examples.sh does not seem to exist. Check the results of running run_examples.sh"
+     exit 1
+   fi
 }
 
 run_azure_tests() {
@@ -91,6 +93,7 @@ elif [[ $INSTALL_TYPE == azure ]]; then
   CHECK_RESULTS[0]=$?
   wait ${pids[1]}
   CHECK_RESULTS[1]=$?
+  echo "Finished running Azure tests"
   if [[ ${CHECK_RESULTS[0]} != 0 || ${CHECK_RESULTS[1]} != 0 ]]; then
     echo "Failure in some Azure tests: ${CHECK_RESULTS[0]}  ${CHECK_RESULTS[1]}"
     exit 1
