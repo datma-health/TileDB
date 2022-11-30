@@ -26,23 +26,23 @@ setup_azurite() {
 
 check_results_from_examples() {
   echo "check_results_from_examples for $TEST.log"
-   if [[ -f $TEST.log ]]; then
-     if diff $TEST.log  $GITHUB_WORKSPACE/examples/expected_results; then
-       echo "check_results_from_examples for $TEST.log DONE"
-       exit 0
-     else
-       echo "$TEST.log from run_examples.sh is different from expected results"
-       exit 1
-     fi
-   else
-     echo "$TEST.log from run_examples.sh does not seem to exist. Check the results of running run_examples.sh"
-     exit 1
-   fi
+  if [[ -f $TEST.log ]]; then
+    if diff $TEST.log  $GITHUB_WORKSPACE/examples/expected_results; then
+      echo "check_results_from_examples for $TEST.log DONE"
+      exit 0
+    else
+      echo "$TEST.log from run_examples.sh is different from expected results"
+      exit 1
+    fi
+  else
+    echo "$TEST.log from run_examples.sh does not seem to exist. Check the results of running run_examples.sh"
+    exit 1
+  fi
 }
 
 run_azure_tests() {
   source $1
-  echo "Running with $1"
+  echo "Running with $1 and TEST_DIR=$TEST"
   echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema storage buffer test" && $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
@@ -88,7 +88,7 @@ elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
   CHECK_RESULTS=(-1 -1)
   run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh 0 & pids[0]=$!
-  TEST=github_test_$RANDOM_adls run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh 1 & pids[1]=$!
+  TEST=github_test_${RANDOM}_adls run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh 1 & pids[1]=$!
   wait ${pids[0]}
   CHECK_RESULTS[0]=$?
   wait ${pids[1]}
