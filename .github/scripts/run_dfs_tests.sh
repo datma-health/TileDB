@@ -26,6 +26,7 @@ setup_azurite() {
 
 check_results() {
   INDEX=$1
+  echo "Checking results for $INDEX for $TEST"
   if [[ -f $TEST.log ]]; then
     if diff $TEST.log  $GITHUB_WORKSPACE/examples/expected_results; then
       CHECK_RESULTS[$INDEX]=0
@@ -37,6 +38,7 @@ check_results() {
     echo "$TEST.log from run_examples.sh for $INDEX does not seem to exist. Check the results of running run_examples.sh"
     CHECK_RESULTS[$INDEX]=-1
   fi
+  echo "Checking results for $INDEX for $TEST DONE : ${CHECK_RESULTS[$INDEX]}"
 }
 
 run_azure_tests() {
