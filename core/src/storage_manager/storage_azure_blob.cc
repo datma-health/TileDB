@@ -88,7 +88,7 @@ static std::string get_account_key(const std::string& account_name) {
   // Try via az CLI `az storage account keys list -o tsv --account-name <account_name>`
   // Example output :
   // %az storage account keys list -o tsv --account-name xxx
-  // None	key1	FULL	abcdefgDYrCB5B3+tHzPMNjRy3pCLh1QMh4Fcd0xP316V+t6wAfTq1dS1QpCwyO60exkQXDPl0q2I/FTabcdef==
+  // None	key1	FULL	abCdEfgAbcdeF===
   std::string keys = run_command("az storage account keys list -o tsv --account-name " + account_name);
   std::string account_key;
 
