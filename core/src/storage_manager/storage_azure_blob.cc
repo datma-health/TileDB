@@ -47,6 +47,7 @@
 #include <iostream>
 #include <future>
 #include <memory>
+#include <regex>
 #include <stdlib.h>
 #include <thread>
 #include <unistd.h>
@@ -84,24 +85,25 @@ static std::string get_account_key(const std::string& account_name) {
     }
   }
 
-  // Try via az CLI `az storage account keys list -o tsv --account-name <account_name>`
-  std::string keys = run_command("az storage account keys list -o tsv --account-name " + account_name);
-  std::string account_key("");
-
-  if (keys.length() > 1) {
-    // Get the first key available
-    std::string first_key("key1\tFULL\t");
-    auto start_pos = first_key.length();
-    auto end_pos = keys.find("\n");
-    if (keys.find(first_key) != std::string::npos) {
-      if (end_pos == std::string::npos) {
-        account_key = keys.substr(start_pos);
-      } else {
-        account_key = keys.substr(start_pos, end_pos-start_pos);
+  // Try retrieving first account key via az CLI
+  std::string account_key;
+  std::string key1 = run_command("az storage account keys list --query \"[?keyName == 'key1'].value | [0]\" -o tsv --account-name " + account_name);
+  if (key1.length() > 1) {
+    // Remove newlines
+    std::regex pattern("(.*)\\r?\\n?");
+    std::smatch match;
+    if (std::regex_match(key1, match, pattern) && match.ready() && !match.empty() && match.size() == 2) {
+      try {
+        auto matched = match[1].str();
+        // Check if it is really an encoded key
+        azure::storage_lite::from_base64(matched);
+        account_key = matched;
+      } catch(...) {
+        // Ignore
       }
     }
   }
-
+  
   return account_key;
 }
 

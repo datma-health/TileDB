@@ -106,6 +106,9 @@ elif [[ $INSTALL_TYPE == azurite ]]; then
   tiledb_utils_tests "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
   $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
   $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
+  TEMP_VAR=$AZURE_STORAGE_ACCOUNT && unset AZURE_STORAGE_ACCOUNT &&
+  $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
+  AZURE_STORAGE_ACCOUNT=$TEMP_VAR
   $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/$TEST"
 
 elif [[ $INSTALL_TYPE == aws ]]; then
