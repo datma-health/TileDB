@@ -85,18 +85,14 @@ static std::string get_account_key(const std::string& account_name) {
     }
   }
 
-  // Try via az CLI `az storage account keys list -o tsv --account-name <account_name>`
-  // Example output :
-  // %az storage account keys list -o tsv --account-name xxx
-  // None	key1	FULL	abCdEfgAbcdeF===
-  std::string keys = run_command("az storage account keys list -o tsv --account-name " + account_name);
+  // Try retrieving first account key via az CLI
   std::string account_key;
-
-  if (keys.length() > 1) {
-    // Get the first key available
-    std::regex pattern(".*key1\\s.*\\s(.*)\\r?\\n+.*\\r?\\n+");
+  std::string key1 = run_command("az storage account keys list --query \"[?keyName == 'key1'].value | [0]\" -o tsv --account-name " + account_name);
+  if (key1.length() > 1) {
+    // Remove newlines
+    std::regex pattern("(.*)\\r?\\n?");
     std::smatch match;
-    if (std::regex_match(keys, match, pattern) && match.ready() && !match.empty() && match.size() == 2) {
+    if (std::regex_match(key1, match, pattern) && match.ready() && !match.empty() && match.size() == 2) {
       try {
         auto matched = match[1].str();
         // Check if it is really an encoded key
