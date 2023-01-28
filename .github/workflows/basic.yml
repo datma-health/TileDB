@@ -181,3 +181,5 @@ jobs:
 
     - name: Upload Report to CodeCov
       uses: codecov/codecov-action@v3
+      with:
+        gcov: true
