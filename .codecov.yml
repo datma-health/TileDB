@@ -1,6 +1,14 @@
 ignore:
   - "examples/"
   - "test/"
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: no
+      loop: yes
+      method: no
+      macro: no
   
 coverage:
   status:
