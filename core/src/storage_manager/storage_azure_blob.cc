@@ -386,7 +386,14 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
     omemstream os_buf(buffer, length);
     read_result = bclient->download_blob_to_stream(container_name_, path, offset, length, os_buf).get();
   } else {
-    read_result = bclient->download_blob_to_buffer(container_name_, path, offset, length, reinterpret_cast<char *>(buffer), std::thread::hardware_concurrency()/2).get();
+    try {
+      read_result = bclient->download_blob_to_buffer(container_name_, path, offset, length, reinterpret_cast<char *>(buffer), std::thread::hardware_concurrency()/2).get();
+    } catch (const std::exception& ex) {
+      // Catch random exceptions from download_blob_to_buffer. Bug??
+      std::string message = "Random error from azure sdk with the download_blob_to_buffer api : " + std::string(ex.what()) + "\n Tune using TILEDB_MAX_STREAM_SIZE environment variable";
+      AZ_BLOB_ERROR(message, filename);
+      return TILEDB_FS_ERR;
+    }
   }
   if (!read_result.success()) {
     AZ_BLOB_ERROR(read_result.error().message, filename);
