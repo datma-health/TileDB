@@ -231,7 +231,7 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   auto max_stream_size_var = getenv("TILEDB_MAX_STREAM_SIZE");
   if (max_stream_size_var) {
-    max_stream_size = std::stoll(max_stream_size_var);
+    max_stream_size_ = std::stoll(max_stream_size_var);
   }
 }
 
@@ -382,7 +382,7 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   storage_outcome<void> read_result;
   // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
-  if (length <= max_stream_size) {
+  if (length <= max_stream_size_) {
     omemstream os_buf(buffer, length);
     read_result = bclient->download_blob_to_stream(container_name_, path, offset, length, os_buf).get();
   } else {
