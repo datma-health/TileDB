@@ -134,7 +134,7 @@ class AzureBlob : public StorageCloudFS {
     }
   };
 
-  size_t max_stream_size_ = 32;
+  size_t max_stream_size_ = 1024;
 
   std::string get_path(const std::string& path);
 
