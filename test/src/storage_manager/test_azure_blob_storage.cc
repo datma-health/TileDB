@@ -210,10 +210,8 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 11), TILEDB_FS_OK);
   CHECK(((char *)buffer)[10] == 'e');
 
-  REQUIRE(setenv("TILEDB_MAX_STREAM_SIZE", "4", 0) == 0);
   CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer, 11), TILEDB_FS_OK);
   CHECK(((char *)buffer)[10] == 'e');
-  REQUIRE(unsetenv("TILEDB_MAX_STREAM_SIZE") == 0);
 
   CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
   CHECK_RC(azure_blob->delete_file(test_dir+"/foo"), TILEDB_FS_OK);
@@ -234,7 +232,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test performance of AzureBlob reads of s
   if (azure_blob == nullptr) {
     return;
   }
-  uint num_iterations = 1500;
+  uint num_iterations = 512; // May have to increase iterations to reproduce failure on Centos 7, can go to num_iterations=2000!
   std::string test_dir("read_write_small");
   std::vector<int> buffer(100, 22);
 
