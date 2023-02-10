@@ -391,8 +391,9 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
     } catch (const std::exception& ex) {
       // Catch random exceptions from download_blob_to_buffer. Bug??
       std::string message = "Random error from azure sdk with the download_blob_to_buffer api : "
-          + std::string(ex.what()) + "\n Try using the download_blob_to_stream api instead. max_stream_size="
-          + std::to_string(max_stream_size_) + "bytes. Tune using TILEDB_MAX_STREAM_SIZE environment variable to override max_stream_size in bytes";
+          + std::string(ex.what()) + "\n current max_stream_size="
+          + std::to_string(max_stream_size_) + "bytes. "
+          + "Try increasing the max_stream_size using the TILEDB_MAX_STREAM_SIZE environment variable in bytes";
       AZ_BLOB_ERROR(message, filename);
       return TILEDB_FS_ERR;
     }
