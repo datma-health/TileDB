@@ -38,6 +38,7 @@ elseif(DEFINED ENV{AWSSDK_ROOT_DIR})
 endif()
 set(AWSSDK_INCLUDE_DIR "${AWSSDK_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}")
 set(AWSSDK_LIB_DIR "${CMAKE_INSTALL_LIBDIR}")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations -Wno-error=maybe-uninitialized")
 
 set(PWD $ENV{PWD})
 set(S3_COMPONENTS config s3 transfer identity-management sts)
