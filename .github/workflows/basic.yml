@@ -49,12 +49,13 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-20.04, macos-11, macos-12]
         # All supported types
-        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
-        include:
-          - os: macos-11
-            type: basic
+        # type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        type: [basic]
+        #include:
+        #  - os: macos-11
+        #    type: basic
 
     runs-on: ${{ matrix.os }}
 
