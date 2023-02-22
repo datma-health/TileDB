@@ -45,12 +45,13 @@ set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to mo
 set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 
-set(AWSSDK_VERSION "1.8.x")
+set(AWSSDK_VERSION "1.8.x" CACHE STRING "Version to aws sdk")
 set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install/${AWSSDK_VERSION}" CACHE PATH "Path to aws sdk")
 set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/${AWSSDK_VERSION}.zip" CACHE STRING "URL to aws-sdk-cpp github release")
 
-set(GCSSDK_ROOT_DIR "$ENV{HOME}/gcssdk-install" CACHE PATH "Path to gcs sdk")
-set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/v1.24.0.zip" CACHE STRING "URL to google-cloud-cpp github release")
+set(GCSSDK_VERSION "v1.24.0" CACHE STRING "Version to gcs sdk")
+set(GCSSDK_ROOT_DIR "$ENV{HOME}/gcssdk-install/${GCSSDK_VERSION}" CACHE PATH "Path to gcs sdk")
+set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/${GCSSDK_VERSION}.zip" CACHE STRING "URL to google-cloud-cpp github release")
 
 # Set the following to true downstream when TileDB is added as a subdirectory 
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")

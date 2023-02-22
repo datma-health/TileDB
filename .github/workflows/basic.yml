@@ -81,7 +81,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}
+        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-v1
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
@@ -119,9 +119,7 @@ jobs:
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DCMAKE_PREFIX_PATH=~/catch2-install \
                -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC \
-               -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_URL=$GCSSDK_URL $USE_HDFS
-      env:
-        GCSSDK_URL: https://github.com/googleapis/google-cloud-cpp/archive/${{env.GCSSDK_VER}}.zip
+               -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_VERSION=$GCSSDK_VER $USE_HDFS
 
     - name: Install Prereqs and Configure CMake - MacOS
       if: startsWith(matrix.os, 'macOS')
@@ -134,12 +132,11 @@ jobs:
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         brew list catch2  &>/dev/null || brew install catch2
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
-              -DGCSSDK_URL=$GCSSDK_URL
+              -DGCSSDK_VERSION=$GCSSDK_VER
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4
       env:
         OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
-        GCSSDK_URL: https://github.com/googleapis/google-cloud-cpp/archive/${{env.GCSSDK_VER}}.zip
 
     - name: Build and Test
       if: startsWith(matrix.type, 'basic')
