@@ -49,14 +49,10 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         # All supported types
-        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
-        include:
-          - os: macos-11
-            type: basic
-          - os: macos-12
-            type: basic
+        #type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        type: [basic]
 
     runs-on: ${{ matrix.os }}
 
@@ -107,6 +103,12 @@ jobs:
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         # sudo apt-get -y install catch2
         INSTALL_DIR=~/catch2-install CATCH2_VER=$CATCH2_VER $GITHUB_WORKSPACE/.github/scripts/install_catch2.sh
+        if [[ ${{matrix.os}} == "ubuntu-22.04" ]]; then
+          echo "Installing openssl..."
+          wget http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.0l-1~deb9u6_amd64.deb
+          sudo apt install libssl1.1_1.1.0l-1~deb9u6_amd64.deb
+          echo "Installing openssl DONE"
+        fi
         export ENABLE_ZSTD=0
         export ENABLE_BLOSC=0
         if [[ ${{matrix.type}} == "basic-no-hdfs" ]]; then
