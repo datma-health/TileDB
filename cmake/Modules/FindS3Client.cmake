@@ -97,7 +97,8 @@ elseif(NOT AWSSDK_FOUND)
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
     PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
-                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch
+                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch &&
+		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/eventstreamdecoder.patch
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=OFF
     -DENABLE_TESTING=OFF

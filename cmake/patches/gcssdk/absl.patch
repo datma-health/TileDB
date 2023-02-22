@@ -1,0 +1,12 @@
+diff -Naur abseil-build.old/absl/debugging/failure_signal_handler.cc abseil-build/absl/debugging/failure_signal_handler.cc > ~/TileDB/cmake/patches/absl.patch
+--- abseil-build.old/absl/debugging/failure_signal_handler.cc	2023-02-22 11:36:22.173323574 -0800
++++ abseil-build/absl/debugging/failure_signal_handler.cc	2023-02-22 11:03:56.348288528 -0800
+@@ -135,7 +135,7 @@
+ #else
+   const size_t page_mask = sysconf(_SC_PAGESIZE) - 1;
+ #endif
+-  size_t stack_size = (std::max(SIGSTKSZ, 65536) + page_mask) & ~page_mask;
++  size_t stack_size = (std::max(SIGSTKSZ, 65536l) + page_mask) & ~page_mask;
+ #if defined(ABSL_HAVE_ADDRESS_SANITIZER) || \
+     defined(ABSL_HAVE_MEMORY_SANITIZER) || defined(ABSL_HAVE_THREAD_SANITIZER)
+   // Account for sanitizer instrumentation requiring additional stack space.
