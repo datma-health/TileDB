@@ -105,8 +105,8 @@ jobs:
         INSTALL_DIR=~/catch2-install CATCH2_VER=$CATCH2_VER $GITHUB_WORKSPACE/.github/scripts/install_catch2.sh
         if [[ ${{matrix.os}} == "ubuntu-22.04" ]]; then
           echo "Installing openssl..."
-          wget http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.0l-1~deb9u6_amd64.deb
-          sudo apt install libssl1.1_1.1.0l-1~deb9u6_amd64.deb
+          wget -q http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.0l-1~deb9u6_amd64.deb
+          sudo apt install ./libssl1.1_1.1.0l-1~deb9u6_amd64.deb
           echo "Installing openssl DONE"
         fi
         export ENABLE_ZSTD=0
