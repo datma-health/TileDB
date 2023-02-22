@@ -45,8 +45,9 @@ set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to mo
 set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 
-set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install" CACHE PATH "Path to aws sdk")
-set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.8.114.zip" CACHE STRING "URL to aws-sdk-cpp github release")
+set(AWSSDK_VERSION "1.8.x")
+set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install/${AWSSDK_VERSION}" CACHE PATH "Path to aws sdk")
+set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/${AWSSDK_VERSION}.zip" CACHE STRING "URL to aws-sdk-cpp github release")
 
 set(GCSSDK_ROOT_DIR "$ENV{HOME}/gcssdk-install" CACHE PATH "Path to gcs sdk")
 set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/v1.24.0.zip" CACHE STRING "URL to google-cloud-cpp github release")

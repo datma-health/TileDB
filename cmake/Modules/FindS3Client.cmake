@@ -3,7 +3,7 @@
 #
 # The MIT License
 #
-# Copyright (c) 2022 Omics Data Automation, Inc.
+# Copyright (c) 2022-2023 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -96,7 +96,8 @@ elseif(NOT AWSSDK_FOUND)
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
-    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk-build.patch
+    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
+                  cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cJSON.cpp <SOURCE_DIR>/aws-cpp-sdk-core/source/external/cjson/cJSON.cpp
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=OFF
     -DENABLE_TESTING=OFF

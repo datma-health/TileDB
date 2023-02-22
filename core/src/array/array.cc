@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2019, 2022 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2019, 2022-2023 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1392,10 +1392,10 @@ std::string Array::new_fragment_name() const {
   // rename associated with those fragments.
   int n;
   if (config()->get_filesystem()->locking_support()) {
-    n = sprintf(fragment_name, "%s/.__%s%" PRIu64"_%" PRIu64,
+    n = snprintf(fragment_name, TILEDB_NAME_MAX_LEN, "%s/.__%s%" PRIu64"_%" PRIu64,
 		get_array_path_used().c_str(), mac.c_str(), tid, ms);
   } else {
-    n = sprintf(fragment_name, "%s/__%s%" PRIu64"_%" PRIu64,
+    n = snprintf(fragment_name, TILEDB_NAME_MAX_LEN, "%s/__%s%" PRIu64"_%" PRIu64,
 		get_array_path_used().c_str(), mac.c_str(), tid, ms);
   }
 
