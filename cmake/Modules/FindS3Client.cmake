@@ -97,7 +97,7 @@ elseif(NOT AWSSDK_FOUND)
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
     PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
-                  cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cJSON.cpp <SOURCE_DIR>/aws-cpp-sdk-core/source/external/cjson/cJSON.cpp
+                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=OFF
     -DENABLE_TESTING=OFF
