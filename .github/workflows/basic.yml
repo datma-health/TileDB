@@ -38,7 +38,7 @@ env:
   CMAKE_BUILD_TYPE: Coverage
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
   HADOOP_VER: 3.2.4
-  AWSSDK_VER: 1.8.114
+  AWSSDK_VER: 1.8.x
   GCSSDK_VER: v1.24.0
   # Only used to install Catch2 on Ubuntu from source
   # MacOS uses brew that installs v3.1.0
@@ -49,16 +49,14 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11, macos-12]
+        os: [ubuntu-20.04]
         # All supported types
-        # type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
-        type: [basic]
+        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
         include:
-           - os: ubuntu-20.04
-             type: aws
-        #include:
-        #  - os: macos-11
-        #    type: basic
+          - os: macos-11
+            type: basic
+          - os: macos-12
+            type: basic
 
     runs-on: ${{ matrix.os }}
 
