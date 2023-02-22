@@ -38,7 +38,7 @@ env:
   CMAKE_BUILD_TYPE: Coverage
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
   HADOOP_VER: 3.2.4
-  AWSSDK_VER: 1.8.114
+  AWSSDK_VER: 1.8.x
   GCSSDK_VER: v1.24.0
   # Only used to install Catch2 on Ubuntu from source
   # MacOS uses brew that installs v3.1.0
@@ -54,6 +54,8 @@ jobs:
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
         include:
           - os: macos-11
+            type: basic
+          - os: macos-12
             type: basic
 
     runs-on: ${{ matrix.os }}
@@ -79,7 +81,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}
+        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-v1
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
@@ -117,10 +119,7 @@ jobs:
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DCMAKE_PREFIX_PATH=~/catch2-install \
                -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC \
-               -DAWSSDK_URL=$AWSSDK_URL -DGCSSDK_URL=$GCSSDK_URL $USE_HDFS
-      env:
-        AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
-        GCSSDK_URL: https://github.com/googleapis/google-cloud-cpp/archive/${{env.GCSSDK_VER}}.zip
+               -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_VERSION=$GCSSDK_VER $USE_HDFS
 
     - name: Install Prereqs and Configure CMake - MacOS
       if: startsWith(matrix.os, 'macOS')
@@ -132,14 +131,12 @@ jobs:
         brew list openssl@1.1 &>/dev/null || brew install openssl@1.1
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         brew list catch2  &>/dev/null || brew install catch2
-        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_URL=$AWSSDK_URL \
-              -DGCSSDK_URL=$GCSSDK_URL
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
+              -DGCSSDK_VERSION=$GCSSDK_VER
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4
       env:
         OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
-        AWSSDK_URL: https://github.com/aws/aws-sdk-cpp/archive/${{env.AWSSDK_VER}}.zip
-        GCSSDK_URL: https://github.com/googleapis/google-cloud-cpp/archive/${{env.GCSSDK_VER}}.zip
 
     - name: Build and Test
       if: startsWith(matrix.type, 'basic')
