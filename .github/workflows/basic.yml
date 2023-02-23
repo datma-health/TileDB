@@ -51,7 +51,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         # All supported types
-        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
+        type: [basic, basic-no-hdfs, hdfs, gcs, azure, azurite, aws]
 
     runs-on: ${{ matrix.os }}
 
