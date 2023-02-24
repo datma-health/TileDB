@@ -35,6 +35,7 @@
 #define  __CODEC_ZSTD_H__
 
 #include "codec.h"
+#include <dl_utils.h>
 
 // Function Pointers for ZStd
 #if !defined(ZSTD_EXTERN_DECL)
