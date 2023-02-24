@@ -57,6 +57,12 @@ jobs:
             type: basic
           - os: macos-12
             type: basic
+          - os: ubuntu-22.04
+            type: basic
+          - os: ubuntu-22.04
+            type: azurite
+          - os: ubuntu-22.04
+            type: aws
 
     runs-on: ${{ matrix.os }}
 
@@ -107,6 +113,12 @@ jobs:
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         # sudo apt-get -y install catch2
         INSTALL_DIR=~/catch2-install CATCH2_VER=$CATCH2_VER $GITHUB_WORKSPACE/.github/scripts/install_catch2.sh
+        # This block should be removed as soon as support for openssl 3 is complete!
+        if [[ ${{matrix.os}} == "ubuntu-22.04" ]]; then
+          echo "Installing openssl 1.1 ..."
+          source $GITHUB_WORKSPACE/.github/scripts/install_openssl1.1.sh
+          echo "Installing openssl 1.1 DONE"
+        fi
         export ENABLE_ZSTD=0
         export ENABLE_BLOSC=0
         if [[ ${{matrix.type}} == "basic-no-hdfs" ]]; then
