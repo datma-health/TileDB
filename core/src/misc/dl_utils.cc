@@ -43,7 +43,6 @@
 #  error Platform not supported
 #endif
 std::string dl_error_;
-void* dl_handle = nullptr;
 unsigned long ossl_ver = 0;
 
 

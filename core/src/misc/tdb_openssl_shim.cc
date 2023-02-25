@@ -3,8 +3,10 @@
 #include <stdexcept>
 #include <iostream>
 
-#include "openssl_shim.h"
+#include "dl_utils.h"
+#include "tdb_openssl_shim.h"
 
+void* dl_handle = nullptr;
 
 //OpenSSL1.1 function pointers
 void* (*hmac_ctx_new_fptr)();
