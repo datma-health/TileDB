@@ -1,5 +1,5 @@
 --- awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 09:04:31.000000000 -0700
-+++ awssdk-build2/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-02-27 22:14:08.794450207 -0800
++++ awssdk-build2/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-02-28 03:55:49.795038484 -0800
 @@ -28,6 +28,9 @@
  #include <aws/core/utils/logging/LogMacros.h>
  #include <thread>
@@ -36,7 +36,7 @@
  #endif
                      assert(m_ctx != nullptr);
                  }
-@@ -337,16 +351,25 @@
+@@ -337,16 +351,28 @@
  #if OPENSSL_VERSION_LESS_1_1
                      Aws::Delete<HMAC_CTX>(m_ctx);
  #else
@@ -49,11 +49,14 @@
                      m_ctx = nullptr;
                  }
  
++/*
 +#if OPENSSL_VERSION_LESS_3_0
                  HMAC_CTX* getResource() {
 +#else
 +                void* getResource() {
 +#endif
++*/
++                void* getResource() {
                      return m_ctx;
                  }
              private:
@@ -63,7 +66,7 @@
              };
  
              HashResult Sha256HMACOpenSSLImpl::Calculate(const ByteBuffer& toSign, const ByteBuffer& secret)
-@@ -356,20 +379,33 @@
+@@ -356,20 +382,33 @@
                  memset(digest.GetUnderlyingData(), 0, length);
  
                  HMACRAIIGuard guard;
