@@ -104,6 +104,9 @@ elseif(NOT GCSSDK_FOUND)
   ExternalProject_Add(gcssdk-build
     PREFIX ${GCSSDK_PREFIX}
     URL ${GCSSDK_URL}
+    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tdb_openssl_shim.h 
+                  ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/dl_utils.h 
+                  ${GCSSDK_PREFIX}/src/gcssdk-build/google/cloud/storage 
     BUILD_IN_SOURCE 1
     CMAKE_ARGS
         -DBUILD_SHARED_LIBS=OFF

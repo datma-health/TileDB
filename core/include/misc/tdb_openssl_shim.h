@@ -26,7 +26,7 @@ typedef struct MD5state_ossl1_shim_st {
 
 #define SHA_LONG_OSSL1_SHIM unsigned int
 #define SHA_LBLOCK_OSSL1_SHIM      16
-typedef struct SHA256state_st {
+typedef struct SHA256state_ossl1_shim_st {
     SHA_LONG_OSSL1_SHIM h[8];
     SHA_LONG_OSSL1_SHIM Nl, Nh; 
     SHA_LONG_OSSL1_SHIM data[SHA_LBLOCK_OSSL1_SHIM];
