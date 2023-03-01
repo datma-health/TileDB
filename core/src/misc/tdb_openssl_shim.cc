@@ -81,7 +81,9 @@ void ossl_shim_init(void) {
   if(dl_handle == nullptr) {
     dl_handle = get_dlopen_handle("crypto");
     if(!dl_handle) {
-      throw std::runtime_error("libcrypto is not present in the system");
+      //throw std::runtime_error("libcrypto is not present in the system");
+      std::cout << "libcrypto is not present in the system" <<std::endl;
+      return;
     }
     ossl_ver = OpenSSL_version_num();
     if(ossl_ver < 0x30000000L) {

@@ -103,3 +103,27 @@
                  HMAC_CTX_reset(m_ctx);
  #endif
                  return HashResult(std::move(digest));
+--- awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/dl_utils.cpp	2023-03-01 03:56:56.775843383 -0800
++++ awssdk-build2/aws-cpp-sdk-core/source/utils/crypto/openssl/dl_utils.cpp	2023-03-01 03:38:47.368314213 -0800
+@@ -30,7 +30,7 @@
+  * This file implements utilities to help profile memory
+  */
+ 
+-#include <dl_utils.h>
++#include <aws/core/utils/crypto/openssl/dl_utils.h>
+ #include <vector>
+ 
+ #ifdef __APPLE__
+--- awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/tdb_openssl_shim.cpp	2023-03-01 03:56:56.772843310 -0800
++++ awssdk-build2/aws-cpp-sdk-core/source/utils/crypto/openssl/tdb_openssl_shim.cpp	2023-03-01 03:39:08.823836026 -0800
+@@ -37,8 +37,8 @@
+ #include <stdexcept>
+ #include <iostream>
+ 
+-#include "dl_utils.h"
+-#include "tdb_openssl_shim.h"
++#include <aws/core/utils/crypto/openssl/dl_utils.h>
++#include <aws/core/utils/crypto/openssl/tdb_openssl_shim.h>
+ 
+ void* dl_handle = nullptr;
+ 
