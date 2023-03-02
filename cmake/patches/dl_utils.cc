@@ -84,3 +84,7 @@ void *get_dlopen_handle(const std::string& name) {
   return get_dlopen_handle(name, "");
 }
 
+std::string& get_dlerror() {
+  return dl_error_;
+}
+

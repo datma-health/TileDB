@@ -62,25 +62,25 @@ TEST_CASE("Test codec static methods", "[codec_static]") {
 TEST_CASE("Test codec basic", "[codec_basic]") {
   TestCodecBasic *codec_basic = new TestCodecBasic(0);
   
-  void *dl_handle = codec_basic->get_dlopen_handle("non-existent-library");
+  void *dl_handle = get_dlopen_handle("non-existent-library");
   CHECK(dl_handle == NULL);
-  CHECK(!codec_basic->get_dlerror().empty());
+  CHECK(!get_dlerror().empty());
 
-  dl_handle = codec_basic->get_dlopen_handle("non-existent-library", "5.2");
+  dl_handle = get_dlopen_handle("non-existent-library", "5.2");
   CHECK(dl_handle == NULL);
-  CHECK(!codec_basic->get_dlerror().empty());
+  CHECK(!get_dlerror().empty());
   
-  dl_handle = codec_basic->get_dlopen_handle("z");
+  dl_handle = get_dlopen_handle("z");
   CHECK(dl_handle);
-  CHECK(codec_basic->get_dlerror().empty());
+  CHECK(get_dlerror().empty());
 
-  dl_handle = codec_basic->get_dlopen_handle("z", "1");
+  dl_handle = get_dlopen_handle("z", "1");
   CHECK(dl_handle);
-  CHECK(codec_basic->get_dlerror().empty());
+  CHECK(get_dlerror().empty());
   
-  dl_handle = codec_basic->get_dlopen_handle("z", "non-existent-version");
+  dl_handle = get_dlopen_handle("z", "non-existent-version");
   CHECK(dl_handle == NULL);
-  CHECK(!codec_basic->get_dlerror().empty());
+  CHECK(!get_dlerror().empty());
 
   free(codec_basic);
 }

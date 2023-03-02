@@ -57,6 +57,7 @@ inline void set_dlerror() {
 void ossl_shim_init(void);
 void *get_dlopen_handle(const std::string& name, const std::string& version);
 void *get_dlopen_handle(const std::string& name); 
+std::string& get_dlerror();
 
 #define BIND_SYMBOL(H, X, Y, Z)  \
   do {                           \
