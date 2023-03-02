@@ -97,6 +97,8 @@ elseif(NOT AWSSDK_FOUND)
                   ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/tdb_openssl_shim.cpp &&
                   cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/dl_utils.cc 
                   ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/dl_utils.cpp &&
+                  cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/dl_utils.h ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/ &&
+                  cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/dl_utils.cc ${CMAKE_CURRENT_SOURCE_DIR}/core/src/misc/ &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch &&
 		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/eventstreamdecoder.patch &&
