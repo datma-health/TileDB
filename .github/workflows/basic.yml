@@ -101,7 +101,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{runner.workspace}}/hadoop-${{env.HADOOP_VER}}
-        key: dfs-${{env.HADOOP_VER}}-v1-${{matrix.os}}
+        key: dfs-${{env.HADOOP_VER}}-v1-${{matrix.os}}-openssl-v1
 
     - name: Install Prereqs and Configure CMake - Ubuntu
       if: startsWith(matrix.os,'ubuntu')
