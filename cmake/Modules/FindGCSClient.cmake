@@ -106,8 +106,6 @@ elseif(NOT GCSSDK_FOUND)
     URL ${GCSSDK_URL}
     PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tdb_openssl_shim.h 
                   ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/dl_utils.h 
-                  ${CMAKE_CURRENT_SOURCE_DIR}/core/src/misc/tdb_openssl_shim.cc
-                  ${CMAKE_CURRENT_SOURCE_DIR}/core/src/misc/dl_utils.cc 
                   ${GCSSDK_PREFIX}/src/gcssdk-build/google/cloud/storage &&
       patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcs_ossl.patch
     BUILD_IN_SOURCE 1
