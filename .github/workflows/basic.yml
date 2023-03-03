@@ -81,13 +81,13 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/awssdk-install
-        key: awssdk-${{env.AWSSDK_VER}}-${{matrix.os}}
+        key: awssdk-${{env.AWSSDK_VER}}-${{matrix.os}}-openssl-v1
 
     - name: Cache GCS SDK
       uses: actions/cache@v3
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-v1
+        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-v1
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
