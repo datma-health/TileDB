@@ -65,7 +65,7 @@ std::string& get_dlerror();
     X = Z dlsym(H, Y);           \
     if (!X) {                    \
       set_dlerror();             \
+      throw std::system_error(ECANCELED, std::generic_category(), dl_error_); \
     }                            \
   } while (false)
 
-//throw std::system_error(ECANCELED, std::generic_category(), dl_error_); 
