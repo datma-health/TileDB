@@ -90,12 +90,12 @@ elseif(NOT AWSSDK_FOUND)
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
-    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/tdb_openssl_shim.h 
-                  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/dl_utils.h 
+    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tdb_openssl_shim.h 
+                  ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/dl_utils.h 
                   ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl &&
-                  cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/tdb_openssl_shim.cc
+                  cp ${CMAKE_CURRENT_SOURCE_DIR}/core/src/misc/tdb_openssl_shim.cc
                   ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/tdb_openssl_shim.cpp &&
-                  cp ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/dl_utils.cc 
+                  cp ${CMAKE_CURRENT_SOURCE_DIR}/core/src/misc/dl_utils.cc 
                   ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/dl_utils.cpp &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch &&
