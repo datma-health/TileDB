@@ -54,14 +54,13 @@ int __attribute__((weak)) HMAC_Final(void*, unsigned char*, unsigned int*);
 void __attribute__((weak)) HMAC_CTX_free(void*);
 
 // See md5.h
-#define MD5_LONG unsigned int
-#define MD5_CBLOCK 64
-#define MD5_LBLOCK (MD5_CBLOCK / 4)
-#define MD5_DIGEST_LENGTH 16
+#define MD5_LONG_OSSL1_SHIM unsigned int
+#define MD5_CBLOCK_OSSL1_SHIM 64
+#define MD5_LBLOCK_OSSL1_SHIM (MD5_CBLOCK_OSSL1_SHIM / 4)
 typedef struct MD5state_st {
-  MD5_LONG A, B, C, D;
-  MD5_LONG Nl, Nh;
-  MD5_LONG data[MD5_LBLOCK];
+  MD5_LONG_OSSL1_SHIM A, B, C, D;
+  MD5_LONG_OSSL1_SHIM Nl, Nh;
+  MD5_LONG_OSSL1_SHIM data[MD5_LBLOCK_OSSL1_SHIM];
   unsigned int num;
 } MD5_CTX;
 int __attribute__((weak)) MD5_Init(MD5_CTX*);
@@ -70,15 +69,14 @@ int __attribute__((weak)) MD5_Final(unsigned char*, void*);
 unsigned char __attribute__((weak)) *MD5(const unsigned char *d, size_t n, unsigned char *md);
 
 // See sha.h
-#define SHA_LONG unsigned int
-#define SHA_LBLOCK 16
-#define SHA_LAST_BLOCK (SHA_CBLOCK - 8)
-#define SHA_DIGEST_LENGTH 20
-#define SHA256_DIGEST_LENGTH 32
+
+#define SHA_LONG_OSSL1_SHIM unsigned int
+#define SHA_LBLOCK_OSSL1_SHIM 16
+
 typedef struct SHA256state_st {
   SHA_LONG h[8];
   SHA_LONG Nl, Nh;
-  SHA_LONG data[SHA_LBLOCK];
+  SHA_LONG data[SHA_LBLOCK_OSSL1_SHIM];
   unsigned int num, md_len;
 } SHA256_CTX;
 int __attribute__((weak)) SHA256_Init(void*);
