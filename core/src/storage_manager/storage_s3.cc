@@ -35,6 +35,8 @@
 #include "uri.h"
 #include "utils.h"
 
+#include "tdb_openssl_shim.h"
+
 #include <aws/core/client/DefaultRetryStrategy.h>
 #include <aws/s3/model/Bucket.h>
 #include <aws/s3/model/AbortMultipartUploadRequest.h>
@@ -75,6 +77,8 @@ S3::S3(const std::string& home) {
   if (path_uri.bucket().size() == 0) {
     throw std::system_error(EPROTO, std::generic_category(), "S3 URI does not seem to have a bucket specified");
   }
+
+  ossl_shim_init();
 
   std::call_once(awssdk_init_api_flag, awssdk_init_api);
 

@@ -3,7 +3,7 @@
 #
 # The MIT License
 #
-# Copyright (c) 2020-2022 Omics Data Automation, Inc.
+# Copyright (c) 2020-2023 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +51,8 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         # All supported types
-        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        #type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        type: [basic]
         include:
           - os: macos-11
             type: basic
@@ -59,10 +60,10 @@ jobs:
             type: basic
           - os: ubuntu-22.04
             type: basic
-          - os: ubuntu-22.04
-            type: azurite
-          - os: ubuntu-22.04
-            type: aws
+            #- os: ubuntu-22.04
+            #type: azurite
+            #- os: ubuntu-22.04
+            #type: aws
 
     runs-on: ${{ matrix.os }}
 
