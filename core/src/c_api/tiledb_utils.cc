@@ -324,7 +324,7 @@ static int check_file_for_read(TileDB_CTX *tiledb_ctx, std::string filename) {
 }
 
 
-#include <openssl/md5.h>
+#include "tdb_openssl_shim.h"
 void print_md5_hash(unsigned char* buffer, size_t length) {
   unsigned char md[MD5_DIGEST_LENGTH];
   MD5(buffer, length, md);

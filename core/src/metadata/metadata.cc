@@ -33,9 +33,8 @@
 #include "metadata.h"
 #include <cassert>
 #include <cstring>
-#include <openssl/md5.h>
 
-
+#include "tdb_openssl_shim.h"
 
 
 /* ****************************** */
