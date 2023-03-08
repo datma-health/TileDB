@@ -125,6 +125,10 @@ void __attribute__((weak)) *CRYPTO_malloc(size_t num, const char* file, int line
 
 
 // OpenSSL 3 prototypes - see evp.h
+
+#define OSSL_ALG_PARAM_DIGEST       "digest"    /* utf8_string */
+#define OSSL_MAC_PARAM_DIGEST           OSSL_ALG_PARAM_DIGEST     /* utf8 string */
+
 typedef struct evp_mac_st EVP_MAC;
 typedef struct evp_mac_ctx_st EVP_MAC_CTX;
 typedef struct ossl_lib_ctx_st OSSL_LIB_CTX;
@@ -134,7 +138,6 @@ EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
 EVP_MAC_CTX* __attribute__((weak)) EVP_MAC_CTX_new(EVP_MAC*);
 void __attribute__((weak)) EVP_MAC_CTX_free(EVP_MAC_CTX*);
 
-#if 0
 // See params.h and types.h
 struct ossl_param_st {
   const char* key;        /* the name of the parameter */
@@ -143,7 +146,6 @@ struct ossl_param_st {
   size_t data_size;       /* data size */
   size_t return_size;     /* returned content size */
 };
-#endif
 
 typedef struct ossl_param_st OSSL_PARAM;
 OSSL_PARAM __attribute__((weak))
