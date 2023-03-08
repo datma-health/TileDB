@@ -1,6 +1,14 @@
 --- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 09:04:31.000000000 -0700
-+++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-03 14:22:15.000000000 -0800
-@@ -28,6 +28,8 @@
++++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-07 02:41:25.592833469 -0800
+@@ -9,6 +9,7 @@
+ #include <aws/core/utils/crypto/openssl/CryptoImpl.h>
+ #include <aws/core/utils/Outcome.h>
+ #include <openssl/md5.h>
++#include <openssl/core_names.h>
+ 
+ #ifdef OPENSSL_IS_BORINGSSL
+ #ifdef _MSC_VER
+@@ -28,6 +29,8 @@
  #include <aws/core/utils/logging/LogMacros.h>
  #include <thread>
  
@@ -9,48 +17,65 @@
  using namespace Aws::Utils;
  using namespace Aws::Utils::Crypto;
  
-@@ -328,7 +330,12 @@
+@@ -328,25 +331,42 @@
  #if OPENSSL_VERSION_LESS_1_1
                      m_ctx = Aws::New<HMAC_CTX>("AllocSha256HAMCOpenSSLContext");
  #else
--                    m_ctx = HMAC_CTX_new();
 +                    if(OpenSSL_version_num() < 0x30000000L ) {
-+                      m_ctx = HMAC_CTX_new();
+                     m_ctx = HMAC_CTX_new();
+-#endif
+                     assert(m_ctx != nullptr);
 +                    } else {
 +                      mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
-+                      m_ctx = EVP_MAC_CTX_new(mac);
++                      evp_ctx = EVP_MAC_CTX_new(mac);
++                      assert(evp_ctx != nullptr);
 +                    }
- #endif
-                     assert(m_ctx != nullptr);
++#endif
                  }
-@@ -337,7 +344,11 @@
+ 
+                 ~HMACRAIIGuard() {
  #if OPENSSL_VERSION_LESS_1_1
                      Aws::Delete<HMAC_CTX>(m_ctx);
  #else
--                    HMAC_CTX_free(m_ctx);
 +                    if (OpenSSL_version_num()  < 0x30000000L ) {
-+                      HMAC_CTX_free(m_ctx);
-+                    } else {
-+                      EVP_MAC_CTX_free(m_ctx);
-+                    }
- #endif
+                     HMAC_CTX_free(m_ctx);
+-#endif
                      m_ctx = nullptr;
++                    } else {
++                      EVP_MAC_CTX_free(evp_ctx);
++                      evp_ctx = nullptr;
++                    }
++#endif
                  }
-@@ -346,6 +357,7 @@
+ 
+                 HMAC_CTX* getResource() {
                      return m_ctx;
                  }
++
++                EVP_MAC_CTX* getEvpResource() {
++                    return evp_ctx;
++                }
              private:
-+                void *mac;
-                 HMAC_CTX *m_ctx;
+-                HMAC_CTX *m_ctx;
++                HMAC_CTX *m_ctx = nullptr;
++                EVP_MAC_CTX *evp_ctx = nullptr;
++                EVP_MAC *mac = nullptr;
              };
  
-@@ -356,21 +368,36 @@
+             HashResult Sha256HMACOpenSSLImpl::Calculate(const ByteBuffer& toSign, const ByteBuffer& secret)
+@@ -356,21 +376,42 @@
                  memset(digest.GetUnderlyingData(), 0, length);
  
                  HMACRAIIGuard guard;
 -                HMAC_CTX* m_ctx = guard.getResource();
-+                void* m_ctx = guard.getResource();
++                HMAC_CTX *m_ctx = nullptr;
++                EVP_MAC_CTX *evp_ctx = nullptr;
  
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  m_ctx = guard.getResource();
++                } else {
++                  evp_ctx = guard.getEvpResource();
++                }
  #if OPENSSL_VERSION_LESS_1_1
                  HMAC_CTX_init(m_ctx);
 -#endif
@@ -58,32 +83,29 @@
  
 -                HMAC_Init_ex(m_ctx, secret.GetUnderlyingData(), static_cast<int>(secret.GetLength()), EVP_sha256(),
 -                             NULL);
--                HMAC_Update(m_ctx, toSign.GetUnderlyingData(), toSign.GetLength());
--                HMAC_Final(m_ctx, digest.GetUnderlyingData(), &length);
 +                if(OpenSSL_version_num() < 0x30000000L ) {
 +                  HMAC_Init_ex(m_ctx, secret.GetUnderlyingData(), static_cast<int>(secret.GetLength()),
 +                               EVP_sha256(), NULL);
-+                  HMAC_Update(m_ctx, toSign.GetUnderlyingData(), toSign.GetLength());
-+                  HMAC_Final(m_ctx, digest.GetUnderlyingData(), &length);
+                 HMAC_Update(m_ctx, toSign.GetUnderlyingData(), toSign.GetLength());
+                 HMAC_Final(m_ctx, digest.GetUnderlyingData(), &length);
 +                } else {
 +                  char sha256[] {"SHA256"};
 +                  OSSL_PARAM ossl_params[2];
 +                  ossl_params[0] =
 +                    OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, sha256, 0);
 +                  ossl_params[1] = OSSL_PARAM_construct_end();
-+                  EVP_MAC_init(m_ctx, secret.GetUnderlyingData(),
++                  EVP_MAC_init(evp_ctx, secret.GetUnderlyingData(),
 +                               static_cast<int>(secret.GetLength()), ossl_params);
-+                  EVP_MAC_update(m_ctx, toSign.GetUnderlyingData(), toSign.GetLength());
-+                  EVP_MAC_final(m_ctx, digest.GetUnderlyingData(), NULL, length);
++                  EVP_MAC_update(evp_ctx, toSign.GetUnderlyingData(), toSign.GetLength());
++                  EVP_MAC_final(evp_ctx, digest.GetUnderlyingData(), NULL, length);
 +                }
 +#endif
  
  #if OPENSSL_VERSION_LESS_1_1
                  HMAC_CTX_cleanup(m_ctx);
  #else
--                HMAC_CTX_reset(m_ctx);
 +                if (OpenSSL_version_num() < 0x30000000L) {
-+                  HMAC_CTX_reset(m_ctx);
+                 HMAC_CTX_reset(m_ctx);
 +                }
  #endif
                  return HashResult(std::move(digest));
