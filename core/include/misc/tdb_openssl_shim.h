@@ -45,9 +45,10 @@ unsigned long OpenSSL_version_num(void);
 
 // OpenSSL 1.x prototypes - see hmac.h
 typedef struct hmac_ctx_st HMAC_CTX;
-struct EVP_MD;
-struct ENGINE;
-struct EVP_MD_CTX;
+typedef struct evp_md_st   EVP_MD;
+typedef struct engine_st   ENGINE;
+typedef struct evp_md_ctx_st EVP_MD_CTX;
+typedef struct SHA256state_st SHA256_CTX;
 HMAC_CTX* __attribute__((weak)) HMAC_CTX_new(void);
 int __attribute__((weak)) HMAC_CTX_reset(HMAC_CTX*);
 int __attribute__((weak)) HMAC_Init_ex(HMAC_CTX *ctx, const void *key, 
@@ -81,6 +82,7 @@ typedef struct MD5state_st {
 } MD5_CTX;
 
 #define MD5_DIGEST_LENGTH 16
+#define SHA256_DIGEST_LENGTH 32
 int __attribute__((weak)) MD5_Init(MD5_CTX* c);
 int __attribute__((weak)) MD5_Update(MD5_CTX* c, const void* data, size_t);
 int __attribute__((weak)) MD5_Final(unsigned char*, MD5_CTX* c);
@@ -99,6 +101,7 @@ typedef struct SHA256state_st {
 } SHA256_CTX;
 */
 
+/*
 #define SHA_LONG unsigned int
 #define SHA_LBLOCK 16
 
@@ -109,13 +112,15 @@ typedef struct SHA256state_st {
   SHA_LONG data[SHA_LBLOCK];
   unsigned int num, md_len;
 } SHA256_CTX;
+*/
+
 
 int __attribute__((weak)) SHA256_Init(SHA256_CTX *c);
 int __attribute__((weak)) SHA256_Update(SHA256_CTX *c, const void*, size_t);
 int __attribute__((weak)) SHA256_Final(unsigned char *md, SHA256_CTX *c);
 
 
-#define OPENSSL_malloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
+// #define OPENSSL_malloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
 void __attribute__((weak)) *CRYPTO_malloc(size_t num, const char* file, int line);
 
 

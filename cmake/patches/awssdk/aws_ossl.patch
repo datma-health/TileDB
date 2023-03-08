@@ -1,13 +1,24 @@
 --- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 09:04:31.000000000 -0700
-+++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-07 02:41:25.592833469 -0800
-@@ -9,6 +9,7 @@
++++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-08 02:01:49.622898892 -0800
+@@ -8,7 +8,8 @@
+ #include <aws/core/utils/memory/AWSMemory.h>
  #include <aws/core/utils/crypto/openssl/CryptoImpl.h>
  #include <aws/core/utils/Outcome.h>
- #include <openssl/md5.h>
+-#include <openssl/md5.h>
++// #include <openssl/md5.h>
 +#include <openssl/core_names.h>
  
  #ifdef OPENSSL_IS_BORINGSSL
  #ifdef _MSC_VER
+@@ -18,7 +19,7 @@
+ #endif
+ #endif
+ 
+-#include <openssl/sha.h>
++// #include <openssl/sha.h>
+ 
+ #ifdef OPENSSL_IS_BORINGSSL
+ AWS_SUPPRESS_WARNING_POP
 @@ -28,6 +29,8 @@
  #include <aws/core/utils/logging/LogMacros.h>
  #include <thread>
@@ -110,3 +121,14 @@
  #endif
                  return HashResult(std::move(digest));
              }
+--- awssdk-build-orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 09:04:31.000000000 -0700
++++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-08 02:02:13.822498722 -0800
+@@ -11,7 +11,7 @@
+ #include <aws/core/utils/GetTheLights.h>
+ #include <openssl/ossl_typ.h>
+ #include <openssl/evp.h>
+-#include <openssl/hmac.h>
++// #include <openssl/hmac.h>
+ #include <openssl/rand.h>
+ #include <atomic>
+ #include <mutex>
