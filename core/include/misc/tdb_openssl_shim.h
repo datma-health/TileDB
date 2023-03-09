@@ -128,6 +128,23 @@ void __attribute__((weak)) *CRYPTO_malloc(size_t num, const char* file, int line
 
 #define OSSL_ALG_PARAM_DIGEST       "digest"    /* utf8_string */
 #define OSSL_MAC_PARAM_DIGEST           OSSL_ALG_PARAM_DIGEST     /* utf8 string */
+#define OPENSSL_INIT_LOAD_CRYPTO_STRINGS    0x00000002L
+#define OPENSSL_INIT_ADD_ALL_CIPHERS        0x00000004L
+#define OPENSSL_INIT_ADD_ALL_DIGESTS        0x00000008L
+
+#define EVP_MD_CTX_FLAG_NON_FIPS_ALLOW  0x0008
+#define EVP_CTRL_AEAD_GET_TAG           0x10
+#define EVP_CTRL_AEAD_SET_TAG           0x11
+#define EVP_CTRL_GCM_GET_TAG    EVP_CTRL_AEAD_GET_TAG
+#define EVP_CTRL_GCM_SET_TAG    EVP_CTRL_AEAD_SET_TAG
+#define EVP_MD_CTX_create()     EVP_MD_CTX_new()
+#define EVP_MD_CTX_destroy(ctx) EVP_MD_CTX_free((ctx))
+#define EVP_MD_size             EVP_MD_get_size
+#define EVP_CIPHER_CTX_init(c)      EVP_CIPHER_CTX_reset(c)
+#define EVP_CIPHER_CTX_cleanup(c)   EVP_CIPHER_CTX_reset(c)
+#define OPENSSL_add_all_algorithms_noconf() \
+    OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS \
+    | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL)
 
 typedef struct evp_mac_st EVP_MAC;
 typedef struct evp_mac_ctx_st EVP_MAC_CTX;
@@ -168,6 +185,45 @@ const EVP_MD* __attribute__((weak)) EVP_md5(void);
 EVP_MD_CTX* __attribute__((weak)) EVP_MD_CTX_new(void);
   
 const EVP_MD* __attribute__((weak)) EVP_sha256(void);
+__attribute__((weak)) void EVP_MD_CTX_set_flags(EVP_MD_CTX *ctx, int flags);
+__attribute__((weak)) int EVP_DigestFinal(EVP_MD_CTX *ctx, unsigned char *md, 
+    unsigned int *s); 
+__attribute__((weak)) const EVP_MD *EVP_sha1(void);
+__attribute__((weak)) int EVP_CIPHER_CTX_copy(EVP_CIPHER_CTX *out, 
+    const EVP_CIPHER_CTX *in);
+__attribute__((weak)) int EVP_CIPHER_CTX_set_padding(EVP_CIPHER_CTX *c, int pad);
+__attribute__((weak)) int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, 
+    int arg, void *ptr);
+__attribute__((weak)) EVP_CIPHER_CTX *EVP_CIPHER_CTX_new(void);
+__attribute__((weak)) void EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *c);
+__attribute__((weak)) int EVP_CIPHER_CTX_reset(EVP_CIPHER_CTX *c);
+
+__attribute__((weak)) int EVP_EncryptInit_ex(EVP_CIPHER_CTX *ctx, 
+    const EVP_CIPHER *cipher, ENGINE *impl, const unsigned char *key, 
+    const unsigned char *iv);
+__attribute__((weak)) int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, 
+    unsigned char *out, int *outl, const unsigned char *in, int inl);
+__attribute__((weak)) int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, 
+    unsigned char *out, int *outl);
+__attribute__((weak)) int EVP_DecryptInit_ex(EVP_CIPHER_CTX *ctx, 
+    const EVP_CIPHER *cipher, ENGINE *impl, const unsigned char *key, 
+    const unsigned char *iv);
+__attribute__((weak)) int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, 
+    unsigned char *out, int *outl, const unsigned char *in, int inl);
+__attribute__((weak)) int EVP_DecryptFinal_ex(EVP_CIPHER_CTX *ctx, 
+    unsigned char *outm, int *outl);
+
+__attribute__((weak)) const EVP_CIPHER *EVP_aes_256_cbc(void);
+__attribute__((weak)) const EVP_CIPHER *EVP_aes_256_ctr(void);
+__attribute__((weak)) const EVP_CIPHER *EVP_aes_256_gcm(void);
+__attribute__((weak)) const EVP_CIPHER *EVP_aes_256_ecb(void);
+
+__attribute__((weak)) int OPENSSL_init_crypto(uint64_t opts, const OPENSSL_INIT_SETTINGS *settings);
+
+__attribute__((weak)) unsigned long ERR_get_error(void);
+__attribute__((weak)) void ERR_error_string_n(unsigned long e, char *buf, size_t len);
+__attribute__((weak)) int RAND_poll(void);
+__attribute__((weak)) int RAND_bytes(unsigned char *buf, int num);
 
 #ifdef __cplusplus
 }
