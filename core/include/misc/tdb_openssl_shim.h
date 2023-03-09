@@ -101,18 +101,16 @@ typedef struct SHA256state_st {
 } SHA256_CTX;
 */
 
-/*
 #define SHA_LONG unsigned int
 #define SHA_LBLOCK 16
 
-__attribute__((weak))
 typedef struct SHA256state_st {
   SHA_LONG h[8];
   SHA_LONG Nl, Nh;
   SHA_LONG data[SHA_LBLOCK];
   unsigned int num, md_len;
 } SHA256_CTX;
-*/
+
 
 
 int __attribute__((weak)) SHA256_Init(SHA256_CTX *c);
