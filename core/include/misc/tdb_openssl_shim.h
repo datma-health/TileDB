@@ -120,7 +120,7 @@ int __attribute__((weak)) SHA256_Update(SHA256_CTX *c, const void*, size_t);
 int __attribute__((weak)) SHA256_Final(unsigned char *md, SHA256_CTX *c);
 
 
-// #define OPENSSL_malloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
+#define OPENSSL_malloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
 void __attribute__((weak)) *CRYPTO_malloc(size_t num, const char* file, int line);
 
 
@@ -149,6 +149,10 @@ void __attribute__((weak)) *CRYPTO_malloc(size_t num, const char* file, int line
 typedef struct evp_mac_st EVP_MAC;
 typedef struct evp_mac_ctx_st EVP_MAC_CTX;
 typedef struct ossl_lib_ctx_st OSSL_LIB_CTX;
+typedef struct evp_cipher_st EVP_CIPHER;
+typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
+typedef struct ossl_param_st OSSL_PARAM;
+typedef struct ossl_init_settings_st OPENSSL_INIT_SETTINGS;
 
 EVP_MAC* __attribute__((weak))
 EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
@@ -164,7 +168,6 @@ struct ossl_param_st {
   size_t return_size;     /* returned content size */
 };
 
-typedef struct ossl_param_st OSSL_PARAM;
 OSSL_PARAM __attribute__((weak))
 OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
 OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_end(void);
