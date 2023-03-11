@@ -137,7 +137,7 @@ void __attribute__((weak)) *CRYPTO_malloc(size_t num, const char* file, int line
 #define EVP_CTRL_GCM_SET_TAG    EVP_CTRL_AEAD_SET_TAG
 #define EVP_MD_CTX_create()     EVP_MD_CTX_new()
 #define EVP_MD_CTX_destroy(ctx) EVP_MD_CTX_free((ctx))
-#define EVP_MD_size             EVP_MD_get_size
+//#define EVP_MD_size             EVP_MD_get_size
 #define EVP_CIPHER_CTX_init(c)      EVP_CIPHER_CTX_reset(c)
 #define EVP_CIPHER_CTX_cleanup(c)   EVP_CIPHER_CTX_reset(c)
 #define OPENSSL_add_all_algorithms_noconf() \
@@ -176,6 +176,7 @@ EVP_MAC_init(EVP_MAC_CTX*, const unsigned char*, size_t, const OSSL_PARAM[]);
 int __attribute__((weak)) EVP_MAC_update(EVP_MAC_CTX*, const unsigned char*, size_t);
 int __attribute__((weak)) EVP_MAC_final(EVP_MAC_CTX*, unsigned char*, size_t*, size_t);
 int __attribute__((weak)) EVP_MD_get_size(const EVP_MD*);
+int __attribute__((weak)) EVP_MD_size(const EVP_MD*);
 
 int __attribute__((weak)) EVP_DigestInit_ex(EVP_MD_CTX*, const EVP_MD*, ENGINE*);
 int __attribute__((weak)) EVP_DigestUpdate(EVP_MD_CTX*, const void*, size_t);

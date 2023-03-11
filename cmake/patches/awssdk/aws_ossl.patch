@@ -1,6 +1,10 @@
---- awssdk-build.orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 09:04:31.000000000 -0700
-+++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-08 10:32:30.651898016 -0800
-@@ -8,7 +8,7 @@
+--- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 21:34:31.000000000 +0530
++++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-11 20:41:25.876914872 +0530
+@@ -5,10 +5,11 @@
+ 
+ #include <cstring>
+ 
++#include <aws/core/utils/crypto/openssl/tdb_openssl_shim.h>
  #include <aws/core/utils/memory/AWSMemory.h>
  #include <aws/core/utils/crypto/openssl/CryptoImpl.h>
  #include <aws/core/utils/Outcome.h>
@@ -9,7 +13,7 @@
  
  #ifdef OPENSSL_IS_BORINGSSL
  #ifdef _MSC_VER
-@@ -18,16 +18,18 @@
+@@ -18,16 +19,17 @@
  #endif
  #endif
  
@@ -25,12 +29,27 @@
  #include <aws/core/utils/logging/LogMacros.h>
  #include <thread>
  
-+#include <aws/core/utils/crypto/openssl/tdb_openssl_shim.h>
 +
  using namespace Aws::Utils;
  using namespace Aws::Utils::Crypto;
  
-@@ -328,25 +330,42 @@
+@@ -228,8 +230,13 @@
+                 auto ctx = guard.getResource();
+                 EVP_DigestInit_ex(ctx, EVP_sha1(), nullptr);
+                 EVP_DigestUpdate(ctx, str.c_str(), str.size());
+-
+-                ByteBuffer hash(EVP_MD_size(EVP_sha1()));
++                size_t mdsize = 0;
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  mdsize = EVP_MD_size(EVP_sha1());
++                } else {
++                  mdsize = EVP_MD_get_size(EVP_sha1());
++                }
++                ByteBuffer hash(mdsize);
+                 EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
+ 
+                 return HashResult(std::move(hash));
+@@ -328,25 +335,42 @@
  #if OPENSSL_VERSION_LESS_1_1
                      m_ctx = Aws::New<HMAC_CTX>("AllocSha256HAMCOpenSSLContext");
  #else
@@ -76,7 +95,7 @@
              };
  
              HashResult Sha256HMACOpenSSLImpl::Calculate(const ByteBuffer& toSign, const ByteBuffer& secret)
-@@ -356,21 +375,42 @@
+@@ -356,21 +380,42 @@
                  memset(digest.GetUnderlyingData(), 0, length);
  
                  HMACRAIIGuard guard;
@@ -123,8 +142,8 @@
  #endif
                  return HashResult(std::move(digest));
              }
---- awssdk-build.orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 09:04:31.000000000 -0700
-+++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-08 10:28:17.819664612 -0800
+--- awssdk-build-orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 21:34:31.000000000 +0530
++++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-11 19:35:39.139916713 +0530
 @@ -10,9 +10,9 @@
  #include <aws/core/utils/crypto/SecureRandom.h>
  #include <aws/core/utils/GetTheLights.h>
