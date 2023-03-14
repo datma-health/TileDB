@@ -154,6 +154,7 @@ EVP_MAC* __attribute__((weak))
 EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
 EVP_MAC_CTX* __attribute__((weak)) EVP_MAC_CTX_new(EVP_MAC*);
 void __attribute__((weak)) EVP_MAC_CTX_free(EVP_MAC_CTX*);
+void __attribute__((weak)) EVP_MAC_free(EVP_MAC *mac);
 
 // See params.h and types.h
 struct ossl_param_st {

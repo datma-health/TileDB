@@ -1,5 +1,5 @@
---- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 21:34:31.000000000 +0530
-+++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-11 20:41:25.876914872 +0530
+--- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 09:04:31.000000000 -0700
++++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-14 07:33:00.332492540 -0700
 @@ -5,10 +5,11 @@
  
  #include <cstring>
@@ -49,35 +49,39 @@
                  EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
  
                  return HashResult(std::move(hash));
-@@ -328,25 +335,42 @@
+@@ -328,25 +335,44 @@
  #if OPENSSL_VERSION_LESS_1_1
                      m_ctx = Aws::New<HMAC_CTX>("AllocSha256HAMCOpenSSLContext");
  #else
+-                    m_ctx = HMAC_CTX_new();
 +                    if(OpenSSL_version_num() < 0x30000000L ) {
-                     m_ctx = HMAC_CTX_new();
--#endif
-                     assert(m_ctx != nullptr);
++                      m_ctx = HMAC_CTX_new();
++                      assert(m_ctx != nullptr);
 +                    } else {
 +                      mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
 +                      evp_ctx = EVP_MAC_CTX_new(mac);
 +                      assert(evp_ctx != nullptr);
 +                    }
-+#endif
+ #endif
+-                    assert(m_ctx != nullptr);
                  }
  
                  ~HMACRAIIGuard() {
  #if OPENSSL_VERSION_LESS_1_1
                      Aws::Delete<HMAC_CTX>(m_ctx);
  #else
+-                    HMAC_CTX_free(m_ctx);
 +                    if (OpenSSL_version_num()  < 0x30000000L ) {
-                     HMAC_CTX_free(m_ctx);
--#endif
-                     m_ctx = nullptr;
++                      HMAC_CTX_free(m_ctx);
++                      m_ctx = nullptr;
 +                    } else {
 +                      EVP_MAC_CTX_free(evp_ctx);
 +                      evp_ctx = nullptr;
++                      EVP_MAC_free(mac);
++                      mac = nullptr;
 +                    }
-+#endif
+ #endif
+-                    m_ctx = nullptr;
                  }
  
                  HMAC_CTX* getResource() {
@@ -95,7 +99,7 @@
              };
  
              HashResult Sha256HMACOpenSSLImpl::Calculate(const ByteBuffer& toSign, const ByteBuffer& secret)
-@@ -356,21 +380,42 @@
+@@ -356,21 +382,42 @@
                  memset(digest.GetUnderlyingData(), 0, length);
  
                  HMACRAIIGuard guard;
@@ -142,8 +146,8 @@
  #endif
                  return HashResult(std::move(digest));
              }
---- awssdk-build-orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 21:34:31.000000000 +0530
-+++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-11 19:35:39.139916713 +0530
+--- awssdk-build-orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 09:04:31.000000000 -0700
++++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-14 04:32:43.579793651 -0700
 @@ -10,9 +10,9 @@
  #include <aws/core/utils/crypto/SecureRandom.h>
  #include <aws/core/utils/GetTheLights.h>
