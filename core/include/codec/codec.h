@@ -116,6 +116,75 @@ class Codec {
     }
   }
   
+  /* ********************************* */
+  /*              MUTATORS             */
+  /* ********************************* */
+
+  // Clears old error conditions
+  void clear_dlerror() {
+    dl_error_ = std::string("");
+    dlerror();
+  }
+
+  void set_dlerror() {
+    char *errmsg = dlerror();
+    if (errmsg) {
+      dl_error_.empty()?(dl_error_=errmsg):(dl_error_+=std::string("\n")+errmsg);
+    }
+  }
+
+  std::string& get_dlerror() {
+    return dl_error_;
+  }
+
+ void *get_dlopen_handle(const std::string& name) {
+    return get_dlopen_handle(name, "");
+  }
+
+  void *get_dlopen_handle(const std::string& name, const std::string& version) {
+    void *handle;
+    std::string prefix("lib");
+#ifdef __APPLE__
+    std::string suffix(".dylib");
+#elif __linux__
+    std::string suffix(".so");
+#else
+#  error Platform not supported
+#endif
+    
+    clear_dlerror();
+    for (std::string dl_path : dl_paths_) {
+      std::string path = dl_path+prefix+name;
+      if (version.empty()) {
+        handle = dlopen((path+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+      } else {
+#ifdef __APPLE__
+        handle = dlopen((path+"."+version+suffix).c_str(), RTLD_GLOBAL|RTLD_NOW);
+#else
+        handle = dlopen((path+suffix+"."+version).c_str(), RTLD_GLOBAL|RTLD_NOW);
+#endif
+      }
+      if (handle) {
+	clear_dlerror();
+        return handle;
+      } else {
+	set_dlerror();
+      }
+    }
+
+    return handle;
+  }
+
+#define BIND_SYMBOL(H, X, Y, Z)  \
+  do {                           \
+    clear_dlerror();             \
+    X = Z dlsym(H, Y);           \
+    if (!X) {                    \
+      set_dlerror();             \
+      throw std::system_error(ECANCELED, std::generic_category(), dl_error_); \
+    }                            \
+  } while (false)
+
   /**
    */
   const std::string& name() {
@@ -158,6 +227,15 @@ class Codec {
   /** Allocated size for internal buffer used in the case of compression. */
   size_t tile_compressed_allocated_size_ = 0;
 
+  std::string dl_error_;
+#ifdef __APPLE__
+  std::vector<std::string> dl_paths_ = {"/usr/local/Cellar/lib/", "/usr/local/lib/", "/usr/lib/", ""};
+#elif __linux__
+  std::vector<std::string> dl_paths_ = {"/usr/lib64/", "/usr/lib/", ""};
+#else
+#  error Platform not supported
+#endif
+  
 };
 
 #endif /*__CODEC_H__*/

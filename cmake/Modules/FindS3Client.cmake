@@ -90,8 +90,7 @@ elseif(NOT AWSSDK_FOUND)
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
-    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tdb_openssl_shim.h 
-                  ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/dl_utils.h 
+    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h 
                   ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch &&

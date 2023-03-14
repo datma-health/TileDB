@@ -34,7 +34,6 @@
 #include "codec.h"
 #include "codec_gzip.h"
 #include "tiledb.h"
-#include "dl_utils.h"
 
 #include <limits.h>
 

@@ -1,5 +1,5 @@
 /**
- * @file   tdb_openssl_shim.cc
+ * @file   tiledb_openssl_shim.cc
  *
  * @section LICENSE
  *
@@ -37,8 +37,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-void ossl_shim_init();
 
 // General
 unsigned long OpenSSL_version_num(void);

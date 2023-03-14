@@ -34,7 +34,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "tdb_openssl_shim.h"
+#include "tiledb_openssl_shim.h"
 
 
 /* ****************************** */

@@ -35,7 +35,6 @@
 #define  __CODEC_BLOSC_H__
 
 #include "codec.h"
-#include <dl_utils.h>
 
 // Function Pointers for blosc
 #if !defined(BLOSC_EXTERN_DECL)

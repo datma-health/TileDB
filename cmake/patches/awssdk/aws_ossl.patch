@@ -4,7 +4,7 @@
  
  #include <cstring>
  
-+#include <aws/core/utils/crypto/openssl/tdb_openssl_shim.h>
++#include <aws/core/utils/crypto/openssl/tiledb_openssl_shim.h>
  #include <aws/core/utils/memory/AWSMemory.h>
  #include <aws/core/utils/crypto/openssl/CryptoImpl.h>
  #include <aws/core/utils/Outcome.h>
