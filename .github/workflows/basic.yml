@@ -52,12 +52,19 @@ jobs:
         os: [ubuntu-20.04]
         # All supported types
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
-        #type: [basic]
         include:
           - os: macos-11
             type: basic
+            openssl-version: 1.1
+          - os: macos-11
+            type: basic
+            openssl-version: 3
           - os: macos-12
             type: basic
+            openssl-version: 1.1
+          - os: macos-12
+            type: basic
+            openssl-version: 3
           - os: ubuntu-22.04
             type: basic
           - os: ubuntu-22.04
@@ -114,12 +121,6 @@ jobs:
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         # sudo apt-get -y install catch2
         INSTALL_DIR=~/catch2-install CATCH2_VER=$CATCH2_VER $GITHUB_WORKSPACE/.github/scripts/install_catch2.sh
-        # This block should be removed as soon as support for openssl 3 is complete!
-        if [[ ${{matrix.os}} == "ubuntu-22.04" ]]; then
-          echo "Installing openssl 1.1 ..."
-          source $GITHUB_WORKSPACE/.github/scripts/install_openssl1.1.sh
-          echo "Installing openssl 1.1 DONE"
-        fi
         export ENABLE_ZSTD=0
         export ENABLE_BLOSC=0
         if [[ ${{matrix.type}} == "basic-no-hdfs" ]]; then
@@ -141,7 +142,7 @@ jobs:
       run: |
         brew list cmake &>/dev/null || brew install cmake
         brew list lcov &>/dev/null || brew install lcov
-        brew list openssl@1.1 &>/dev/null || brew install openssl@1.1
+        brew list openssl@${{matrix.openssl-version}} &>/dev/null || brew install openssl@${{matrix.openssl-version}}
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         brew list catch2  &>/dev/null || brew install catch2
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
@@ -149,7 +150,7 @@ jobs:
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4
       env:
-        OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
+        OPENSSL_ROOT_DIR: /usr/local/opt/openssl@${{matrix.openssl-version}}
 
     - name: Build and Test
       if: startsWith(matrix.type, 'basic')
