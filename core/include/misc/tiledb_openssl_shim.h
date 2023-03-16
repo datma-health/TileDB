@@ -116,8 +116,10 @@ int __attribute__((weak)) SHA256_Update(SHA256_CTX *c, const void*, size_t);
 int __attribute__((weak)) SHA256_Final(unsigned char *md, SHA256_CTX *c);
 
 
+/*
 #define OPENSSL_malloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
-void __attribute__((weak)) *CRYPTO_malloc(size_t num, const char* file, int line);
+void* __attribute__((weak)) CRYPTO_malloc(size_t num, const char* file, int line);
+*/
 
 
 // OpenSSL 3 prototypes - see evp.h
