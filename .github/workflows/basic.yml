@@ -71,6 +71,10 @@ jobs:
             type: azurite
           - os: ubuntu-22.04
             type: aws
+          - os: ubuntu-22.04
+            type: gcs
+          - os: ubuntu-22.04
+            type: azure 
 
     runs-on: ${{ matrix.os }}
 
