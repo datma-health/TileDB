@@ -56,19 +56,6 @@ int __attribute__((weak)) HMAC_Final(HMAC_CTX *ctx, unsigned char *md, unsigned 
 void __attribute__((weak)) HMAC_CTX_free(HMAC_CTX *ctx);
 
 // See md5.h
-
-/*
-#define MD5_LONG_OSSL1_SHIM unsigned int
-#define MD5_CBLOCK_OSSL1_SHIM 64
-#define MD5_LBLOCK_OSSL1_SHIM (MD5_CBLOCK_OSSL1_SHIM / 4)
-typedef struct MD5state_st {
-  MD5_LONG_OSSL1_SHIM A, B, C, D;
-  MD5_LONG_OSSL1_SHIM Nl, Nh;
-  MD5_LONG_OSSL1_SHIM data[MD5_LBLOCK_OSSL1_SHIM];
-  unsigned int num;
-} MD5_CTX;
-*/
-
 #define MD5_LONG unsigned int
 #define MD5_CBLOCK 64
 #define MD5_LBLOCK (MD5_CBLOCK / 4)
@@ -87,18 +74,6 @@ int __attribute__((weak)) MD5_Final(unsigned char*, MD5_CTX* c);
 unsigned char __attribute__((weak)) *MD5(const unsigned char *d, size_t n, unsigned char *md);
 
 // See sha.h
-/*
-#define SHA_LONG_OSSL1_SHIM unsigned int
-#define SHA_LBLOCK_OSSL1_SHIM 16
-
-typedef struct SHA256state_st {
-  SHA_LONG_OSSL1_SHIM h[8];
-  SHA_LONG_OSSL1_SHIM Nl, Nh;
-  SHA_LONG_OSSL1_SHIM data[SHA_LBLOCK_OSSL1_SHIM];
-  unsigned int num, md_len;
-} SHA256_CTX;
-*/
-
 #define SHA_LONG unsigned int
 #define SHA_LBLOCK 16
 
@@ -115,11 +90,6 @@ int __attribute__((weak)) SHA256_Init(SHA256_CTX *c);
 int __attribute__((weak)) SHA256_Update(SHA256_CTX *c, const void*, size_t);
 int __attribute__((weak)) SHA256_Final(unsigned char *md, SHA256_CTX *c);
 
-
-/*
-#define OPENSSL_malloc(num) CRYPTO_malloc(num, __FILE__, __LINE__)
-void* __attribute__((weak)) CRYPTO_malloc(size_t num, const char* file, int line);
-*/
 
 
 // OpenSSL 3 prototypes - see evp.h

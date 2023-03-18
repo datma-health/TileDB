@@ -1,5 +1,5 @@
 --- gcssdk-build-orig/google/cloud/storage/hashing_options.cc	2021-02-02 08:32:25.000000000 +0530
-+++ gcssdk-build/google/cloud/storage/hashing_options.cc	2023-03-14 15:19:40.931760484 +0530
++++ gcssdk-build/google/cloud/storage/hashing_options.cc	2023-03-18 12:20:11.921816224 +0530
 @@ -14,9 +14,9 @@
  
  #include "google/cloud/storage/hashing_options.h"
@@ -11,7 +11,7 @@
  #include <cstring>
  
  namespace google {
-@@ -24,13 +24,33 @@
+@@ -24,13 +24,29 @@
  namespace storage {
  inline namespace STORAGE_CLIENT_NS {
  std::string ComputeMD5Hash(std::string const& payload) {
@@ -34,11 +34,7 @@
 +  } else {
 +    EVP_MD_CTX* mdctx;
 +    unsigned int md5_digest_len = 0;
-+    if(OpenSSL_version_num() < 0x30000000L ) {
-+      md5_digest_len = EVP_MD_size(EVP_sha1());
-+    } else {
-+      md5_digest_len = EVP_MD_get_size(EVP_sha1());
-+    }
++    md5_digest_len = EVP_MD_get_size(EVP_sha1());
 +    unsigned char md5_digest[md5_digest_len];
 +
 +    mdctx = EVP_MD_CTX_new();
@@ -53,7 +49,7 @@
  
  std::string ComputeCrc32cChecksum(std::string const& payload) {
 --- gcssdk-build-orig/google/cloud/storage/internal/hash_validator_impl.h	2021-02-02 08:32:25.000000000 +0530
-+++ gcssdk-build/google/cloud/storage/internal/hash_validator_impl.h	2023-03-11 21:12:33.842213292 +0530
++++ gcssdk-build/google/cloud/storage/internal/hash_validator_impl.h	2023-03-16 23:21:07.685891559 +0530
 @@ -16,8 +16,8 @@
  #define GOOGLE_CLOUD_CPP_GOOGLE_CLOUD_STORAGE_INTERNAL_HASH_VALIDATOR_IMPL_H
  
@@ -73,7 +69,7 @@
  };
  
 --- gcssdk-build-orig/google/cloud/storage/internal/hash_validator_impl.cc	2021-02-02 08:32:25.000000000 +0530
-+++ gcssdk-build/google/cloud/storage/internal/hash_validator_impl.cc	2023-03-14 15:30:57.680662240 +0530
++++ gcssdk-build/google/cloud/storage/internal/hash_validator_impl.cc	2023-03-18 12:24:56.367288761 +0530
 @@ -15,6 +15,7 @@
  #include "google/cloud/storage/internal/hash_validator_impl.h"
  #include "google/cloud/storage/internal/openssl_util.h"
@@ -106,7 +102,7 @@
  }
  
  void MD5HashValidator::ProcessMetadata(ObjectMetadata const& meta) {
-@@ -59,11 +71,27 @@
+@@ -59,11 +71,23 @@
  }
  
  HashValidator::Result MD5HashValidator::Finish() && {
@@ -123,11 +119,7 @@
 +    return Result{std::move(received_hash_), std::move(computed), is_mismatch};
 +  } else {
 +    unsigned int md5_digest_len = 0;
-+    if(OpenSSL_version_num() < 0x30000000L ) { 
-+      md5_digest_len = EVP_MD_size(EVP_sha1());
-+    } else {
-+      md5_digest_len = EVP_MD_get_size(EVP_sha1());
-+    }   
++    md5_digest_len = EVP_MD_get_size(EVP_sha1());
 +    unsigned char md5_digest[md5_digest_len];
 +
 +    EVP_DigestFinal_ex(evp_context_, md5_digest, &md5_digest_len);
@@ -140,7 +132,7 @@
  
  void Crc32cHashValidator::Update(char const* buf, std::size_t n) {
 --- gcssdk-build-orig/google/cloud/storage/internal/sha256_hash.cc	2021-02-02 08:32:25.000000000 +0530
-+++ gcssdk-build/google/cloud/storage/internal/sha256_hash.cc	2023-03-14 15:32:06.421885675 +0530
++++ gcssdk-build/google/cloud/storage/internal/sha256_hash.cc	2023-03-18 12:26:05.229536433 +0530
 @@ -13,10 +13,10 @@
  // limitations under the License.
  
@@ -154,7 +146,7 @@
  namespace google {
  namespace cloud {
  namespace storage {
-@@ -27,17 +27,36 @@
+@@ -27,17 +27,32 @@
  template <typename Byte,
            typename std::enable_if<sizeof(Byte) == 1, int>::type = 0>
  std::vector<std::uint8_t> Sha256Hash(Byte const* data, std::size_t count) {
@@ -188,11 +180,7 @@
 +    EVP_DigestUpdate(mdctx, data, count);
 +
 +    unsigned int md5_digest_len = 0;
-+    if(OpenSSL_version_num() < 0x30000000L ) { 
-+      md5_digest_len = EVP_MD_size(EVP_sha1());
-+    } else {
-+      md5_digest_len = EVP_MD_get_size(EVP_sha1());
-+    }   
++    md5_digest_len = EVP_MD_get_size(EVP_sha1());
 +    unsigned char md5_digest[md5_digest_len];
 +
 +    EVP_DigestFinal_ex(mdctx, md5_digest, &md5_digest_len);

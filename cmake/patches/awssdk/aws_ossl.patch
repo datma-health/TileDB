@@ -1,6 +1,6 @@
---- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 09:04:31.000000000 -0700
-+++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-15 23:12:30.501468615 -0700
-@@ -5,10 +5,11 @@
+--- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 21:34:31.000000000 +0530
++++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-18 11:49:08.011639537 +0530
+@@ -5,10 +5,10 @@
  
  #include <cstring>
  
@@ -9,31 +9,24 @@
  #include <aws/core/utils/crypto/openssl/CryptoImpl.h>
  #include <aws/core/utils/Outcome.h>
 -#include <openssl/md5.h>
-+// #include <openssl/md5.h>
  
  #ifdef OPENSSL_IS_BORINGSSL
  #ifdef _MSC_VER
-@@ -18,16 +19,17 @@
+@@ -18,13 +18,10 @@
  #endif
  #endif
  
 -#include <openssl/sha.h>
-+// #include <openssl/sha.h>
- 
+-
  #ifdef OPENSSL_IS_BORINGSSL
  AWS_SUPPRESS_WARNING_POP
  #endif
  
 -#include <openssl/err.h>
-+//#include <openssl/err.h>
  #include <aws/core/utils/logging/LogMacros.h>
  #include <thread>
  
-+
- using namespace Aws::Utils;
- using namespace Aws::Utils::Crypto;
- 
-@@ -178,7 +180,13 @@
+@@ -178,7 +175,13 @@
                  EVP_DigestInit_ex(ctx, EVP_md5(), nullptr);
                  EVP_DigestUpdate(ctx, str.c_str(), str.size());
  
@@ -48,7 +41,7 @@
                  EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
  
                  return HashResult(std::move(hash));
-@@ -216,7 +224,13 @@
+@@ -216,7 +219,13 @@
                  stream.clear();
                  stream.seekg(currentPos, stream.beg);
  
@@ -63,7 +56,7 @@
                  EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
  
                  return HashResult(std::move(hash));
-@@ -228,8 +242,13 @@
+@@ -228,8 +237,13 @@
                  auto ctx = guard.getResource();
                  EVP_DigestInit_ex(ctx, EVP_sha1(), nullptr);
                  EVP_DigestUpdate(ctx, str.c_str(), str.size());
@@ -79,7 +72,7 @@
                  EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
  
                  return HashResult(std::move(hash));
-@@ -266,7 +285,13 @@
+@@ -266,7 +280,13 @@
                  stream.clear();
                  stream.seekg(currentPos, stream.beg);
  
@@ -94,7 +87,7 @@
                  EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
  
                  return HashResult(std::move(hash));
-@@ -279,7 +304,13 @@
+@@ -279,7 +299,13 @@
                  EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
                  EVP_DigestUpdate(ctx, str.c_str(), str.size());
  
@@ -109,7 +102,7 @@
                  EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
  
                  return HashResult(std::move(hash));
-@@ -316,7 +347,13 @@
+@@ -316,7 +342,13 @@
                  stream.clear();
                  stream.seekg(currentPos, stream.beg);
  
@@ -124,7 +117,7 @@
                  EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
  
                  return HashResult(std::move(hash));
-@@ -328,25 +365,44 @@
+@@ -328,25 +360,44 @@
  #if OPENSSL_VERSION_LESS_1_1
                      m_ctx = Aws::New<HMAC_CTX>("AllocSha256HAMCOpenSSLContext");
  #else
@@ -174,7 +167,7 @@
              };
  
              HashResult Sha256HMACOpenSSLImpl::Calculate(const ByteBuffer& toSign, const ByteBuffer& secret)
-@@ -356,21 +412,42 @@
+@@ -356,21 +407,42 @@
                  memset(digest.GetUnderlyingData(), 0, length);
  
                  HMACRAIIGuard guard;
@@ -221,18 +214,15 @@
  #endif
                  return HashResult(std::move(digest));
              }
---- awssdk-build-orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 09:04:31.000000000 -0700
-+++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-14 07:59:21.432986120 -0700
-@@ -10,9 +10,9 @@
+--- awssdk-build-orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 21:34:31.000000000 +0530
++++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-18 11:53:34.536554061 +0530
+@@ -10,9 +10,6 @@
  #include <aws/core/utils/crypto/SecureRandom.h>
  #include <aws/core/utils/GetTheLights.h>
  #include <openssl/ossl_typ.h>
 -#include <openssl/evp.h>
 -#include <openssl/hmac.h>
 -#include <openssl/rand.h>
-+//#include <openssl/evp.h>
-+//#include <openssl/hmac.h>
-+//#include <openssl/rand.h>
  #include <atomic>
  #include <mutex>
  
