@@ -101,7 +101,16 @@ int Metadata::read(const char* key, void** buffers, size_t* buffer_sizes) {
   // Compute subarray for the read
   int subarray[8];
   unsigned int coords[4];
-  MD5((const unsigned char*) key, strlen(key)+1, (unsigned char*) coords);
+  if(OpenSSL_version_num() < 0x30000000L) {
+    MD5((const unsigned char*) key, strlen(key)+1, (unsigned char*) coords);
+  } else {
+    EVP_MD_CTX* mdctx;
+    mdctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+    EVP_DigestUpdate(mdctx, key, strlen(key)+1);
+    EVP_DigestFinal_ex(mdctx, (unsigned char*) coords, NULL);
+    EVP_MD_CTX_free(mdctx);
+  }
 
   for(int i=0; i<4; ++i) {
     subarray[2*i] = int(coords[i]);
@@ -414,7 +423,16 @@ void Metadata::compute_array_coords(
                                  : keys_size - keys_offsets[i];
     keys_c = ((const unsigned char*) keys) + keys_offsets[i];
     coords_c = ((unsigned char*) coords) + i*4*sizeof(int);
-    MD5(keys_c, key_size, coords_c);
+    if(OpenSSL_version_num() < 0x30000000L) {
+      MD5(keys_c, key_size, coords_c);
+    } else {
+      EVP_MD_CTX* mdctx;
+      mdctx = EVP_MD_CTX_new();
+      EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+      EVP_DigestUpdate(mdctx, keys_c, key_size);
+      EVP_DigestFinal_ex(mdctx, coords_c, NULL);
+      EVP_MD_CTX_free(mdctx);
+    }
   }
 
   // Clean up
