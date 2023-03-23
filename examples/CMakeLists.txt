@@ -28,6 +28,9 @@
 
 # Function that builds an executable per example
 function(build_TileDB_example TARGET)
+  if(APPLE)
+    target_link_options(tiledb_shared PRIVATE -undefined dynamic_lookup)
+  endif()
   add_executable(${TARGET} EXCLUDE_FROM_ALL src/${TARGET}.cc)
   target_link_libraries(${TARGET} tiledb_static ${TILEDB_LIB_DEPENDENCIES})
 endfunction()
