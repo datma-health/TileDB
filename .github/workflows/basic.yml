@@ -152,7 +152,7 @@ jobs:
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
               -DGCSSDK_VERSION=$GCSSDK_VER
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
-        make -j4
+        make VERBOSE=1
       env:
         OPENSSL_ROOT_DIR: /usr/local/opt/openssl@${{matrix.openssl-version}}
 
