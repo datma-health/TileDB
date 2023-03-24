@@ -184,7 +184,6 @@ __attribute__((weak)) int RAND_bytes(unsigned char *buf, int num);
 
 //Apple's linker looks for below functions, prepended with _
 #ifdef __APPLE__
-#define EVP_MD_get_size _EVP_MD_get_size
   EVP_MAC* __attribute__((weak))
       _EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
   EVP_MAC_CTX* __attribute__((weak)) _EVP_MAC_CTX_new(EVP_MAC*);
@@ -192,6 +191,8 @@ __attribute__((weak)) int RAND_bytes(unsigned char *buf, int num);
   void __attribute__((weak)) _EVP_MAC_free(EVP_MAC *mac);
   int __attribute__((weak)) _EVP_MAC_update(EVP_MAC_CTX*, const unsigned char*, size_t);
   int __attribute__((weak)) _EVP_MAC_final(EVP_MAC_CTX*, unsigned char*, size_t*, size_t);
+  //Below one is required for ossl3
+  int __attribute__((weak))  EVP_MD_get_size(const EVP_MD*);
   int __attribute__((weak)) _EVP_MD_get_size(const EVP_MD*);
   OSSL_PARAM __attribute__((weak))
       _OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
