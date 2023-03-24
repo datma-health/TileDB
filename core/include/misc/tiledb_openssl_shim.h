@@ -147,6 +147,7 @@ EVP_MAC_init(EVP_MAC_CTX*, const unsigned char*, size_t, const OSSL_PARAM[]);
 int __attribute__((weak)) EVP_MAC_update(EVP_MAC_CTX*, const unsigned char*, size_t);
 int __attribute__((weak)) EVP_MAC_final(EVP_MAC_CTX*, unsigned char*, size_t*, size_t);
 int __attribute__((weak)) EVP_MD_get_size(const EVP_MD*);
+int __attribute__((weak)) _EVP_MD_get_size(const EVP_MD*);
 int __attribute__((weak)) EVP_MD_size(const EVP_MD*);
 
 int __attribute__((weak)) EVP_DigestInit_ex(EVP_MD_CTX*, const EVP_MD*, ENGINE*);
