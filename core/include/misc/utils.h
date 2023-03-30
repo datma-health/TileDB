@@ -214,7 +214,7 @@ bool is_azure_path(const std::string& pathURL);
 /**
  * Checks if a given pathURL is Azure Blob Storage.
  * @param pathURL URL to path to be checked.
- * @return true if pathURL starts with az://
+ * @return true if pathURL starts with az:// or azb://
  */
 bool is_azure_blob_storage_path(const std::string& pathURL);
 

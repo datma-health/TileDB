@@ -119,12 +119,28 @@ static std::string get_sas_token(const std::string& account_name) {
   return "";
 }
 
-static std::string get_blob_endpoint() {
-  // Get enviroment variable for AZURE_BLOB_ENDPOINT
+static std::string get_blob_endpoint(const std::string& host) {
+
   std::string az_blob_endpoint("");
-  char *az_blob_endpoint_env = getenv("AZURE_BLOB_ENDPOINT");
-  if (az_blob_endpoint_env) {
-    az_blob_endpoint = az_blob_endpoint_env;
+  size_t dot_pos = std::string::npos;
+  bool found_ep = false;
+
+  //For end_point Get the string after the 3rd '.' from the end
+  if( (dot_pos = host.find_last_of('.') != std::string::npos) ) {
+    if( (dot_pos = host.find_last_of('.', dot_pos) != std::string::npos) ) {
+      if( (dot_pos = host.find_last_of('.', dot_pos) != std::string::npos) ) {
+        az_blob_endpoint = host.substr(dot_pos+1);
+        found_ep = true;
+      }
+    }
+  }
+
+  if(!found_ep) {
+    // Get enviroment variable for AZURE_BLOB_ENDPOINT
+    char *az_blob_endpoint_env = getenv("AZURE_BLOB_ENDPOINT");
+    if (az_blob_endpoint_env) {
+      az_blob_endpoint = az_blob_endpoint_env;
+    }
   }
   return az_blob_endpoint;
 }
@@ -164,20 +180,54 @@ std::string AzureBlob::get_path(const std::string& path) {
 AzureBlob::AzureBlob(const std::string& home) {
   azure_uri path_uri(home);
 
+  bool azUri = false;
+  bool azbUri = false;
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
   // e.g. az://test@mytest.blob.core.windows.net/ws
-  if (path_uri.protocol().compare("az") != 0) {
-    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// URI protocols");
+  if ((path_uri.protocol().compare("az") != 0)) {
+    azUri = true;
+  } 
+
+  if(path_uri.protocol().compare("azb") != 0) {
+    azbUri = true;
   }
 
-  if (path_uri.account().size() == 0 || path_uri.container().size() == 0) {
+  if(!azUri && !azbUri) {
+    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// or azb:// URI protocols");
+  }
+
+  if ((path_uri.account().size() == 0) || (path_uri.container().size() == 0)) {
     throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI does not seem to have either an account or a container");
   }
 
   // Algorithm to get azure storage credentials. Try AZURE_STORAGE_ACCOUNT_KEY first, followed by AZURE_STORAGE_SAS_TOKEN and last
   // try getting an access token directly from CLI
+
+  std::string azure_account, azure_ep;
+
+  if(azbUri) {
+    //Parse query string
+    std::string query_uri = path_uri.query();
+    if(!query_uri.empty()) {
+      const std::string account_str = "account=";
+      const std::string endpoint_str = "endpoint=";
+
+      azure_account = retrieve_from_query_string(query_uri, account_str);
+      azure_ep = retrieve_from_query_string(query_uri, endpoint_str);
+
+      if( (azure_account.empty()) && (azure_ep.empty()) ) {
+        throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI, in azb:// format, neither have endpoint or account field");
+      } 
+    } else {
+      throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI, in azb:// format, doesn't have query part");
+    } 
+  } else { 
+    azure_account = path_uri.account();
+    azure_ep = get_blob_endpoint(path_uri.host());
+  }
+
+
   std::shared_ptr<storage_credential> cred = nullptr;
-  std::string azure_account = path_uri.account();
   std::string azure_account_key = get_account_key(azure_account);
   if (!azure_account_key.empty()) {
     cred = std::make_shared<shared_key_credential>(azure_account, azure_account_key);
@@ -201,7 +251,7 @@ AzureBlob::AzureBlob(const std::string& home) {
                             "Try setting environment variables AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN before restarting operation");
   }
 
-  std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, get_blob_endpoint());
+  std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, azure_ep);
 
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
@@ -552,3 +602,19 @@ int AzureBlob::commit_file(const std::string& path) {
   return rc;
 }
 
+std::string AzureBlob::retrieve_from_query_string(const std::string &query_in, const std::string& keyname)
+{
+  size_t key_start_pos = std::string::npos, key_end_pos = 0;
+  std::string key_value; 
+
+  //Parse query string for passed key value
+  if( (key_start_pos = query_in.find(keyname)) != std::string::npos) {
+    key_start_pos = key_start_pos + keyname.size();
+    if( (key_end_pos = query_in.find('&', key_start_pos)) != std::string::npos) {
+      key_value = query_in.substr(key_start_pos, key_end_pos);
+    }   else {
+      key_value = query_in.substr(key_start_pos, key_end_pos);
+    } 
+  }
+  return key_value;
+}
