@@ -199,6 +199,5 @@ class AzureBlob : public StorageCloudFS {
   bool path_exists(const std::string& path);
   int create_path(const std::string& path);
   int commit_file(const std::string& filename);
-  std::string retrieve_from_query_string(const std::string& query_in, const std::string& keyname);
 };
 #endif /* __STORAGE_AZURE_BLOB_H__ */

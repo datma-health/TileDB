@@ -62,10 +62,18 @@ struct azure_uri : uri {
   azure_uri(const std::string& uri_s);
   std::string account();
   std::string container();
+  std::string endpoint();
+
+private:
+  std::string retrieve_from_query_string(const std::string& query_in, 
+      const std::string& keyname);
+  void azure_uri_parse(void);
 
  private:
   std::string account_;
   std::string container_;
+  std::string endpoint_;
+  bool is_azb_uri = false;
 };
 
 struct s3_uri : uri {

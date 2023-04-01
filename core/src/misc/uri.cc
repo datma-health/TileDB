@@ -132,13 +132,52 @@ void uri::parse(const std::string& uri_s)
 }
 
 azure_uri::azure_uri(const std::string& uri_s) : uri(uri_s) {
-  std::size_t begin = this->host().find('@');
-  std::size_t end = this->host().find('.');
-  if (begin != std::string::npos && end != std::string::npos) {
-    account_ = this->host().substr(begin+1, end-begin-1);
+
+  if(this->protocol().compare("azb") != 0) {
+    is_azb_uri = true;
+  } else if((this->protocol().compare("az") != 0)) {
+    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// or azb:// URI protocols");
   }
-  if (begin != std::string::npos) {
-    container_ = this->host().substr(0, begin);
+  azure_uri_parse();
+}
+
+void azure_uri::azure_uri_parse() {
+
+  if(!is_azb_uri) {
+    std::size_t begin = this->host().find('@');
+    std::size_t end = this->host().find('.');
+    if (begin != std::string::npos && end != std::string::npos) {
+      account_ = this->host().substr(begin+1, end-begin-1);
+    }
+    if (begin != std::string::npos) {
+      container_ = this->host().substr(0, begin);
+    }
+
+    std::size_t dot_pos = std::string::npos;
+    //For end_point Get the string after the 3rd '.' from the end
+    if( (dot_pos = this->host().find_last_of('.') != std::string::npos) ) {
+      if( (dot_pos = this->host().find_last_of('.', dot_pos) != std::string::npos) ) {
+        if( (dot_pos = this->host().find_last_of('.', dot_pos) != std::string::npos) ) {
+          endpoint_ = this->host().substr(dot_pos+1);
+        }
+      }
+    }
+  } else {
+    //Parse query string
+    std::string query_uri = this->query();
+    if(!query_uri.empty()) {
+      const std::string account_str = "account=";
+      const std::string endpoint_str = "endpoint=";
+
+      account_ = retrieve_from_query_string(query_uri, account_str);
+      endpoint_ = retrieve_from_query_string(query_uri, endpoint_str);
+
+      if( (account_.empty()) && (endpoint_.empty()) ) {
+        throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI, in azb:// format, neither have endpoint nor account field");
+      } 
+    } else {
+      throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI, in azb:// format, doesn't have query part");
+    } 
   }
 }
 
@@ -148,6 +187,27 @@ std::string azure_uri::account() {
 
 std::string azure_uri::container() {
   return container_;
+}
+
+std::string azure_uri::endpoint() {
+  return endpoint_;
+}
+
+std::string azure_uri::retrieve_from_query_string(const std::string &query_in, const std::string& keyname)
+{
+  size_t key_start_pos = std::string::npos, key_end_pos = 0;
+  std::string key_value; 
+
+  //Parse query string for passed key value
+  if( (key_start_pos = query_in.find(keyname)) != std::string::npos) {
+    key_start_pos = key_start_pos + keyname.size();
+    if( (key_end_pos = query_in.find('&', key_start_pos)) != std::string::npos) {
+      key_value = query_in.substr(key_start_pos, key_end_pos);
+    }   else {
+      key_value = query_in.substr(key_start_pos, key_end_pos);
+    } 
+  }
+  return key_value;
 }
 
 s3_uri::s3_uri(const std::string& uri_s) : uri(uri_s) {
