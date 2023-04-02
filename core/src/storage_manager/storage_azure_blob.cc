@@ -119,7 +119,7 @@ static std::string get_sas_token(const std::string& account_name) {
   return "";
 }
 
-static std::string get_blob_endpoint(const std::string& host) {
+static std::string get_blob_endpoint() {
   std::string az_blob_endpoint("");
 
   // Get enviroment variable for AZURE_BLOB_ENDPOINT
@@ -204,7 +204,7 @@ AzureBlob::AzureBlob(const std::string& home) {
   std::string azure_ep;
   azure_ep = path_uri.endpoint();
   if(azure_ep.empty())
-    azure_ep = get_blob_endpoint(path_uri.host());
+    azure_ep = get_blob_endpoint();
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, azure_ep);
 
   std::string ca_certs_location = locate_ca_certs();

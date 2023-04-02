@@ -96,6 +96,7 @@ void uri::parse(const std::string& uri_s)
   }
     
   std::advance(protocol_iter, protocol_end.length());
+  std::string::const_iterator after_proto_iter = protocol_iter;
 
   std::string::const_iterator path_iter = find(protocol_iter, end_iter, '/');
   std::string::const_iterator port_iter = find(protocol_iter, path_iter, ':');
@@ -122,8 +123,9 @@ void uri::parse(const std::string& uri_s)
     }
   }
 
-  std::string::const_iterator query_iter = find(path_iter, end_iter, '?');
-  path_.assign(path_iter, query_iter);
+  std::string::const_iterator query_iter = find(after_proto_iter, end_iter, '?');
+  if(path_iter < query_iter)
+    path_.assign(path_iter, query_iter);
 
   if (query_iter != end_iter) {
     ++query_iter;
@@ -195,16 +197,16 @@ std::string azure_uri::endpoint() {
 
 std::string azure_uri::retrieve_from_query_string(const std::string &query_in, const std::string& keyname)
 {
-  size_t key_start_pos = std::string::npos, key_end_pos = 0;
+  size_t key_start_pos = std::string::npos, key_end_pos = std::string::npos;
   std::string key_value; 
 
   //Parse query string for passed key value
   if( (key_start_pos = query_in.find(keyname)) != std::string::npos) {
     key_start_pos = key_start_pos + keyname.size();
     if( (key_end_pos = query_in.find('&', key_start_pos)) != std::string::npos) {
-      key_value = query_in.substr(key_start_pos, key_end_pos);
-    }   else {
-      key_value = query_in.substr(key_start_pos, key_end_pos);
+      key_value = query_in.substr(key_start_pos, key_end_pos - key_start_pos);
+    } else {
+      key_value = query_in.substr(key_start_pos);
     } 
   }
   return key_value;
