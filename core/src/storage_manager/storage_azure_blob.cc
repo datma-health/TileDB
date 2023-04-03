@@ -120,9 +120,8 @@ static std::string get_sas_token(const std::string& account_name) {
 }
 
 static std::string get_blob_endpoint() {
-  std::string az_blob_endpoint("");
-
   // Get enviroment variable for AZURE_BLOB_ENDPOINT
+  std::string az_blob_endpoint("");
   char *az_blob_endpoint_env = getenv("AZURE_BLOB_ENDPOINT");
   if (az_blob_endpoint_env) {
     az_blob_endpoint = az_blob_endpoint_env;
@@ -168,16 +167,16 @@ AzureBlob::AzureBlob(const std::string& home) {
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
   // e.g. az://test@mytest.blob.core.windows.net/ws
 
-  if (path_uri.account().size() == 0 || path_uri.container().size() == 0) {
-    throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI does not seem to have either an account or a container");
+  if (!path_uri.is_azb_uri() && 
+      (path_uri.account().size() == 0 || path_uri.container().size() == 0)) {
+    throw std::system_error(EPROTO, std::generic_category(), 
+        "Azure Blob URI does not seem to have either an account or a container");
   }
 
   // Algorithm to get azure storage credentials. Try AZURE_STORAGE_ACCOUNT_KEY first, followed by AZURE_STORAGE_SAS_TOKEN and last
   // try getting an access token directly from CLI
-
-  std::string azure_account = path_uri.account();
-
   std::shared_ptr<storage_credential> cred = nullptr;
+  std::string azure_account = path_uri.account();
   std::string azure_account_key = get_account_key(azure_account);
   if (!azure_account_key.empty()) {
     cred = std::make_shared<shared_key_credential>(azure_account, azure_account_key);

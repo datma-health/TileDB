@@ -45,6 +45,7 @@ struct uri {
   int16_t nport();
   std::string path();
   std::string query();
+  std::string endpoint();
 
  private:
   void parse(const std::string& uri_s);
@@ -56,13 +57,16 @@ struct uri {
   int16_t nport_ = 0;
   std::string path_;
   std::string query_;
+
+protected:
+  std::string endpoint_;
 };
 
 struct azure_uri : uri {
   azure_uri(const std::string& uri_s);
   std::string account();
   std::string container();
-  std::string endpoint();
+  bool is_azb_uri(void);
 
 private:
   std::string retrieve_from_query_string(const std::string& query_in, 
@@ -72,8 +76,7 @@ private:
  private:
   std::string account_;
   std::string container_;
-  std::string endpoint_;
-  bool is_azb_uri = false;
+  bool azb_uri_ = false;
 };
 
 struct s3_uri : uri {

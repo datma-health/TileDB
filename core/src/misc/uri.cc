@@ -71,6 +71,11 @@ std::string uri::query() {
   return query_;
 }
 
+std::string uri::endpoint() {
+  return endpoint_;
+}
+
+
 // Private Methods
 void uri::parse(const std::string& uri_s)
 {
@@ -131,12 +136,23 @@ void uri::parse(const std::string& uri_s)
     ++query_iter;
     query_.assign(query_iter, end_iter);
   }
+
+  std::size_t dot_pos = std::string::npos;
+  //For end_point Get the string after the 3rd '.' from the end
+
+  if( (dot_pos = this->host().find_last_of('.')) != std::string::npos) {
+    if( (dot_pos = this->host().find_last_of('.', dot_pos-1)) != std::string::npos) {
+      if( (dot_pos = this->host().find_last_of('.', dot_pos-1)) != std::string::npos) {
+        endpoint_ = this->host().substr(dot_pos+1);
+      }
+    }
+  }
 }
 
 azure_uri::azure_uri(const std::string& uri_s) : uri(uri_s) {
 
   if(this->protocol().compare("azb") == 0) {
-    is_azb_uri = true;
+    azb_uri_ = true;
   } else if((this->protocol().compare("az") != 0)) {
     throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// or azb:// URI protocols");
   }
@@ -145,7 +161,7 @@ azure_uri::azure_uri(const std::string& uri_s) : uri(uri_s) {
 
 void azure_uri::azure_uri_parse() {
 
-  if(!is_azb_uri) {
+  if(!azb_uri_) {
     std::size_t begin = this->host().find('@');
     std::size_t end = this->host().find('.');
     if (begin != std::string::npos && end != std::string::npos) {
@@ -155,15 +171,6 @@ void azure_uri::azure_uri_parse() {
       container_ = this->host().substr(0, begin);
     }
 
-    std::size_t dot_pos = std::string::npos;
-    //For end_point Get the string after the 3rd '.' from the end
-    if( (dot_pos = this->host().find_last_of('.') != std::string::npos) ) {
-      if( (dot_pos = this->host().find_last_of('.', dot_pos) != std::string::npos) ) {
-        if( (dot_pos = this->host().find_last_of('.', dot_pos) != std::string::npos) ) {
-          endpoint_ = this->host().substr(dot_pos+1);
-        }
-      }
-    }
   } else {
     //Parse query string
     std::string query_uri = this->query();
@@ -191,8 +198,8 @@ std::string azure_uri::container() {
   return container_;
 }
 
-std::string azure_uri::endpoint() {
-  return endpoint_;
+bool azure_uri::is_azb_uri() {
+  return azb_uri_;
 }
 
 std::string azure_uri::retrieve_from_query_string(const std::string &query_in, const std::string& keyname)
