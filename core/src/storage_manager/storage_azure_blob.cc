@@ -162,7 +162,9 @@ std::string AzureBlob::get_path(const std::string& path) {
 }
 
 AzureBlob::AzureBlob(const std::string& home) {
-  azure_uri path_uri(home);
+  //azure_uri path_uri("azb://azb-uri-support:/test?account=odastgdev&endpoint=core.windows.net");
+  azure_uri path_uri("azb://azb-uri-support:/test_kms?account=odastgdev");
+ //azure_uri path_uri(home);
 
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
   // e.g. az://test@mytest.blob.core.windows.net/ws

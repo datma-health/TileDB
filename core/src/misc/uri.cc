@@ -38,6 +38,7 @@
 #include <functional>
 #include <system_error>
 #include <stdlib.h>
+#include <iostream>
 
 #include "uri.h"
 
@@ -172,7 +173,11 @@ void azure_uri::azure_uri_parse() {
     }
 
   } else {
-    //Parse query string
+
+    //container: Present in host field
+    container_ = this->host();
+
+    //query: Parsing 
     std::string query_uri = this->query();
     if(!query_uri.empty()) {
       const std::string account_str = "account=";

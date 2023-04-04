@@ -55,11 +55,11 @@ struct uri {
   std::string host_;
   std::string port_;
   int16_t nport_ = 0;
-  std::string path_;
   std::string query_;
 
 protected:
   std::string endpoint_;
+  std::string path_;
 };
 
 struct azure_uri : uri {

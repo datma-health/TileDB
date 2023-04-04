@@ -48,8 +48,8 @@ void test_azb_uri(const std::string path_uri_str, const std::string account,  co
 TEST_CASE("Test azb:// uri parsing", "[azb_uri]") {
   REQUIRE_THROWS(new azure_uri(""));
   REQUIRE_THROWS(new azure_uri("kms://asdfsadfd"));
-  test_azb_uri("azb://?account=odastgdev", "odastgdev", "");
-  test_azb_uri("azb://?endpoint=core.windows.net", "", "core.windows.net");
-  test_azb_uri("azb://?account=odastgdev&endpoint=core.windows.net", "odastgdev", "core.windows.net");
-  test_azb_uri("azb://?endpoint=core.windows.net&account=odastgdev", "odastgdev", "core.windows.net");
+  test_azb_uri("azb://odastgdev:test?account=odastgdev", "odastgdev", "");
+  test_azb_uri("azb://odastgdev:test?endpoint=core.windows.net", "", "core.windows.net");
+  test_azb_uri("azb://odastgdev:test?account=odastgdev&endpoint=core.windows.net", "odastgdev", "core.windows.net");
+  test_azb_uri("azb://odastgdev:test?endpoint=core.windows.net&account=odastgdev", "odastgdev", "core.windows.net");
 }

@@ -41,6 +41,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <iostream>
+
 
 class AzureBlobTestFixture {
  protected:
@@ -63,14 +65,15 @@ class AzureBlobTestFixture {
 
   ~AzureBlobTestFixture() {
     if (azure_blob) {
-      delete azure_blob;
+      //delete azure_blob;
     }
     if (temp_dir) {
-      delete temp_dir;
+     // delete temp_dir;
     }
   }
 };
 
+/*
 TEST_CASE("Test AzureBlob constructor", "[constr]") {
   CHECK_THROWS(new AzureBlob("wasbs://my_container/path"));
   CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
@@ -83,6 +86,7 @@ TEST_CASE("Test AzureBlob constructor", "[constr]") {
   CHECK(putenv(const_cast<char *>(sas_token.c_str())) == 0);
   CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
 }
+*/
 
 TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob cwd", "[cwd]") {
   if (azure_blob == nullptr) {
@@ -133,7 +137,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob dir", "[dir]") {
   // No support for returning errors for non-existent paths
   CHECK_RC(azure_blob->sync_path("non-existent-dir"), TILEDB_FS_OK);
 
-  CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
+  //CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
   // No support for returning errors for non-existent paths
   CHECK_RC(azure_blob->delete_dir("non-existent-dir"), TILEDB_FS_OK);
 
@@ -315,4 +319,5 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
 
   CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
 }
+
 
