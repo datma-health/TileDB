@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_openssl_shim.cc
+ * @file   tiledb_openssl_shim.h
  *
  * @section LICENSE
  *
@@ -122,8 +122,7 @@ typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
 typedef struct ossl_param_st OSSL_PARAM;
 typedef struct ossl_init_settings_st OPENSSL_INIT_SETTINGS;
 
-EVP_MAC* __attribute__((weak))
-EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
+EVP_MAC* __attribute__((weak)) EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
 EVP_MAC_CTX* __attribute__((weak)) EVP_MAC_CTX_new(EVP_MAC*);
 void __attribute__((weak)) EVP_MAC_CTX_free(EVP_MAC_CTX*);
 void __attribute__((weak)) EVP_MAC_free(EVP_MAC *mac);
@@ -137,12 +136,10 @@ struct ossl_param_st {
   size_t return_size;     /* returned content size */
 };
 
-OSSL_PARAM __attribute__((weak))
-OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
+OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
 OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_end(void);
 
-int __attribute__((weak))
-EVP_MAC_init(EVP_MAC_CTX*, const unsigned char*, size_t, const OSSL_PARAM[]);
+int __attribute__((weak)) EVP_MAC_init(EVP_MAC_CTX*, const unsigned char*, size_t, const OSSL_PARAM[]);
 
 int __attribute__((weak)) EVP_MAC_update(EVP_MAC_CTX*, const unsigned char*, size_t);
 int __attribute__((weak)) EVP_MAC_final(EVP_MAC_CTX*, unsigned char*, size_t*, size_t);
