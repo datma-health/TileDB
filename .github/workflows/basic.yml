@@ -99,7 +99,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-v1
+        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-${{matrix.openssl-version}}-v1
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
