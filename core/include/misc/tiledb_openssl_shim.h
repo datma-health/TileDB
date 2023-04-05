@@ -114,6 +114,15 @@ int __attribute__((weak)) SHA256_Final(unsigned char *md, SHA256_CTX *c);
     OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS \
     | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL)
 
+// See params.h and types.h
+struct ossl_param_st {
+  const char* key;        /* the name of the parameter */
+  unsigned int data_type; /* declare what kind of content is in buffer */
+  void* data;             /* value being passed in or out */
+  size_t data_size;       /* data size */
+  size_t return_size;     /* returned content size */
+};
+
 typedef struct evp_mac_st EVP_MAC;
 typedef struct evp_mac_ctx_st EVP_MAC_CTX;
 typedef struct ossl_lib_ctx_st OSSL_LIB_CTX;
@@ -126,15 +135,6 @@ EVP_MAC* __attribute__((weak)) EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const c
 EVP_MAC_CTX* __attribute__((weak)) EVP_MAC_CTX_new(EVP_MAC*);
 void __attribute__((weak)) EVP_MAC_CTX_free(EVP_MAC_CTX*);
 void __attribute__((weak)) EVP_MAC_free(EVP_MAC *mac);
-
-// See params.h and types.h
-struct ossl_param_st {
-  const char* key;        /* the name of the parameter */
-  unsigned int data_type; /* declare what kind of content is in buffer */
-  void* data;             /* value being passed in or out */
-  size_t data_size;       /* data size */
-  size_t return_size;     /* returned content size */
-};
 
 OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
 OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_end(void);
