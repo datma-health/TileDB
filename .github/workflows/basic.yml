@@ -93,13 +93,13 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/awssdk-install
-        key: awssdk-${{env.AWSSDK_VER}}-${{matrix.os}}-openssl-v1
+        key: awssdk-${{env.AWSSDK_VER}}-${{matrix.os}}-openssl-${{matrix.openssl-version}}-v1
 
     - name: Cache GCS SDK
       uses: actions/cache@v3
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-v1
+        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-${{matrix.openssl-version}}-v1
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
@@ -152,7 +152,7 @@ jobs:
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
               -DGCSSDK_VERSION=$GCSSDK_VER
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
-        make VERBOSE=1
+        make -j4
       env:
         OPENSSL_ROOT_DIR: /usr/local/opt/openssl@${{matrix.openssl-version}}
 

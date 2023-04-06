@@ -1,5 +1,5 @@
 /**
- * @file   tiledb_openssl_shim.cc
+ * @file   tiledb_openssl_shim.h
  *
  * @section LICENSE
  *
@@ -84,11 +84,16 @@ typedef struct SHA256state_st {
   unsigned int num, md_len;
 } SHA256_CTX;
 
+
+
 int __attribute__((weak)) SHA256_Init(SHA256_CTX *c);
 int __attribute__((weak)) SHA256_Update(SHA256_CTX *c, const void*, size_t);
 int __attribute__((weak)) SHA256_Final(unsigned char *md, SHA256_CTX *c);
 
+
+
 // OpenSSL 3 prototypes - see evp.h
+
 #define OSSL_ALG_PARAM_DIGEST       "digest"    /* utf8_string */
 #define OSSL_MAC_PARAM_DIGEST           OSSL_ALG_PARAM_DIGEST     /* utf8 string */
 #define OPENSSL_INIT_LOAD_CRYPTO_STRINGS    0x00000002L
@@ -109,15 +114,6 @@ int __attribute__((weak)) SHA256_Final(unsigned char *md, SHA256_CTX *c);
     OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS \
     | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL)
 
-typedef struct evp_mac_st EVP_MAC;
-typedef struct evp_mac_ctx_st EVP_MAC_CTX;
-typedef struct ossl_lib_ctx_st OSSL_LIB_CTX;
-typedef struct evp_cipher_st EVP_CIPHER;
-typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
-typedef struct ossl_param_st OSSL_PARAM;
-typedef struct ossl_init_settings_st OPENSSL_INIT_SETTINGS;
-
-
 // See params.h and types.h
 struct ossl_param_st {
   const char* key;        /* the name of the parameter */
@@ -127,10 +123,27 @@ struct ossl_param_st {
   size_t return_size;     /* returned content size */
 };
 
+typedef struct evp_mac_st EVP_MAC;
+typedef struct evp_mac_ctx_st EVP_MAC_CTX;
+typedef struct ossl_lib_ctx_st OSSL_LIB_CTX;
+typedef struct evp_cipher_st EVP_CIPHER;
+typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
+typedef struct ossl_param_st OSSL_PARAM;
+typedef struct ossl_init_settings_st OPENSSL_INIT_SETTINGS;
 
-int __attribute__((weak))
-EVP_MAC_init(EVP_MAC_CTX*, const unsigned char*, size_t, const OSSL_PARAM[]);
+EVP_MAC* __attribute__((weak)) EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
+EVP_MAC_CTX* __attribute__((weak)) EVP_MAC_CTX_new(EVP_MAC*);
+void __attribute__((weak)) EVP_MAC_CTX_free(EVP_MAC_CTX*);
+void __attribute__((weak)) EVP_MAC_free(EVP_MAC *mac);
 
+OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
+OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_end(void);
+
+int __attribute__((weak)) EVP_MAC_init(EVP_MAC_CTX*, const unsigned char*, size_t, const OSSL_PARAM[]);
+
+int __attribute__((weak)) EVP_MAC_update(EVP_MAC_CTX*, const unsigned char*, size_t);
+int __attribute__((weak)) EVP_MAC_final(EVP_MAC_CTX*, unsigned char*, size_t*, size_t);
+int __attribute__((weak)) EVP_MD_get_size(const EVP_MD*);
 int __attribute__((weak)) EVP_MD_size(const EVP_MD*);
 
 int __attribute__((weak)) EVP_DigestInit_ex(EVP_MD_CTX*, const EVP_MD*, ENGINE*);
@@ -181,36 +194,6 @@ __attribute__((weak)) unsigned long ERR_get_error(void);
 __attribute__((weak)) void ERR_error_string_n(unsigned long e, char *buf, size_t len);
 __attribute__((weak)) int RAND_poll(void);
 __attribute__((weak)) int RAND_bytes(unsigned char *buf, int num);
-
-//Apple's linker looks for below functions, prepended with _
-#ifdef __APPLE__
-  EVP_MAC* __attribute__((weak))
-      _EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
-  EVP_MAC_CTX* __attribute__((weak)) _EVP_MAC_CTX_new(EVP_MAC*);
-  void __attribute__((weak)) _EVP_MAC_CTX_free(EVP_MAC_CTX*);
-  void __attribute__((weak)) _EVP_MAC_free(EVP_MAC *mac);
-  int __attribute__((weak)) _EVP_MAC_update(EVP_MAC_CTX*, const unsigned char*, size_t);
-  int __attribute__((weak)) _EVP_MAC_final(EVP_MAC_CTX*, unsigned char*, size_t*, size_t);
-  //Below one is required for ossl3
-  int __attribute__((weak))  EVP_MD_get_size(const EVP_MD*);
-  int __attribute__((weak)) _EVP_MD_get_size(const EVP_MD*);
-  OSSL_PARAM __attribute__((weak))
-      _OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
-  OSSL_PARAM __attribute__((weak)) _OSSL_PARAM_construct_end(void);
-#else
-  EVP_MAC* __attribute__((weak))
-      EVP_MAC_fetch(OSSL_LIB_CTX*, const char*, const char*);
-  EVP_MAC_CTX* __attribute__((weak)) EVP_MAC_CTX_new(EVP_MAC*);
-  void __attribute__((weak)) EVP_MAC_CTX_free(EVP_MAC_CTX*);
-  void __attribute__((weak)) EVP_MAC_free(EVP_MAC *mac);
-  int __attribute__((weak)) EVP_MAC_update(EVP_MAC_CTX*, const unsigned char*, size_t);
-  int __attribute__((weak)) EVP_MAC_final(EVP_MAC_CTX*, unsigned char*, size_t*, size_t);
-  int __attribute__((weak)) EVP_MD_get_size(const EVP_MD*);
-  OSSL_PARAM __attribute__((weak))
-      OSSL_PARAM_construct_utf8_string(const char*, char*, size_t);
-  OSSL_PARAM __attribute__((weak)) OSSL_PARAM_construct_end(void);
-
-#endif
 
 #ifdef __cplusplus
 }
