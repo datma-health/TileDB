@@ -66,8 +66,6 @@ class AzureBlobTestFixture {
             std::string temp_dir_name = temp_dir->get_temp_dir()+"/test_azure_blob";
             temp_dir_name = prepend_slash(temp_dir_name);
             home_dir.insert(query_beg, temp_dir_name);
-            std::cout << "Given test dir " << g_test_dir << " temp dir " << temp_dir_name << "\n";
-            std::cout << "KMS formed complete dir: " << home_dir << "\n";
             azure_blob = new AzureBlob(home_dir);
             CHECK(!azure_blob->locking_support());
           }
@@ -81,10 +79,10 @@ class AzureBlobTestFixture {
 
   ~AzureBlobTestFixture() {
     if (azure_blob) {
-      //delete azure_blob;
+      delete azure_blob;
     }
     if (temp_dir) {
-     // delete temp_dir;
+      delete temp_dir;
     }
   }
  private:
@@ -106,7 +104,6 @@ class AzureBlobTestFixture {
 
 
 TEST_CASE("Test AzureBlob constructor", "[constr]") {
-  std::cout << "Santhosh TC1" << std::endl;
   CHECK_THROWS(new AzureBlob("wasbs://my_container/path"));
   CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
   CHECK_THROWS(new AzureBlob("az://my_container@blob.core.windows.net/path"));
@@ -125,7 +122,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob cwd", "[cwd]") {
     return;
   }
 
-  std::cout << "Santhosh TC2" << std::endl;
   REQUIRE(azure_blob->current_dir().length() > 0);
   REQUIRE(azure_blob->create_dir(azure_blob->current_dir()) == TILEDB_FS_OK);
   // create_dir is a no-op for AzureBlob, so is_dir will return false
@@ -138,7 +134,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob real_dir", "[real-dir]") 
   if (azure_blob == nullptr) {
     return;
   }
-  std::cout << "Santhosh TC3" << std::endl;
   CHECK(azure_blob->real_dir("").compare(azure_blob->current_dir()) == 0);
   CHECK(azure_blob->real_dir("xxx").compare(azure_blob->current_dir()+"/xxx") == 0);
   CHECK(azure_blob->real_dir("xxx/yyy").compare(azure_blob->current_dir()+"/xxx/yyy") == 0);
@@ -152,7 +147,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob dir", "[dir]") {
   if (azure_blob == nullptr) {
     return;
   }
-  std::cout << "Santhosh TC4" << std::endl;
   std::string test_dir("dir");
   CHECK_RC(azure_blob->create_dir(test_dir), TILEDB_FS_OK);
   // create_dir is a no-op for AzureBlob, so is_dir will return false
@@ -185,7 +179,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob file", "[file]") {
   if (azure_blob == nullptr) {
     return;
   }
-  std::cout << "Santhosh TC5" << std::endl;
   std::string test_dir("file");
   CHECK_RC(azure_blob->create_dir(test_dir), 0);
   CHECK_RC(azure_blob->create_file(test_dir+"/foo", O_WRONLY|O_CREAT,  S_IRWXU), TILEDB_FS_OK);
@@ -219,7 +212,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob read/write file", "[read-
   if (azure_blob == nullptr) {
     return;
   }
-  std::cout << "Santhosh TC6" << std::endl;
   std::string test_dir("read_write");
   CHECK_RC(azure_blob->create_dir(test_dir), TILEDB_FS_OK);
   CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", "hello", 5), TILEDB_FS_OK);
@@ -274,7 +266,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test performance of AzureBlob reads of s
   if (azure_blob == nullptr) {
     return;
   }
-  std::cout << "Santhosh TC7" << std::endl;
   uint num_iterations = 512; // May have to increase iterations to reproduce failure on Centos 7, can go to num_iterations=2000!
   std::string test_dir("read_write_small");
   std::vector<int> buffer(100, 22);
@@ -291,7 +282,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
   if (azure_blob == nullptr) {
     return;
   }
-  std::cout << "Santhosh TC8" << std::endl;
   std::string test_dir("read_write_large");
   // size_t size = ((size_t)TILEDB_UT_MAX_WRITE_COUNT)*4
   size_t size = ((size_t)TILEDB_UT_MAX_WRITE_COUNT);
@@ -322,7 +312,6 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     return;
   }
  
-  std::cout << "Santhosh TC9" << std::endl;
   std::string test_dir("parallel");
   REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
 
