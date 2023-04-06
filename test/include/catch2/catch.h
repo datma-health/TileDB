@@ -62,6 +62,7 @@ using namespace Catch::clara;
 
 
 #include "tiledb_utils.h"
+#include "utils.h"
 
 #define CHECK_RC(rc, expected) CHECK(rc == expected)
 
@@ -87,6 +88,7 @@ class TempDir {
   }
  private:
   std::string tmp_dirname_;
+  std::string tmp_complete_dirname_;
   std::string delete_test_dir_in_destructor_;
 
   std::string get_pathname(std::string  path) {
@@ -114,13 +116,15 @@ class TempDir {
       assert(tmp_dir != NULL);
       tmp_dirname_ = mkdtemp(const_cast<char *>((append_slash(tmp_dir)+dirname_pattern).c_str()));
     } else {
-      tmp_dirname_ = append_slash(g_test_dir)+mktemp(const_cast<char *>(dirname_pattern.c_str()));
+      //tmp_dirname_ = append_slash(g_test_dir)+mktemp(const_cast<char *>(dirname_pattern.c_str()));
+      tmp_dirname_ = mktemp(const_cast<char *>(dirname_pattern.c_str()));
+      tmp_complete_dirname_ = append_slash(g_test_dir)+tmp_dirname_;
       if (!TileDBUtils::is_dir(g_test_dir)) {
         REQUIRE(TileDBUtils::create_dir(g_test_dir) == 0);
         delete_test_dir_in_destructor_ = g_test_dir;
       }
-      if (!TileDBUtils::is_dir(tmp_dirname_)) {
-        CHECK(TileDBUtils::create_dir(tmp_dirname_) == TILEDB_OK);
+      if (!TileDBUtils::is_dir(tmp_complete_dirname_)) {
+        CHECK(TileDBUtils::create_dir(tmp_complete_dirname_) == TILEDB_OK);
       }
     }
   }

@@ -163,8 +163,11 @@ std::string AzureBlob::get_path(const std::string& path) {
 
 AzureBlob::AzureBlob(const std::string& home) {
   //azure_uri path_uri("azb://azb-uri-support:/test?account=odastgdev&endpoint=core.windows.net");
-  azure_uri path_uri("azb://azb-uri-support:/test_kms?account=odastgdev");
- //azure_uri path_uri(home);
+  //azure_uri path_uri("azb://azb-uri-support:without_begin_slash_test_kms_not_deleted?account=odastgdev");
+  //azure_uri path_uri("azb://azb-uri-support:/2nd_with_begin_slash_test_kms_not_deleted?account=odastgdev");
+  
+  std::cout << "KMS given URI " << home << "\n";
+  azure_uri path_uri(home);
 
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
   // e.g. az://test@mytest.blob.core.windows.net/ws
@@ -206,7 +209,10 @@ AzureBlob::AzureBlob(const std::string& home) {
   azure_ep = path_uri.endpoint();
   if(azure_ep.empty())
     azure_ep = get_blob_endpoint();
+  //std::cout << "KMS: Given endpoint: " << azure_ep << "\n";
   std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, azure_ep);
+  //std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, "blob.core.windows.net");
+  //std::shared_ptr<storage_account> account = std::make_shared<storage_account>(azure_account, cred, /* use_https */true, "core.windows.net");
 
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
@@ -218,6 +224,7 @@ AzureBlob::AzureBlob(const std::string& home) {
   bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
   blob_client_wrapper_ = reinterpret_cast<blob_client_wrapper *>(bc_wrapper_.get());
 
+  std::cout << "KMS: Given container: " << path_uri.container() << "\n";
   if (!blob_client_wrapper_->container_exists(path_uri.container())) {
       AZ_BLOB_ERROR("Container does not seem to exist", path_uri.container());
       throw std::system_error(EIO, std::generic_category(), "AzureBlobFS only supports accessible and already existing containers");
