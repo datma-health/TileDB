@@ -1,0 +1,228 @@
+--- awssdk-build-orig/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2021-08-25 21:34:31.000000000 +0530
++++ awssdk-build/aws-cpp-sdk-core/source/utils/crypto/openssl/CryptoImpl.cpp	2023-03-18 11:49:08.011639537 +0530
+@@ -5,10 +5,10 @@
+ 
+ #include <cstring>
+ 
++#include <aws/core/utils/crypto/openssl/tiledb_openssl_shim.h>
+ #include <aws/core/utils/memory/AWSMemory.h>
+ #include <aws/core/utils/crypto/openssl/CryptoImpl.h>
+ #include <aws/core/utils/Outcome.h>
+-#include <openssl/md5.h>
+ 
+ #ifdef OPENSSL_IS_BORINGSSL
+ #ifdef _MSC_VER
+@@ -18,13 +18,10 @@
+ #endif
+ #endif
+ 
+-#include <openssl/sha.h>
+-
+ #ifdef OPENSSL_IS_BORINGSSL
+ AWS_SUPPRESS_WARNING_POP
+ #endif
+ 
+-#include <openssl/err.h>
+ #include <aws/core/utils/logging/LogMacros.h>
+ #include <thread>
+ 
+@@ -178,7 +175,13 @@
+                 EVP_DigestInit_ex(ctx, EVP_md5(), nullptr);
+                 EVP_DigestUpdate(ctx, str.c_str(), str.size());
+ 
+-                ByteBuffer hash(EVP_MD_size(EVP_md5()));
++                size_t mdsize = 0; 
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  mdsize = EVP_MD_size(EVP_md5());
++                } else {
++                  mdsize = EVP_MD_get_size(EVP_md5());
++                }
++                ByteBuffer hash(mdsize);
+                 EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
+ 
+                 return HashResult(std::move(hash));
+@@ -216,7 +219,13 @@
+                 stream.clear();
+                 stream.seekg(currentPos, stream.beg);
+ 
+-                ByteBuffer hash(EVP_MD_size(EVP_md5()));
++                size_t mdsize = 0; 
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  mdsize = EVP_MD_size(EVP_md5());
++                } else {
++                  mdsize = EVP_MD_get_size(EVP_md5());
++                }
++                ByteBuffer hash(mdsize);
+                 EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
+ 
+                 return HashResult(std::move(hash));
+@@ -228,8 +237,13 @@
+                 auto ctx = guard.getResource();
+                 EVP_DigestInit_ex(ctx, EVP_sha1(), nullptr);
+                 EVP_DigestUpdate(ctx, str.c_str(), str.size());
+-
+-                ByteBuffer hash(EVP_MD_size(EVP_sha1()));
++                size_t mdsize = 0;
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  mdsize = EVP_MD_size(EVP_sha1());
++                } else {
++                  mdsize = EVP_MD_get_size(EVP_sha1());
++                }
++                ByteBuffer hash(mdsize);
+                 EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
+ 
+                 return HashResult(std::move(hash));
+@@ -266,7 +280,13 @@
+                 stream.clear();
+                 stream.seekg(currentPos, stream.beg);
+ 
+-                ByteBuffer hash(EVP_MD_size(EVP_sha1()));
++                size_t mdsize = 0; 
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  mdsize = EVP_MD_size(EVP_sha1());
++                } else {
++                  mdsize = EVP_MD_get_size(EVP_sha1());
++                }
++                ByteBuffer hash(mdsize);
+                 EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
+ 
+                 return HashResult(std::move(hash));
+@@ -279,7 +299,13 @@
+                 EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
+                 EVP_DigestUpdate(ctx, str.c_str(), str.size());
+ 
+-                ByteBuffer hash(EVP_MD_size(EVP_sha256()));
++                size_t mdsize = 0; 
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  mdsize = EVP_MD_size(EVP_sha256());
++                } else {
++                  mdsize = EVP_MD_get_size(EVP_sha256());
++                }
++                ByteBuffer hash(mdsize);
+                 EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
+ 
+                 return HashResult(std::move(hash));
+@@ -316,7 +342,13 @@
+                 stream.clear();
+                 stream.seekg(currentPos, stream.beg);
+ 
+-                ByteBuffer hash(EVP_MD_size(EVP_sha256()));
++                size_t mdsize = 0; 
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  mdsize = EVP_MD_size(EVP_sha256());
++                } else {
++                  mdsize = EVP_MD_get_size(EVP_sha256());
++                }
++                ByteBuffer hash(mdsize);
+                 EVP_DigestFinal(ctx, hash.GetUnderlyingData(), nullptr);
+ 
+                 return HashResult(std::move(hash));
+@@ -328,25 +360,44 @@
+ #if OPENSSL_VERSION_LESS_1_1
+                     m_ctx = Aws::New<HMAC_CTX>("AllocSha256HAMCOpenSSLContext");
+ #else
+-                    m_ctx = HMAC_CTX_new();
++                    if(OpenSSL_version_num() < 0x30000000L ) {
++                      m_ctx = HMAC_CTX_new();
++                      assert(m_ctx != nullptr);
++                    } else {
++                      mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
++                      evp_ctx = EVP_MAC_CTX_new(mac);
++                      assert(evp_ctx != nullptr);
++                    }
+ #endif
+-                    assert(m_ctx != nullptr);
+                 }
+ 
+                 ~HMACRAIIGuard() {
+ #if OPENSSL_VERSION_LESS_1_1
+                     Aws::Delete<HMAC_CTX>(m_ctx);
+ #else
+-                    HMAC_CTX_free(m_ctx);
++                    if (OpenSSL_version_num()  < 0x30000000L ) {
++                      HMAC_CTX_free(m_ctx);
++                      m_ctx = nullptr;
++                    } else {
++                      EVP_MAC_CTX_free(evp_ctx);
++                      evp_ctx = nullptr;
++                      EVP_MAC_free(mac);
++                      mac = nullptr;
++                    }
+ #endif
+-                    m_ctx = nullptr;
+                 }
+ 
+                 HMAC_CTX* getResource() {
+                     return m_ctx;
+                 }
++
++                EVP_MAC_CTX* getEvpResource() {
++                    return evp_ctx;
++                }
+             private:
+-                HMAC_CTX *m_ctx;
++                HMAC_CTX *m_ctx = nullptr;
++                EVP_MAC_CTX *evp_ctx = nullptr;
++                EVP_MAC *mac = nullptr;
+             };
+ 
+             HashResult Sha256HMACOpenSSLImpl::Calculate(const ByteBuffer& toSign, const ByteBuffer& secret)
+@@ -356,21 +407,42 @@
+                 memset(digest.GetUnderlyingData(), 0, length);
+ 
+                 HMACRAIIGuard guard;
+-                HMAC_CTX* m_ctx = guard.getResource();
++                HMAC_CTX *m_ctx = nullptr;
++                EVP_MAC_CTX *evp_ctx = nullptr;
+ 
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  m_ctx = guard.getResource();
++                } else {
++                  evp_ctx = guard.getEvpResource();
++                }
+ #if OPENSSL_VERSION_LESS_1_1
+                 HMAC_CTX_init(m_ctx);
+-#endif
++#else
+ 
+-                HMAC_Init_ex(m_ctx, secret.GetUnderlyingData(), static_cast<int>(secret.GetLength()), EVP_sha256(),
+-                             NULL);
++                if(OpenSSL_version_num() < 0x30000000L ) {
++                  HMAC_Init_ex(m_ctx, secret.GetUnderlyingData(), static_cast<int>(secret.GetLength()),
++                               EVP_sha256(), NULL);
+                 HMAC_Update(m_ctx, toSign.GetUnderlyingData(), toSign.GetLength());
+                 HMAC_Final(m_ctx, digest.GetUnderlyingData(), &length);
++                } else {
++                  char sha256[] {"SHA256"};
++                  OSSL_PARAM ossl_params[2];
++                  ossl_params[0] =
++                    OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, sha256, 0);
++                  ossl_params[1] = OSSL_PARAM_construct_end();
++                  EVP_MAC_init(evp_ctx, secret.GetUnderlyingData(),
++                               static_cast<int>(secret.GetLength()), ossl_params);
++                  EVP_MAC_update(evp_ctx, toSign.GetUnderlyingData(), toSign.GetLength());
++                  EVP_MAC_final(evp_ctx, digest.GetUnderlyingData(), NULL, length);
++                }
++#endif
+ 
+ #if OPENSSL_VERSION_LESS_1_1
+                 HMAC_CTX_cleanup(m_ctx);
+ #else
++                if (OpenSSL_version_num() < 0x30000000L) {
+                 HMAC_CTX_reset(m_ctx);
++                }
+ #endif
+                 return HashResult(std::move(digest));
+             }
+--- awssdk-build-orig/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2021-08-25 21:34:31.000000000 +0530
++++ awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl/CryptoImpl.h	2023-03-18 11:53:34.536554061 +0530
+@@ -10,9 +10,6 @@
+ #include <aws/core/utils/crypto/SecureRandom.h>
+ #include <aws/core/utils/GetTheLights.h>
+ #include <openssl/ossl_typ.h>
+-#include <openssl/evp.h>
+-#include <openssl/hmac.h>
+-#include <openssl/rand.h>
+ #include <atomic>
+ #include <mutex>
+ 

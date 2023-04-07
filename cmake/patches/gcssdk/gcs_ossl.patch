@@ -1,0 +1,192 @@
+--- gcssdk-build-orig/google/cloud/storage/hashing_options.cc	2021-02-02 08:32:25.000000000 +0530
++++ gcssdk-build/google/cloud/storage/hashing_options.cc	2023-03-18 12:20:11.921816224 +0530
+@@ -14,9 +14,9 @@
+ 
+ #include "google/cloud/storage/hashing_options.h"
+ #include "google/cloud/storage/internal/openssl_util.h"
++#include "google/cloud/storage/tiledb_openssl_shim.h"
+ #include "google/cloud/internal/big_endian.h"
+ #include <crc32c/crc32c.h>
+-#include <openssl/md5.h>
+ #include <cstring>
+ 
+ namespace google {
+@@ -24,13 +24,29 @@
+ namespace storage {
+ inline namespace STORAGE_CLIENT_NS {
+ std::string ComputeMD5Hash(std::string const& payload) {
+-  MD5_CTX md5;
+-  MD5_Init(&md5);
+-  MD5_Update(&md5, payload.c_str(), payload.size());
+-
+-  std::string hash(MD5_DIGEST_LENGTH, ' ');
+-  MD5_Final(reinterpret_cast<unsigned char*>(&hash[0]), &md5);
+-  return internal::Base64Encode(hash);
++  if (OpenSSL_version_num() < 0x30000000L) {
++    MD5_CTX md5;
++    MD5_Init(&md5);
++    MD5_Update(&md5, payload.c_str(), payload.size());
++
++    std::string hash(MD5_DIGEST_LENGTH, ' ');
++    MD5_Final(reinterpret_cast<unsigned char*>(&hash[0]), &md5);
++    return internal::Base64Encode(hash);
++
++  } else {
++    EVP_MD_CTX* mdctx;
++    unsigned int md5_digest_len = 0;
++    md5_digest_len = EVP_MD_get_size(EVP_sha1());
++    unsigned char md5_digest[md5_digest_len];
++
++    mdctx = EVP_MD_CTX_new();
++    EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
++
++    EVP_DigestUpdate(mdctx, payload.c_str(), payload.size());
++    EVP_DigestFinal_ex(mdctx, md5_digest, &md5_digest_len);
++    EVP_MD_CTX_free(mdctx);
++    return internal::Base64Encode(std::string((char*)md5_digest));
++  }
+ }
+ 
+ std::string ComputeCrc32cChecksum(std::string const& payload) {
+--- gcssdk-build-orig/google/cloud/storage/internal/hash_validator_impl.h	2021-02-02 08:32:25.000000000 +0530
++++ gcssdk-build/google/cloud/storage/internal/hash_validator_impl.h	2023-03-16 23:21:07.685891559 +0530
+@@ -16,8 +16,8 @@
+ #define GOOGLE_CLOUD_CPP_GOOGLE_CLOUD_STORAGE_INTERNAL_HASH_VALIDATOR_IMPL_H
+ 
+ #include "google/cloud/storage/internal/hash_validator.h"
++#include "google/cloud/storage/tiledb_openssl_shim.h"
+ #include "google/cloud/storage/version.h"
+-#include <openssl/md5.h>
+ 
+ namespace google {
+ namespace cloud {
+@@ -43,6 +43,7 @@
+ 
+  private:
+   MD5_CTX context_;
++  EVP_MD_CTX* evp_context_;
+   std::string received_hash_;
+ };
+ 
+--- gcssdk-build-orig/google/cloud/storage/internal/hash_validator_impl.cc	2021-02-02 08:32:25.000000000 +0530
++++ gcssdk-build/google/cloud/storage/internal/hash_validator_impl.cc	2023-03-18 12:24:56.367288761 +0530
+@@ -15,6 +15,7 @@
+ #include "google/cloud/storage/internal/hash_validator_impl.h"
+ #include "google/cloud/storage/internal/openssl_util.h"
+ #include "google/cloud/storage/object_metadata.h"
++#include "google/cloud/storage/tiledb_openssl_shim.h"
+ #include "google/cloud/internal/big_endian.h"
+ #include <crc32c/crc32c.h>
+ 
+@@ -23,10 +24,21 @@
+ namespace storage {
+ inline namespace STORAGE_CLIENT_NS {
+ namespace internal {
+-MD5HashValidator::MD5HashValidator() : context_{} { MD5_Init(&context_); }
++MD5HashValidator::MD5HashValidator() : context_{} {
++  if (OpenSSL_version_num() < 0x30000000L) {
++    MD5_Init(&context_);
++  } else {
++    evp_context_ = EVP_MD_CTX_new();
++    EVP_DigestInit_ex(evp_context_, EVP_md5(), NULL);
++  }
++}
+ 
+ void MD5HashValidator::Update(char const* buf, std::size_t n) {
+-  MD5_Update(&context_, buf, n);
++  if (OpenSSL_version_num() < 0x30000000L) {
++    MD5_Update(&context_, buf, n);
++  } else {
++    EVP_DigestUpdate(evp_context_, buf, n);
++  }
+ }
+ 
+ void MD5HashValidator::ProcessMetadata(ObjectMetadata const& meta) {
+@@ -59,11 +71,23 @@
+ }
+ 
+ HashValidator::Result MD5HashValidator::Finish() && {
+-  std::string hash(MD5_DIGEST_LENGTH, ' ');
+-  MD5_Final(reinterpret_cast<unsigned char*>(&hash[0]), &context_);
+-  auto computed = Base64Encode(hash);
+-  bool is_mismatch = !received_hash_.empty() && (received_hash_ != computed);
+-  return Result{std::move(received_hash_), std::move(computed), is_mismatch};
++  if (OpenSSL_version_num() < 0x30000000L) {
++    std::string hash(MD5_DIGEST_LENGTH, ' ');
++    MD5_Final(reinterpret_cast<unsigned char*>(&hash[0]), &context_);
++    auto computed = Base64Encode(hash);
++    bool is_mismatch = !received_hash_.empty() && (received_hash_ != computed);
++    return Result{std::move(received_hash_), std::move(computed), is_mismatch};
++  } else {
++    unsigned int md5_digest_len = 0;
++    md5_digest_len = EVP_MD_get_size(EVP_sha1());
++    unsigned char md5_digest[md5_digest_len];
++
++    EVP_DigestFinal_ex(evp_context_, md5_digest, &md5_digest_len);
++    auto computed = Base64Encode(std::string((char*)md5_digest));
++    bool is_mismatch = !received_hash_.empty() && (received_hash_ != computed);
++    EVP_MD_CTX_free(evp_context_);
++    return Result{std::move(received_hash_), std::move(computed), is_mismatch};
++  }
+ }
+ 
+ void Crc32cHashValidator::Update(char const* buf, std::size_t n) {
+--- gcssdk-build-orig/google/cloud/storage/internal/sha256_hash.cc	2021-02-02 08:32:25.000000000 +0530
++++ gcssdk-build/google/cloud/storage/internal/sha256_hash.cc	2023-03-18 12:26:05.229536433 +0530
+@@ -13,10 +13,10 @@
+ // limitations under the License.
+ 
+ #include "google/cloud/storage/internal/sha256_hash.h"
+-#include <openssl/evp.h>
+-#include <openssl/sha.h>
++#include "google/cloud/storage/tiledb_openssl_shim.h"
+ #include <array>
+ 
++#define SHA256_DIGEST_LENGTH    32
+ namespace google {
+ namespace cloud {
+ namespace storage {
+@@ -27,17 +27,32 @@
+ template <typename Byte,
+           typename std::enable_if<sizeof(Byte) == 1, int>::type = 0>
+ std::vector<std::uint8_t> Sha256Hash(Byte const* data, std::size_t count) {
+-  SHA256_CTX sha256;
+-  SHA256_Init(&sha256);
+-  SHA256_Update(&sha256, data, count);
+-
+-  std::array<unsigned char, SHA256_DIGEST_LENGTH> hash{};
+-  SHA256_Final(hash.data(), &sha256);
+-  // Note that this constructor (from a range) converts the `unsigned char` to
+-  // `std::uint8_t` if needed, this should work because (a) the values returned
+-  // by `SHA256_Final()` are 8-bit values, and (b) because if `std::uint8_t`
+-  // exists it must be large enough to fit an `unsigned char`.
+-  return {hash.begin(), hash.end()};
++  if (OpenSSL_version_num() < 0x30000000L) {
++    SHA256_CTX sha256;
++    SHA256_Init(&sha256);
++    SHA256_Update(&sha256, data, count);
++
++    std::array<unsigned char, SHA256_DIGEST_LENGTH> hash{};
++    SHA256_Final(hash.data(), &sha256);
++    // Note that this constructor (from a range) converts the `unsigned char` to
++    // `std::uint8_t` if needed, this should work because (a) the values
++    // returned by `SHA256_Final()` are 8-bit values, and (b) because if
++    // `std::uint8_t` exists it must be large enough to fit an `unsigned char`.
++    return {hash.begin(), hash.end()};
++  } else {
++    EVP_MD_CTX* mdctx = nullptr;
++    mdctx = EVP_MD_CTX_new();
++    EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
++    EVP_DigestUpdate(mdctx, data, count);
++
++    unsigned int md5_digest_len = 0;
++    md5_digest_len = EVP_MD_get_size(EVP_sha1());
++    unsigned char md5_digest[md5_digest_len];
++
++    EVP_DigestFinal_ex(mdctx, md5_digest, &md5_digest_len);
++    EVP_MD_CTX_free(mdctx);
++    return {md5_digest, md5_digest + md5_digest_len};
++  }
+ }
+ }  // namespace
+ 

@@ -324,10 +324,20 @@ static int check_file_for_read(TileDB_CTX *tiledb_ctx, std::string filename) {
 }
 
 
-#include <openssl/md5.h>
+#include "tiledb_openssl_shim.h"
 void print_md5_hash(unsigned char* buffer, size_t length) {
   unsigned char md[MD5_DIGEST_LENGTH];
-  MD5(buffer, length, md);
+
+  if(OpenSSL_version_num() < 0x30000000L) {
+    MD5(buffer, length, md);
+  } else {
+    EVP_MD_CTX* mdctx;
+    mdctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+    EVP_DigestUpdate(mdctx, buffer, length);
+    EVP_DigestFinal_ex(mdctx, md, NULL);
+    EVP_MD_CTX_free(mdctx);
+  }
   for(auto i=0; i <MD5_DIGEST_LENGTH; i++) {
     fprintf(stderr, "%02x",md[i]);
   }
