@@ -167,7 +167,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob dir", "[dir]") {
   // No support for returning errors for non-existent paths
   CHECK_RC(azure_blob->sync_path("non-existent-dir"), TILEDB_FS_OK);
 
-  //CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
+  CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
   // No support for returning errors for non-existent paths
   CHECK_RC(azure_blob->delete_dir("non-existent-dir"), TILEDB_FS_OK);
 
