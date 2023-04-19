@@ -1,0 +1,16 @@
+{
+    "query_contig_intervals": [
+        {
+            "contig": "1",
+            "begin": 1,
+            "end": 249250621
+        }
+    ],
+    "attributes": [
+        "REF",
+        "ALT",
+        "GT"
+    ],
+    "bypass_intersecting_intervals_phase": true,
+    "array_name": "1$1$249250621"
+}

@@ -1,0 +1,861 @@
+{
+ "column_partitions": [
+  {
+   "begin": {
+    "tiledb_column": 0
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "1$1$249250621",
+   "end": {
+    "tiledb_column": 249250620
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 249250621
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "2$1$243199373",
+   "end": {
+    "tiledb_column": 492449993
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 492449994
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "3$1$198022430",
+   "end": {
+    "tiledb_column": 690472423
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 690472424
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "4$1$191154276",
+   "end": {
+    "tiledb_column": 881626699
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 881626700
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "5$1$180915260",
+   "end": {
+    "tiledb_column": 1062541959
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 1062541960
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "6$1$171115067",
+   "end": {
+    "tiledb_column": 1233657026
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 1233657027
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "7$1$159138663",
+   "end": {
+    "tiledb_column": 1392795689
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 1392795690
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "8$1$146364022",
+   "end": {
+    "tiledb_column": 1539159711
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 1539159712
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "9$1$141213431",
+   "end": {
+    "tiledb_column": 1680373142
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 1680373143
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "10$1$135534747",
+   "end": {
+    "tiledb_column": 1815907889
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 1815907890
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "11$1$135006516",
+   "end": {
+    "tiledb_column": 1950914405
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 1950914406
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "12$1$133851895",
+   "end": {
+    "tiledb_column": 2084766300
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2084766301
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "13$1$115169878",
+   "end": {
+    "tiledb_column": 2199936178
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2199936179
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "14$1$107349540",
+   "end": {
+    "tiledb_column": 2307285718
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2307285719
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "15$1$102531392",
+   "end": {
+    "tiledb_column": 2409817110
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2409817111
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "16$1$90354753",
+   "end": {
+    "tiledb_column": 2500171863
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2500171864
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "17$1$81195210",
+   "end": {
+    "tiledb_column": 2581367073
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2581367074
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "18$1$78077248",
+   "end": {
+    "tiledb_column": 2659444321
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2659444322
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "19$1$59128983",
+   "end": {
+    "tiledb_column": 2718573304
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2718573305
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "20$1$63025520",
+   "end": {
+    "tiledb_column": 2781598824
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2781598825
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "21$1$48129895",
+   "end": {
+    "tiledb_column": 2829728719
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2829728720
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "22$1$51304566",
+   "end": {
+    "tiledb_column": 2881033285
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 2881033286
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "X$1$155270560",
+   "end": {
+    "tiledb_column": 3036303845
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3036303846
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "Y$1$59373566",
+   "end": {
+    "tiledb_column": 3095677411
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095677412
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "MT$1$16569",
+   "end": {
+    "tiledb_column": 3095693980
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095693981
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000207.1$1$4262",
+   "end": {
+    "tiledb_column": 3095698242
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095698243
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000226.1$1$15008",
+   "end": {
+    "tiledb_column": 3095713250
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095713251
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000229.1$1$19913",
+   "end": {
+    "tiledb_column": 3095733163
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095733164
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000231.1$1$27386",
+   "end": {
+    "tiledb_column": 3095760549
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095760550
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000210.1$1$27682",
+   "end": {
+    "tiledb_column": 3095788231
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095788232
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000239.1$1$33824",
+   "end": {
+    "tiledb_column": 3095822055
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095822056
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000235.1$1$34474",
+   "end": {
+    "tiledb_column": 3095856529
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095856530
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000201.1$1$36148",
+   "end": {
+    "tiledb_column": 3095892677
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095892678
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000247.1$1$36422",
+   "end": {
+    "tiledb_column": 3095929099
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095929100
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000245.1$1$36651",
+   "end": {
+    "tiledb_column": 3095965750
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3095965751
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000197.1$1$37175",
+   "end": {
+    "tiledb_column": 3096002925
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096002926
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000203.1$1$37498",
+   "end": {
+    "tiledb_column": 3096040423
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096040424
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000246.1$1$38154",
+   "end": {
+    "tiledb_column": 3096078577
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096078578
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000249.1$1$38502",
+   "end": {
+    "tiledb_column": 3096117079
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096117080
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000196.1$1$38914",
+   "end": {
+    "tiledb_column": 3096155993
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096155994
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000248.1$1$39786",
+   "end": {
+    "tiledb_column": 3096195779
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096195780
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000244.1$1$39929",
+   "end": {
+    "tiledb_column": 3096235708
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096235709
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000238.1$1$39939",
+   "end": {
+    "tiledb_column": 3096275647
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096275648
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000202.1$1$40103",
+   "end": {
+    "tiledb_column": 3096315750
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096315751
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000234.1$1$40531",
+   "end": {
+    "tiledb_column": 3096356281
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096356282
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000232.1$1$40652",
+   "end": {
+    "tiledb_column": 3096396933
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096396934
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000206.1$1$41001",
+   "end": {
+    "tiledb_column": 3096437934
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096437935
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000240.1$1$41933",
+   "end": {
+    "tiledb_column": 3096479867
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096479868
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000236.1$1$41934",
+   "end": {
+    "tiledb_column": 3096521801
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096521802
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000241.1$1$42152",
+   "end": {
+    "tiledb_column": 3096563953
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096563954
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000243.1$1$43341",
+   "end": {
+    "tiledb_column": 3096607294
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096607295
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000242.1$1$43523",
+   "end": {
+    "tiledb_column": 3096650817
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096650818
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000230.1$1$43691",
+   "end": {
+    "tiledb_column": 3096694508
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096694509
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000237.1$1$45867",
+   "end": {
+    "tiledb_column": 3096740375
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096740376
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000233.1$1$45941",
+   "end": {
+    "tiledb_column": 3096786316
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096786317
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000204.1$1$81310",
+   "end": {
+    "tiledb_column": 3096867626
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096867627
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000198.1$1$90085",
+   "end": {
+    "tiledb_column": 3096957711
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3096957712
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000208.1$1$92689",
+   "end": {
+    "tiledb_column": 3097050400
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3097050401
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000191.1$1$106433",
+   "end": {
+    "tiledb_column": 3097156833
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3097156834
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000227.1$1$128374",
+   "end": {
+    "tiledb_column": 3097285207
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3097285208
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000228.1$1$129120",
+   "end": {
+    "tiledb_column": 3097414327
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3097414328
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000214.1$1$137718",
+   "end": {
+    "tiledb_column": 3097552045
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3097552046
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000221.1$1$155397",
+   "end": {
+    "tiledb_column": 3097707442
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3097707443
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000209.1$1$159169",
+   "end": {
+    "tiledb_column": 3097866611
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3097866612
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000218.1$1$161147",
+   "end": {
+    "tiledb_column": 3098027758
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3098027759
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000220.1$1$161802",
+   "end": {
+    "tiledb_column": 3098189560
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3098189561
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000213.1$1$164239",
+   "end": {
+    "tiledb_column": 3098353799
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3098353800
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000211.1$1$166566",
+   "end": {
+    "tiledb_column": 3098520365
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3098520366
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000199.1$1$169874",
+   "end": {
+    "tiledb_column": 3098690239
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3098690240
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000217.1$1$172149",
+   "end": {
+    "tiledb_column": 3098862388
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3098862389
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000216.1$1$172294",
+   "end": {
+    "tiledb_column": 3099034682
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3099034683
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000215.1$1$172545",
+   "end": {
+    "tiledb_column": 3099207227
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3099207228
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000205.1$1$174588",
+   "end": {
+    "tiledb_column": 3099381815
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3099381816
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000219.1$1$179198",
+   "end": {
+    "tiledb_column": 3099561013
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3099561014
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000224.1$1$179693",
+   "end": {
+    "tiledb_column": 3099740706
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3099740707
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000223.1$1$180455",
+   "end": {
+    "tiledb_column": 3099921161
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3099921162
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000195.1$1$182896",
+   "end": {
+    "tiledb_column": 3100104057
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3100104058
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000212.1$1$186858",
+   "end": {
+    "tiledb_column": 3100290915
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3100290916
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000222.1$1$186861",
+   "end": {
+    "tiledb_column": 3100477776
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3100477777
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000200.1$1$187035",
+   "end": {
+    "tiledb_column": 3100664811
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3100664812
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000193.1$1$189789",
+   "end": {
+    "tiledb_column": 3100854600
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3100854601
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000194.1$1$191469",
+   "end": {
+    "tiledb_column": 3101046069
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3101046070
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000225.1$1$211173",
+   "end": {
+    "tiledb_column": 3101257242
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3101257243
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "GL000192.1$1$547496",
+   "end": {
+    "tiledb_column": 3101804738
+   }
+  },
+  {
+   "begin": {
+    "tiledb_column": 3101804739
+   },
+   "workspace": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws",
+   "array_name": "NC_007605$1$171823",
+   "end": {
+    "tiledb_column": 3101976561
+   }
+  }
+ ],
+ "vid_mapping_file": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws/vidmap.json",
+ "callset_mapping_file": "/Users/nalini/TileDB.develop/test/inputs/genomicsdb_ws/callset.json",
+ "size_per_column_partition": 43581440,
+ "segment_size": 1048576,
+ "num_cells_per_tile": 1000,
+ "consolidate_tiledb_array_after_load": false,
+ "enable_shared_posixfs_optimizations": false
+}

@@ -53,14 +53,14 @@ class ArrayFixture {
   size_t buffer_sizes[1] = { sizeof(buffer_a1) };
   T expected_buffer[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-  size_t buffer_var_a1_offsets[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+  size_t buffer_var_a1_offsets[16] = { 0, 1*sizeof(T), 2*sizeof(T), 3*sizeof(T), 4*sizeof(T), 5*sizeof(T), 6*sizeof(T), 7*sizeof(T), 8*sizeof(T), 9*sizeof(T), 10*sizeof(T), 11*sizeof(T), 12*sizeof(T), 13*sizeof(T), 14*sizeof(T), 15*sizeof(T) };
   T buffer_var_a1[16] = { 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
   void* var_buffers[2] = { buffer_var_a1_offsets, buffer_var_a1 };
   size_t var_buffer_sizes[2] = { sizeof(buffer_var_a1_offsets), sizeof(buffer_var_a1) };
-  size_t expected_buffer_var_offsets[16] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+  size_t expected_buffer_var_offsets[16] = { 0, 1*sizeof(T), 2*sizeof(T), 3*sizeof(T), 4*sizeof(T), 5*sizeof(T), 6*sizeof(T), 7*sizeof(T), 8*sizeof(T), 9*sizeof(T), 10*sizeof(T), 11*sizeof(T), 12*sizeof(T), 13*sizeof(T), 14*sizeof(T), 15*sizeof(T) };
   T expected_buffer_var[16] = { 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
 
-  size_t buffer_var_a1_offsets_1[8] = { 0, 1, 3, 5, 8, 11, 12, 13 };
+  size_t buffer_var_a1_offsets_1[8] = { 0, 1*sizeof(T), 3*sizeof(T), 5*sizeof(T), 8*sizeof(T), 11*sizeof(T), 12*sizeof(T), 13*sizeof(T) };
   void* var_buffers_1[2] = { buffer_var_a1_offsets_1, buffer_var_a1 };
   size_t var_buffer_sizes_1[2] = { sizeof(buffer_var_a1_offsets_1), sizeof(buffer_var_a1) };
   
@@ -127,9 +127,9 @@ class ArrayFixture {
       REQUIRE(buffer_size == expected_size);
       size_t *buffer = reinterpret_cast<size_t *>(computed[0]);
       for (auto i=0u; i<buffer_size; i++) {
-        CHECK(buffer[i] < 16);
+        CHECK(buffer[i] < 16*sizeof(T));
         if (i<buffer_size-1) {
-          CHECK(buffer[i+1]-buffer[i] == 1);
+          CHECK(buffer[i+1]-buffer[i] == sizeof(T));
         }
       }
       T *buffer_var = reinterpret_cast<T *>(computed[1]);
@@ -209,7 +209,7 @@ TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions With Dropped Cells fro
     Expression expression("a1 > 4", AF::attribute_names, AF::array_schema_);
     REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
     AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[5], 11);
-  }
+    }
   SECTION("cell sizes = 2") {
     AF::setup(1);
     Expression expression("a1[0] > 4", AF::attribute_names, AF::array_schema_);
@@ -303,7 +303,7 @@ TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions with VAR_NUM and diffe
   CHECK(AF::var_buffer_sizes_1[0] == 2*sizeof(size_t));
   CHECK(AF::var_buffer_sizes_1[1] == 5*sizeof(TestType));
   // Check offset sizes first
-  size_t expected_offsets[2] = {0, 2};
+  size_t expected_offsets[2] = {0, 2*sizeof(TestType)};
   size_t *buffer_offsets = reinterpret_cast<size_t *>(AF::var_buffers_1[0]);
   for (auto i=0u; i<2; i++) {
     CHECK(buffer_offsets[i] == expected_offsets[i]);

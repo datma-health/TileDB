@@ -26,8 +26,9 @@
 # THE SOFTWARE.
 #
 
-project(TileDB)
 cmake_minimum_required(VERSION 3.6)
+
+project(TileDB)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 # Update git submodules
