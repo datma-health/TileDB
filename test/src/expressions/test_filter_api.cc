@@ -30,7 +30,6 @@
  * Tests for testing filter expressions from a GenomicsDB workspace
  */
 
-
 #include "catch.h"
 #include "tiledb.h"
 
@@ -38,7 +37,7 @@ std::string ws = std::string(TILEDB_TEST_DIR)+"/inputs/genomicsdb_ws";
 std::string array = std::string(TILEDB_TEST_DIR)+"/inputs/genomicsdb_ws/1$1$249250621";
 
 int num_attributes = 4;
-const char* attributes[] = {"REF", "ALT", "GT", TILEDB_COORDS};
+const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 
 // Sizes to be used for buffers
 size_t sizes[2] = { 1024, 40 };
@@ -63,10 +62,11 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
       CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config), TILEDB_OK);
 
       size_t buffer_size = sizes[i];
-      size_t buffer_sizes[] = { buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size };
-      void *buffers[8];
-      CHECK(sizeof(buffer_sizes)/sizeof(size_t) == 8);
-      for (auto i=0; i<8; i++) {
+      size_t buffer_sizes[] = { buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size };
+      void *buffers[7];
+      auto nBuffers = sizeof(buffer_sizes)/sizeof(size_t);
+      CHECK(nBuffers == 7);
+      for (auto i=0; i<nBuffers; i++) {
         buffers[i] = malloc(buffer_sizes[i]);
       }
 
@@ -109,7 +109,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
       size_t ALT_size;
       CHECK_RC(tiledb_array_iterator_get_value(
           tiledb_array_it,          // Array iterator
-          1,                        // Attribute id fogr ALT
+          1,                        // Attribute id for ALT
           (const void**) &ALT_val,  // Value
           &ALT_size),               // Value size (useful in variable-sized attributes)
                TILEDB_OK);
@@ -154,7 +154,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
       CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
 
       // Deallocate memory
-      for (auto i=0; i<8; i++) {
+      for (auto i=0; i<nBuffers; i++) {
         free(buffers[i]);
       }
     }
@@ -162,7 +162,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
 }
 
 TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read]") {
-  for (auto i=0; i<1; i++) {
+  for (auto i=0; i<2; i++) {
     SECTION("Test filter expressions for " + std::to_string(i)) {
       // Initialize tiledb context
       TileDB_CTX* tiledb_ctx;
@@ -171,11 +171,13 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
       CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config), TILEDB_OK);
 
       size_t buffer_size = sizes[i];
-      size_t buffer_sizes[] = { buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size };
-      void *buffers[8];
-      CHECK(sizeof(buffer_sizes)/sizeof(size_t) == 8);
-      for (auto i=0; i<8; i++) {
-        buffers[i] = malloc(buffer_sizes[i]);
+      size_t buffer_sizes[] = { buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size };
+      void *buffers[7];
+      auto nBuffers = sizeof(buffer_sizes)/sizeof(size_t);
+      CHECK(nBuffers == 7);
+
+      for (auto i=0; i<nBuffers; i++) {
+        buffers[i] = malloc(1024);
       }
 
       // Initialize array
@@ -194,49 +196,87 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
       CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_OK);
 
       // Read from array
-      CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes), TILEDB_OK);
+      bool continue_read;
+      size_t actual_buffer_sizes[7] = { 0, 0, 0, 0, 0, 0, 0 };
+      size_t adjust_offsets[3] = { 0, 0, 0 };
+      do {
+        continue_read = false;
+        CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes), TILEDB_OK);
 
-      // Check return buffers, there should only be one match based on the filter
-      for (auto i=0; i<8; i++) {
-        switch (i) {
-          case 0: // REF - string
-            CHECK(buffer_sizes[i] == sizeof(size_t));
-            CHECK(*(size_t *)buffers[i++] == 0);
-            CHECK(buffer_sizes[i] == sizeof(char));
-            CHECK(*(char *)buffers[i] == expected_REF);
-            break;
-          // ALT - string
-          case 2: {
-            CHECK(buffer_sizes[i] == sizeof(size_t));
-            CHECK(*(size_t *)buffers[i++] == 0);
-            CHECK(buffer_sizes[i] == sizeof(char)*3);
-            char *ALT = (char *)buffers[i];
-            for (auto j=0; j<3; j++) {
-              CHECK(ALT[j] == expected_ALT[j]);
+        for (auto i=0, j=0; i<num_attributes; i++, j++) {
+          // Adjust offset sizes
+          if (i != num_attributes-1 && buffer_sizes[j] != 0) {
+            for (auto k=0; adjust_offsets[i]>0 && k<buffer_sizes[j]; k++) {
+              *((size_t *)buffers[j] + k) += adjust_offsets[i];
             }
-            break;
+            adjust_offsets[i] += buffer_sizes[j+1];
           }
-          // GT - variable number of integers
-          case 4: {
-            CHECK(buffer_sizes[i++] == sizeof(size_t));
-            CHECK(buffer_sizes[i] == 3*sizeof(int));
-            int *GT_val = (int *)buffers[i];
-            for (auto j=0; j<3; j++) {
-              CHECK(GT_val[j] == expected_GT_values[j]);
+          // Update the actual buffer sizes for resetting buffer pointers later
+          actual_buffer_sizes[j] += buffer_sizes[j];
+          if (i<num_attributes-1) {
+            actual_buffer_sizes[j+1] += buffer_sizes[j+1];
+          }
+          // Potential for overflow. We should read again to be sure there is
+          // nothing left to be read.
+          if (buffer_sizes[j] != 0) {
+            buffers[j] = (char *)buffers[j] + buffer_sizes[j];
+            buffer_sizes[j] = buffer_size;
+            if (i != num_attributes-1) { // Not Coords
+              buffers[j+1] = (char *)buffers[j+1] + buffer_sizes[j+1];
+              buffer_sizes[j+1] = buffer_size;
             }
-            break;
+            continue_read = true;
           }
-          // COORDS - 2D
-          case 6: {
-            CHECK(buffer_sizes[i] == sizeof(int64_t)*2); // For 2D
-            int64_t *coords = (int64_t *)buffers[i];
-            for (auto j=0; j<2; j++) {
-              CHECK(coords[j] == expected_coords[j]);
+          j++;
+        }
+      } while(continue_read);
+
+      for (auto j=0; j<nBuffers; j++) {
+        buffer_sizes[j] = actual_buffer_sizes[j];
+        buffers[j] = (char *)buffers[j] -  actual_buffer_sizes[j];
+      }
+
+      // Evaluate cells basied on the filter expression
+      auto ncells = buffer_sizes[nBuffers-1]/16; // Coords
+      CHECK(ncells == 7); // Number of cells found should be 7
+      for (auto i=0; i<ncells; i++) {
+        // Check return buffers, there should only be one match based on the filter
+        int64_t positions[] = {i, i, i, i, i, i, i };
+        INFO(std::string("Evaluating cell for cell position=") + std::to_string(i));
+        if (i != 5) {
+          REQUIRE(tiledb_array_evaluate_cell(tiledb_array, buffers, buffer_sizes, positions) == TILEDB_ERR);
+        } else {
+          REQUIRE(tiledb_array_evaluate_cell(tiledb_array, buffers, buffer_sizes, positions) == TILEDB_OK);
+          for (auto j=0; j<7; j++) {
+            switch (j) {
+              case 1: // REF - string
+                CHECK(*((char *)(buffers[j])+i) == expected_REF);
+                break;
+              case 3: { // ALT - string
+                char *ALT = (char *)(buffers[j]) + *((size_t *)(buffers[j-1])+i);
+                for (auto k=0; k<3; k++) {
+                  CHECK(ALT[k] == expected_ALT[k]);
+                }
+                break;
+              }
+              case 5: { // GT - variable number of integers
+                int *GT_val = (int *)buffers[j] + *((size_t *)(buffers[j-1])+i)/sizeof(int);
+                for (auto k=0; k<3; k++) {
+                  CHECK(GT_val[k] == expected_GT_values[k]);
+                }
+                break;
+              }
+              case 6: { // COORDS - 2D
+                int64_t *coords = (int64_t *)buffers[j]+2*i;
+                for (auto k=0; k<2; k++) {
+                  CHECK(coords[k] == expected_coords[k]);
+                }
+                break;
+              }
+              default:
+                break;
             }
-            break;
           }
-          default:
-            break;
         }
       }
 
@@ -247,7 +287,7 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
       CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
 
       // Deallocate memory
-      for (auto i=0; i<8; i++) {
+      for (auto i=0; i<nBuffers; i++) {
         free(buffers[i]);
       }
     }
