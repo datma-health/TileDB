@@ -107,7 +107,8 @@ elseif(NOT AWSSDK_FOUND)
     -DCMAKE_BUILD_TYPE=Release
     -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
-    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR})
+    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
+    -DCMAKE_CXX_FLAGS="-Wno-maybe-uninitialized")
 
   add_dependencies(awssdk-build aws-c-common-build)
   add_dependencies(awssdk-build aws-c-event-stream-build)
