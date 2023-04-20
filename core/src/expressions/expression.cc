@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019, 2022 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019, 2022-2023 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,6 +58,8 @@ Expression::Expression(std::string expression, std::vector<std::string> attribut
     EXPRESSION_ERROR("Expression parsing for dense arrays not yet implemented");
   } else if (expression_.size() != 0) {
     parser_->EnableOptimizer(true);
+    parser_->DefineFun(new SplitCompare);
+    parser_->DefineOprt(new OprtSplitCompare);
 
     // Setup muparserx variables for the attributes
     try {
