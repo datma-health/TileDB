@@ -37,22 +37,32 @@
 std::string ws = std::string(TILEDB_TEST_DIR)+"/inputs/genomicsdb_ws";
 std::string array = std::string(TILEDB_TEST_DIR)+"/inputs/genomicsdb_ws/1$1$249250621";
 
+int num_attributes = 4;
 const char* attributes[] = {"REF", "ALT", "GT", TILEDB_COORDS};
+
+// Sizes to be used for buffers
+size_t sizes[2] = { 1024, 40 };
 
 // filter expression that results in just one match for genomicsdb_ws
 std::string filters[2] = { "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\")",
-  "REF == \"G\" && GT[0] == 1 && ALT |= \"T\"" };
+                           "REF == \"G\" && GT[0] == 1 && ALT |= \"T\"" };
+
+// Only match expected for the following test cases
+char expected_REF = 'G';
+char expected_ALT[3]  = { 'T', '|', '&' };
+int expected_GT_values[3] = { 1, 0, 1 };
+int64_t expected_coords[2] = { 1, 17384 };
 
 TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_iterator]") {
   for (auto i=0; i<2; i++) {
-    SECTION("Test filter expressions for " + filters[i]) {
+    SECTION("Test filter expressions for iteration " + std::to_string(i)) {
       // Initialize tiledb context
       TileDB_CTX* tiledb_ctx;
       TileDB_Config tiledb_config;
       tiledb_config.home_ =  ws.c_str();
       CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config), TILEDB_OK);
 
-      size_t buffer_size = 1024;
+      size_t buffer_size = sizes[i];
       size_t buffer_sizes[] = { buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size };
       void *buffers[8];
       CHECK(sizeof(buffer_sizes)/sizeof(size_t) == 8);
@@ -83,31 +93,41 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
 
       CHECK_RC(tiledb_array_iterator_end(tiledb_array_it), TILEDB_OK);
 
-      // Get value
+      // Get values
+      char* REF_val;
+      size_t REF_size;
+      CHECK_RC(tiledb_array_iterator_get_value(
+          tiledb_array_it,          // Array iterator
+          0,                        // Attribute id for REF
+          (const void**) &REF_val,  // Value
+          &REF_size),               // Value size (useful in variable-sized attributes)
+               TILEDB_OK);
+      CHECK(REF_size == sizeof(char));
+      CHECK(REF_val[0] == expected_REF);
+
+      char* ALT_val;
+      size_t ALT_size;
+      CHECK_RC(tiledb_array_iterator_get_value(
+          tiledb_array_it,          // Array iterator
+          1,                        // Attribute id fogr ALT
+          (const void**) &ALT_val,  // Value
+          &ALT_size),               // Value size (useful in variable-sized attributes)
+               TILEDB_OK);
+      CHECK(ALT_size == 3*sizeof(char));
+      for (auto i=0; i<ALT_size/sizeof(char); i++) {
+        CHECK(ALT_val[i] == expected_ALT[i]);
+      }
+
       CHECK_RC(tiledb_array_iterator_get_value(
           tiledb_array_it,         // Array iterator
           2,                       // Attribute id for GT
           (const void**) &GT_val,  // Value
           &GT_size),               // Value size (useful in variable-sized attributes)
                TILEDB_OK);
-
       CHECK(GT_size == 3*sizeof(int));
-
-      int expected_values[3] = {1, 0, 1};
       for (auto i=0; i<GT_size/sizeof(int); i++) {
-        CHECK(GT_val[i] == expected_values[i]);
+        CHECK(GT_val[i] == expected_GT_values[i]);
       }
-
-      char* ALT_val;
-      size_t ALT_size;
-      CHECK_RC(tiledb_array_iterator_get_value(
-          tiledb_array_it,          // Array iterator
-          1,                        // Attribute id for ALT
-          (const void**) &ALT_val,  // Value
-          &ALT_size),               // Value size (useful in variable-sized attributes)
-               TILEDB_OK);
-    
-      CHECK(GT_size == 3*sizeof(int));
  
       CHECK_RC(tiledb_array_iterator_get_value(
           tiledb_array_it,         // Array iterator
@@ -115,11 +135,10 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
           (const void**) &coords,  // Value
           &coords_size),           // Value size (useful in variable-sized attributes)
                TILEDB_OK);
-
       if (coords_size > 0) {
         CHECK(coords_size == 16);
-        CHECK(coords[0] == 1);
-        CHECK(coords[1] == 17384);
+        CHECK(coords[0] == expected_coords[0]);
+        CHECK(coords[1] == expected_coords[1]);
       }
 
       // Advance iterator
@@ -130,6 +149,99 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
 
       // Finalize the array
       CHECK_RC(tiledb_array_iterator_finalize(tiledb_array_it), TILEDB_OK);
+
+      // Finalize context
+      CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
+
+      // Deallocate memory
+      for (auto i=0; i<8; i++) {
+        free(buffers[i]);
+      }
+    }
+  }
+}
+
+TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read]") {
+  for (auto i=0; i<1; i++) {
+    SECTION("Test filter expressions for " + std::to_string(i)) {
+      // Initialize tiledb context
+      TileDB_CTX* tiledb_ctx;
+      TileDB_Config tiledb_config;
+      tiledb_config.home_ =  ws.c_str();
+      CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config), TILEDB_OK);
+
+      size_t buffer_size = sizes[i];
+      size_t buffer_sizes[] = { buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size };
+      void *buffers[8];
+      CHECK(sizeof(buffer_sizes)/sizeof(size_t) == 8);
+      for (auto i=0; i<8; i++) {
+        buffers[i] = malloc(buffer_sizes[i]);
+      }
+
+      // Initialize array
+      TileDB_Array* tiledb_array;
+      CHECK_RC(tiledb_array_init(
+          tiledb_ctx,                                       // Context
+          &tiledb_array,                                    // Array object
+          array.c_str(),                                    // Array name
+          TILEDB_ARRAY_READ,                                // Mode
+          NULL,                                             // Whole domain
+          attributes,                                       // Subset on attributes
+          sizeof(attributes)/sizeof(char *)),               // Number of attributes
+               TILEDB_OK);
+
+      // Apply expression filter
+      CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_OK);
+
+      // Read from array
+      CHECK_RC(tiledb_array_read(tiledb_array, buffers, buffer_sizes), TILEDB_OK);
+
+      // Check return buffers, there should only be one match based on the filter
+      for (auto i=0; i<8; i++) {
+        switch (i) {
+          case 0: // REF - string
+            CHECK(buffer_sizes[i] == sizeof(size_t));
+            CHECK(*(size_t *)buffers[i++] == 0);
+            CHECK(buffer_sizes[i] == sizeof(char));
+            CHECK(*(char *)buffers[i] == expected_REF);
+            break;
+          // ALT - string
+          case 2: {
+            CHECK(buffer_sizes[i] == sizeof(size_t));
+            CHECK(*(size_t *)buffers[i++] == 0);
+            CHECK(buffer_sizes[i] == sizeof(char)*3);
+            char *ALT = (char *)buffers[i];
+            for (auto j=0; j<3; j++) {
+              CHECK(ALT[j] == expected_ALT[j]);
+            }
+            break;
+          }
+          // GT - variable number of integers
+          case 4: {
+            CHECK(buffer_sizes[i++] == sizeof(size_t));
+            CHECK(buffer_sizes[i] == 3*sizeof(int));
+            int *GT_val = (int *)buffers[i];
+            for (auto j=0; j<3; j++) {
+              CHECK(GT_val[j] == expected_GT_values[j]);
+            }
+            break;
+          }
+          // COORDS - 2D
+          case 6: {
+            CHECK(buffer_sizes[i] == sizeof(int64_t)*2); // For 2D
+            int64_t *coords = (int64_t *)buffers[i];
+            for (auto j=0; j<2; j++) {
+              CHECK(coords[j] == expected_coords[j]);
+            }
+            break;
+          }
+          default:
+            break;
+        }
+      }
+
+      // Finalize the array
+      CHECK_RC(tiledb_array_finalize(tiledb_array), TILEDB_OK);
 
       // Finalize context
       CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
