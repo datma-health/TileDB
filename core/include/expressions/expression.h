@@ -179,7 +179,7 @@ class SplitCompare : public mup::ICallback {
   }
 
   const mup::char_type* GetDesc() const {
-    return "splitcompare(input, delimiter, compare_string) - splitcompare tokenizes input string using the delimiter and then compares with the given string";
+    return "splitcompare(input, delimiter, compare_string) - splitcompare tokenizes input string using the delimiter(specified as an ASCII integer) and then compares for any token match with the given string";
   }
 
   mup::IToken* Clone() const {
