@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019, 2022 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019, 2022-2023 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -148,5 +148,79 @@ class Expression {
     }
   }
 };
+
+/**
+ * SplitCompare accepts 3 arguments
+ *       Input String that is a list of strings separated by some delimiter
+ *       Delimiter that is the ASCII integer value, note : muparserx does not accept characters as an arg
+ *       Comparison String that is compared with each token from the input string and returns true if there is a match
+ *                with any of the tokens, false otherwise.
+ */
+class SplitCompare : public mup::ICallback {
+ public:
+  SplitCompare():mup::ICallback(mup::cmFUNC, "splitcompare", 3){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+    mup::string_type input = a_pArg[0]->GetString();
+    mup::char_type delimiter = a_pArg[1]->GetInteger();
+    mup::string_type with =  a_pArg[2]->GetString();
+
+    // The return type is boolean
+    *ret = (mup::bool_type)false;
+    std::stringstream ss(input);
+    std::string word;
+    while (!ss.eof()) {
+      std::getline(ss, word, delimiter);
+      if (word.compare(with) == 0) {
+        *ret = (mup::bool_type)true;
+        break;
+      }
+    }
+  }
+
+  const mup::char_type* GetDesc() const {
+    return "splitcompare(input, delimiter, compare_string) - splitcompare tokenizes input string using the delimiter(specified as an ASCII integer) and then compares for any token match with the given string";
+  }
+
+  mup::IToken* Clone() const {
+    return new SplitCompare(*this);
+  }
+};
+
+/**
+ * Similar to SplitCompare above, but using a special operator "|=" where the LHS of the expression is the input
+ * string and the RHS is the string to be compared with. The delimiter is "|" for tokenizing the input string.
+ */
+class OprtSplitCompare : public mup::IOprtBin {
+ public:
+  OprtSplitCompare() : mup::IOprtBin(("|="), (int)mup::prRELATIONAL1, mup::oaLEFT) {}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int) {
+    mup::string_type input = a_pArg[0]->GetString();
+    mup::char_type delimiter = '|';
+    mup::string_type with =  a_pArg[1]->GetString();
+
+    // The return type is boolean
+    *ret = (mup::bool_type)false;
+    std::stringstream ss(input);
+    std::string word;
+    while (!ss.eof()) {
+      std::getline(ss, word, delimiter);
+      if (word.compare(with) == 0) {
+        *ret = (mup::bool_type)true;
+        break;
+      }
+    }
+  }
+
+  const mup::char_type* GetDesc() const {
+    return "str1 |= str2 - splitcompare tokenizes str1 using the delimiter '|' and then looks for any token match with str2";
+  }
+
+  mup::IToken* Clone() const {
+    return new OprtSplitCompare(*this);
+  }
+};
+
 
 #endif // __EXPRESSION_H__

@@ -6,7 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2019, 2022 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2019, 2022-2023 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,6 +58,8 @@ Expression::Expression(std::string expression, std::vector<std::string> attribut
     EXPRESSION_ERROR("Expression parsing for dense arrays not yet implemented");
   } else if (expression_.size() != 0) {
     parser_->EnableOptimizer(true);
+    parser_->DefineFun(new SplitCompare);
+    parser_->DefineOprt(new OprtSplitCompare);
 
     // Setup muparserx variables for the attributes
     try {
@@ -226,9 +228,9 @@ std::pair<size_t, size_t> get_var_cell_info(void** buffers, size_t* buffer_sizes
   if ((buffer_position+1) < (buffer_sizes[buffer_index]/sizeof(size_t))) {
     length = get_value<size_t>(buffers[buffer_index], buffer_position+1)-offset;
   } else {
-    length=buffer_sizes[buffer_index+1]/sizeof(T)-offset;
+    length=buffer_sizes[buffer_index+1]-offset;
   }
-  return std::make_pair(offset, length);
+  return std::make_pair(offset/sizeof(T), length/sizeof(T));
 }
 
 void Expression::assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes,
@@ -398,7 +400,7 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, size
   // Initialize num_cells for all attributes as the buffer_sizes are being updated in place
   for (auto i=0u, j=0u; i < attributes_.size(); i++, j++) {
     num_cells[i] = buffer_sizes[j]/get_cell_size(attributes_[i]);
-    if (get_cell_val_num(attributes_[i])  == TILEDB_VAR_NUM) j++;
+    if (get_cell_val_num(attributes_[i]) == TILEDB_VAR_NUM) j++;
   }
 
   auto max_num_cells = std::max_element(num_cells.begin(), num_cells.end());
@@ -417,31 +419,34 @@ void Expression::fixup_return_buffers(void** buffers, size_t* buffer_sizes, size
       int cell_val_num = get_cell_val_num(attributes_[i]);
       size_t cell_size = get_cell_size(attributes_[i]);
 
-      if (current_cell !=  next_cell && next_cell < num_cells[i]) {
+      if (current_cell != next_cell && next_cell < num_cells[i]) {
         void *next = static_cast<char *>(buffers[j])+cell_size*next_cell;
         void *current = static_cast<char *>(buffers[j])+cell_size*current_cell;
 
         if (cell_val_num == TILEDB_VAR_NUM) {
-           // Initialization
+          assert(cell_size == sizeof(size_t));
+
+          // Initialization
           if (adjust_offsets.find(j) == adjust_offsets.end()) adjust_offsets[j] = 0;
-          auto var_cell_type_size = get_var_cell_type_size( attributes_[i]);
+          auto var_cell_type_size = get_var_cell_type_size(attributes_[i]);
 
           size_t next_length = 0; // Length of next cell in cells
           if ((next_cell+1) < num_cells[i]) {
-            next_length = *(reinterpret_cast<size_t *>(next)+1) -  *(reinterpret_cast<size_t *>(next));
+            next_length = *(reinterpret_cast<size_t *>(next)+1) - *(reinterpret_cast<size_t *>(next));
           } else {
-            next_length = (buffer_sizes[j+1] - *(reinterpret_cast<size_t *>(next))*var_cell_type_size)/var_cell_type_size;
+            next_length = buffer_sizes[j+1] - *(reinterpret_cast<size_t *>(next));
           }
 
-          void *var_next = offset_pointer(attributes_[i], buffers[j+1], *(reinterpret_cast<size_t *>(next)));
+          void *var_next = offset_pointer(attributes_[i], buffers[j+1], (*(reinterpret_cast<size_t *>(next)))/var_cell_type_size);
           void *var_current =  offset_pointer(attributes_[i], buffers[j+1], adjust_offsets[j]);
 
           // Shift cell contents into (dropped)current contents
-          memmove(var_current, var_next, next_length*var_cell_type_size);
+          memmove(var_current, var_next, next_length);
 
           // Adjust the current cell's offsets
-          memmove(current, &adjust_offsets[j], sizeof(size_t));
-          adjust_offsets[j] += next_length;
+          size_t adjust_offset = adjust_offsets[j]*var_cell_type_size;
+          memmove(current, &adjust_offset, cell_size);
+          adjust_offsets[j] += next_length/var_cell_type_size;
         } else {
           // Move next cell contents into current contents
           memmove(current, next, cell_size);
