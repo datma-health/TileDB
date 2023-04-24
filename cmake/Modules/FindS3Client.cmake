@@ -87,6 +87,10 @@ elseif(NOT AWSSDK_FOUND)
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
     DEPENDS aws-checksums-build)
 
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+  endif()
+
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
@@ -108,7 +112,8 @@ elseif(NOT AWSSDK_FOUND)
     -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
-    -DCMAKE_CXX_FLAGS="-Wno-maybe-uninitialized")
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS})
+    
 
   add_dependencies(awssdk-build aws-c-common-build)
   add_dependencies(awssdk-build aws-c-event-stream-build)
