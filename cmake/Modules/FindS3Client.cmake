@@ -88,7 +88,7 @@ elseif(NOT AWSSDK_FOUND)
     DEPENDS aws-checksums-build)
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized -Wno-deprecated-declaration")
   endif()
 
   ExternalProject_Add(awssdk-build
