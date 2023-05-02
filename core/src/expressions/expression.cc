@@ -60,6 +60,7 @@ Expression::Expression(std::string expression, std::vector<std::string> attribut
     parser_->EnableOptimizer(true);
     parser_->DefineFun(new SplitCompare);
     parser_->DefineOprt(new OprtSplitCompare);
+    parser_->DefineOprt(new OprtSplitCompareAll);
 
     // Setup muparserx variables for the attributes
     try {

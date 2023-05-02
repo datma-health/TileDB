@@ -43,8 +43,8 @@ const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 size_t sizes[2] = { 1024, 40 };
 
 // filter expression that results in just one match for genomicsdb_ws
-std::string filters[2] = { "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\")",
-                           "REF == \"G\" && GT[0] == 1 && ALT |= \"T\"" };
+std::string filters[2] = { "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
+                           "REF == \"G\" && ALT |= \"T\" && GT &= \"11\"" };
 
 // Only match expected for the following test cases
 char expected_REF = 'G';
