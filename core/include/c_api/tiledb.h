@@ -647,7 +647,7 @@ TILEDB_EXPORT int tiledb_array_evaluate_cell(
  *     array creation. Note that, in that case, the extra coordinates 
  *     attribute corresponds to the last extra attribute, i.e., its id
  *     is *attribute_num*. 
- * @return TILEDB_ERR for error, TILEDB_OVERFLOW for overflow and TILEDB_OK otherwise.
+ * @return TILEDB_ERR for error, 1 for overflow, and 0 otherwise.
  */
 TILEDB_EXPORT int tiledb_array_overflow(
     const TileDB_Array* tiledb_array,
