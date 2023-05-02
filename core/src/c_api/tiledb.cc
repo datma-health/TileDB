@@ -786,6 +786,26 @@ int tiledb_array_skip_and_read(
   return TILEDB_OK;
 }
 
+int tiledb_array_evaluate_cell(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes,
+    int64_t* positions) {
+
+  // Sanity check
+  if(!sanity_check(tiledb_array))
+    return TILEDB_ERR;
+
+  // Evaluate cell
+  if(tiledb_array->array_->evaluate_cell(buffers, buffer_sizes, positions) != TILEDB_AR_OK) {
+    strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
+    return TILEDB_ERR;
+  }
+
+  // Success
+  return TILEDB_OK;
+}
+
 int tiledb_array_overflow(
     const TileDB_Array* tiledb_array,
     int attribute_id) {

@@ -282,6 +282,10 @@ void Expression::assign_var_cell_values(const int attribute_id, void** buffers, 
 }
 
 bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, std::vector<int64_t>& positions) {
+  return evaluate_cell(buffers, buffer_sizes, positions.data());
+}
+
+bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* positions) {
   if (expression_.size() == 0 || attributes_.size() == 0 || attribute_map_.size() == 0) {
     return true;
   }
@@ -341,6 +345,9 @@ int get_num_cells(const ArraySchema *array_schema, int attribute_id, size_t* buf
   }
 }
 
+/**
+ * Only used by the unit tests now
+ */
 int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
   if (expression_.size() == 0 || attributes_.size() == 0 || attribute_map_.size() == 0) {
     return TILEDB_EXPR_OK;

@@ -318,17 +318,22 @@ int Array::read(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
   }
 }
 
+int Array::evaluate_cell(void** buffer, size_t* buffer_sizes, int64_t* positions) {
+  if (expression_) {
+    if (expression_->evaluate_cell(buffer, buffer_sizes, positions)) {
+      return TILEDB_AR_OK;
+    } else {
+      tiledb_ar_errmsg = tiledb_expr_errmsg;
+      return TILEDB_AR_ERR;
+    }
+  }
+  return TILEDB_AR_OK;
+}
+
 int Array::read_default(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
   if(array_read_state_->read(buffers, buffer_sizes, skip_counts) != TILEDB_ARS_OK) {
     tiledb_ar_errmsg = tiledb_ars_errmsg;
     return TILEDB_AR_ERR;
-  }
-
-  if (expression_) {
-    if (expression_->evaluate(buffers, buffer_sizes) != TILEDB_EXPR_OK) {
-      tiledb_ar_errmsg = tiledb_expr_errmsg;
-      return TILEDB_AR_ERR;
-    }
   }
 
   // Success

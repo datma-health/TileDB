@@ -85,12 +85,10 @@ class Expression {
 
   bool evaluate_cell(void **buffers, size_t* buffer_sizes, std::vector<int64_t>& positions);
 
+  bool evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* positions);
+
   /**
-   * The evaluate method is called after array read is done.
-   * FIXME: This is extremely inefficient and only works
-   * for the POC on filters. The idea is to change this
-   * quickly with on-disk secondary indexing of attributes
-   * which have been annotated to be indexed
+   * Only used for unit testing.
    */
   int evaluate(void** buffers, size_t* buffer_sizes);
 

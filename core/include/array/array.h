@@ -201,6 +201,25 @@ class Array {
   int read(void** buffers, size_t* buffer_sizes, size_t* skip_counts=0);
 
   /**
+   * Evaluates the cell based on the filter expression applied to the array.
+   * @param buffers An array of buffers, one for each attribute. These must be
+   *     provided in the same order as the attributes specified in
+   *     init() or reset_attributes(). The case of variable-sized attributes is
+   *     special. Instead of providing a single buffer for such an attribute,
+   *     **two** must be provided: the second will hold the variable-sized cell
+   *     values, whereas the first holds the start offsets of each cell in the
+   *     second buffer.
+   * @param buffer_sizes The sizes (in bytes) allocated by the user for the
+   *     input buffers (there is a one-to-one correspondence).
+   * @param positions The position of the cell in the buffer to be evaluated.
+   *     There should be one position for each of the input buffers.
+   * @return TILEDB_AR_OK for successful evaluation and TILEDB_AR_ERR otherwise.
+   *     The onus is on the client to check if there was an error during
+   *     evaluation when TILEB_AR_ERR is returned.
+   */ 
+  int evaluate_cell(void** buffer, size_t* buffer_sizes, int64_t* positions);
+
+  /**
    * Performs a read operation in an array, which must be initialized in read 
    * mode. The function retrieves the result cells that lie inside
    * the subarray specified in init() or reset_subarray(). The results are
