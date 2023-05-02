@@ -30,7 +30,6 @@
  * Tests for testing filter expressions from a GenomicsDB workspace
  */
 
-
 #include "catch.h"
 #include "tiledb.h"
 

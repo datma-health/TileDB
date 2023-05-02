@@ -775,6 +775,7 @@
     "tiledb_column": 3100104058
    },
    "workspace": "../genomicsdb_ws",
+
    "array_name": "GL000212.1$1$186858",
    "end": {
     "tiledb_column": 3100290915
@@ -851,6 +852,7 @@
    }
   }
  ],
+
  "vid_mapping_file": "../genomicsdb_ws/vidmap.json",
  "callset_mapping_file": "../genomicsdb_ws/callset.json",
  "size_per_column_partition": 43581440,
