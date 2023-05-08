@@ -608,6 +608,30 @@ TILEDB_EXPORT int tiledb_array_skip_and_read(
     size_t* buffer_sizes,
     size_t* skip_counts);
 
+ /**
+   * Evaluates the cell based on the filter expression applied to the tiledb array.
+   * @param tiledb_array The TileDB array
+   * @param buffers An array of buffers, one for each attribute. These must be
+   *     provided in the same order as the attributes specified in
+   *     init() or reset_attributes(). The case of variable-sized attributes is
+   *     special. Instead of providing a single buffer for such an attribute,
+   *     **two** must be provided: the second will hold the variable-sized cell
+   *     values, whereas the first holds the start offsets of each cell in the
+   *     second buffer.
+   * @param buffer_sizes The sizes (in bytes) allocated by the user for the
+   *     input buffers (there is a one-to-one correspondence).
+   * @param positions The position of the cell in the buffer to be evaluated.
+   *     There should be one position for each of the input buffers.
+   * @return TILEDB_OK for successful evaluation and TILEDB_ERR otherwise.
+   *     The onus is on the client to check if there was an error during
+   *     evaluation when TILEB_ERR is returned.
+   */
+TILEDB_EXPORT int tiledb_array_evaluate_cell(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes,
+    int64_t* positions);
+
 /**
  * Checks if a read operation for a particular attribute resulted in a
  * buffer overflow.

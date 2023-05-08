@@ -85,12 +85,10 @@ class Expression {
 
   bool evaluate_cell(void **buffers, size_t* buffer_sizes, std::vector<int64_t>& positions);
 
+  bool evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* positions);
+
   /**
-   * The evaluate method is called after array read is done.
-   * FIXME: This is extremely inefficient and only works
-   * for the POC on filters. The idea is to change this
-   * quickly with on-disk secondary indexing of attributes
-   * which have been annotated to be indexed
+   * Only used for unit testing.
    */
   int evaluate(void** buffers, size_t* buffer_sizes);
 
@@ -151,7 +149,8 @@ class Expression {
 
 /**
  * SplitCompare accepts 3 arguments
- *       Input String that is a list of strings separated by some delimiter
+ *       Input attribute name where the attributes is represented internally as string that is a list of strings
+ *                separated by some delimiter
  *       Delimiter that is the ASCII integer value, note : muparserx does not accept characters as an arg
  *       Comparison String that is compared with each token from the input string and returns true if there is a match
  *                with any of the tokens, false otherwise.
@@ -179,7 +178,7 @@ class SplitCompare : public mup::ICallback {
   }
 
   const mup::char_type* GetDesc() const {
-    return "splitcompare(input, delimiter, compare_string) - splitcompare tokenizes input string using the delimiter(specified as an ASCII integer) and then compares for any token match with the given string";
+    return "splitcompare(input, delimiter, compare_string) - splitcompare tokenizes the string for the input attribute using the delimiter(specified as an ASCII integer) and then compares for any token match with the given string";
   }
 
   mup::IToken* Clone() const {
@@ -188,8 +187,8 @@ class SplitCompare : public mup::ICallback {
 };
 
 /**
- * Similar to SplitCompare above, but using a special operator "|=" where the LHS of the expression is the input
- * string and the RHS is the string to be compared with. The delimiter is "|" for tokenizing the input string.
+ * OprtSplitCompare, similar to SplitCompare above, but using a special operator "|=" where the LHS of the expression is the input
+ * attribute name and the RHS is the string to be compared with. The delimiter is "|" for tokenizing the input string.
  */
 class OprtSplitCompare : public mup::IOprtBin {
  public:
@@ -214,7 +213,7 @@ class OprtSplitCompare : public mup::IOprtBin {
   }
 
   const mup::char_type* GetDesc() const {
-    return "str1 |= str2 - splitcompare tokenizes str1 using the delimiter '|' and then looks for any token match with str2";
+    return "<attribute> |= string - the operator tokenizes the attribute using the delimiter '|' and then looks for any token match with string";
   }
 
   mup::IToken* Clone() const {
@@ -222,5 +221,47 @@ class OprtSplitCompare : public mup::IOprtBin {
   }
 };
 
+/**
+ * OprtSplitCompareAll uses the special operator "&=" where the LHS of the expression is the input attribute name
+ * represented internally in TileDB as an array of integers in muparserx and the RHS is the string to be compared with.
+ * The with string can optionally have delimiters, currently it should be either "|" or "/".
+ */
+class OprtSplitCompareAll : public mup::IOprtBin {
+ public:
+  OprtSplitCompareAll() : mup::IOprtBin(("&="), (int)mup::prRELATIONAL1, mup::oaLEFT) {}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int) {
+    mup::matrix_type input = a_pArg[0]->GetArray();
+    mup::string_type delimiter = "|/";
+    mup::string_type with =  a_pArg[1]->GetString();
+
+    with.erase(std::remove(with.begin(), with.end(), delimiter[0]), with.end());
+    with.erase(std::remove(with.begin(), with.end(), delimiter[1]), with.end());
+
+    // The return type is boolean
+    *ret = (mup::bool_type)false;
+
+    // A vector is represented as a matrix in muparserx with nCols=1
+    if (with.length() > 0 && input.GetRows()/2+1 == with.length()) {
+      *ret = (mup::bool_type)true;
+      for (int i=0, j=0; i<input.GetRows(); i++) {
+        if (i%2 == 0) {
+          if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[j++]-'0') {
+            *ret = (mup::bool_type)false;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  const mup::char_type* GetDesc() const {
+    return "<attribute> &= string - the operator works on a string that is a list of integers with optional delimiters '|' or '/', any delimiters in the string are erased and then compared with the array of integer values for the attribute.";
+  }
+
+  mup::IToken* Clone() const {
+    return new OprtSplitCompareAll(*this);
+  }
+};
 
 #endif // __EXPRESSION_H__
