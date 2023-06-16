@@ -38,7 +38,7 @@
 #include <functional>
 #include <system_error>
 #include <stdlib.h>
-
+#include <iostream>
 #include "uri.h"
 
 // Constructor
@@ -128,6 +128,34 @@ void uri::parse(const std::string& uri_s)
   if (query_iter != end_iter) {
     ++query_iter;
     query_.assign(query_iter, end_iter);
+  }
+
+std::size_t startQuery = uri_s.find('?');
+  while(startQuery != std::string::npos){
+    std::size_t endQuery = uri_s.find('=',startQuery);
+    /* todo: handle edge cases
+    if(endQuery == std::string::npos)
+  */    
+
+    std::string queryParam = uri_s.substr(startQuery + 1,endQuery - startQuery - 1);
+    startQuery = endQuery;
+    endQuery = uri_s.find('&', startQuery);
+    if(endQuery == std::string::npos)
+      endQuery = uri_s.length();
+    /*
+    handle edge cases later
+    */
+    std::string queryVal = uri_s.substr(startQuery + 1, endQuery - startQuery - 1);
+    vectorQuery.emplace_back(std::pair<std::string,std::string>(queryParam,queryVal));
+    if(endQuery == uri_s.length())
+      startQuery = std::string::npos;
+    else
+      startQuery = endQuery;
+    std::cout << queryParam  + "--" << queryVal+"\n"; 
+  }
+  std::cout << "after while\n";
+  for(auto tempPair:vectorQuery){
+    std::cout << "for key " + tempPair.first << " for val " + tempPair.second+"\n";
   }
 }
 

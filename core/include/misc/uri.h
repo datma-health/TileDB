@@ -34,6 +34,7 @@
 #ifndef URI_HH_
 #define URI_HH_    
 #include <string>
+#include <vector>
 
 struct uri {
   uri(const std::string& uri_s);
@@ -56,6 +57,7 @@ struct uri {
   int16_t nport_ = 0;
   std::string path_;
   std::string query_;
+  std::vector<std::pair<std::string, std::string>> vectorQuery;
 };
 
 struct azure_uri : uri {
