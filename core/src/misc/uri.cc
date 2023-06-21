@@ -129,24 +129,18 @@ std::size_t startQuery = uri_s.find('?') + 1;
   while(startQuery != std::string::npos && startQuery <= uri_s.length() - 2){
     std::size_t endQuery = uri_s.find('=', startQuery);
     std::size_t nextQuery = uri_s.find('&', startQuery);
-    // todo: handle edge cases
-    if(endQuery == std::string::npos || endQuery > nextQuery){
-      if(nextQuery == std::string::npos){
-        //throw std::system_error(EINVAL, std::generic_category(), "Query doesn't have value or not in proper format");
-        break;
-      }
-      startQuery = nextQuery + 1;
-      continue;
+    
+    if(endQuery == std::string::npos || endQuery > nextQuery || startQuery == endQuery){
+      throw std::system_error(EINVAL, std::generic_category(), "Query is in incorrect format");
     }  
 
     std::string queryParam = uri_s.substr(startQuery,endQuery - startQuery);
     startQuery = endQuery;
     endQuery = nextQuery;
+
     if(endQuery == std::string::npos)
       endQuery = uri_s.length();
-    /*
-    handle edge cases later
-    */
+
     std::string queryVal = uri_s.substr(startQuery + 1, endQuery - startQuery - 1);
     query_[queryParam] = queryVal;
     if(endQuery == uri_s.length())

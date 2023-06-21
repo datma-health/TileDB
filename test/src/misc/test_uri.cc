@@ -10,7 +10,7 @@ void test_uri(const std::string path_uri_str, const std::string protocol,  const
   CHECK_THAT(path_uri.host(), Equals(host));
   CHECK(path_uri.nport() == nport);
   CHECK_THAT(path_uri.path(), Equals(path));
-  CHECK(path_uri.query().empty() == query.empty());
+  CHECK(path_uri.query().size() == query.size());
   for(auto pair: query){
     CHECK(path_uri.query().find(pair.first) != path_uri.query().end());
     CHECK_THAT(pair.second, Equals(path_uri.query()[pair.first]));
@@ -39,9 +39,8 @@ TEST_CASE("Test uri parsing", "[uri]") {
     {"fdf","fdfdf"}});
   test_uri("hdfs://oda-master:9000/tmp?testQuery=val&anotherQuery=anotherval&lastQuery=lastval", "hdfs", "oda-master", 9000, "/tmp", std::unordered_map<std::string, std::string>{
     {"testQuery","val"},{"anotherQuery","anotherval"},{"lastQuery","lastval"}});
-  test_uri("hdfs://oda-master:9000/tmp?query&anotherquery=someval&otherquery&", "hdfs", "oda-master", 9000, "/tmp", std::unordered_map<std::string, std::string>{
-    {"anotherquery","someval"}});
-  test_uri("fdfdfd://dfdfd/fdfdf?firstQ=firstval&secondQ", "fdfdfd", "dfdfd", 0, "/fdfdf", std::unordered_map<std::string, std::string>{
-    {"firstQ","firstval"}});
+  REQUIRE_THROWS(test_uri("hdfs://oda-master:9000/tmp?query&anotherquery=someval&otherquery&", "hdfs", "oda-master", 9000, "/tmp",emptyMap));
+  REQUIRE_THROWS(test_uri("fdfdfd://dfdfd/fdfdf?firstQ=firstval&secondQ", "fdfdfd", "dfdfd", 0, "/fdfdf",emptyMap));
+  REQUIRE_THROWS(test_uri("hdfs://oda-master:9000/tmp?query=someval&=otherquery", "hdfs", "oda-master", 9000, "/tmp",emptyMap));
 }
 
