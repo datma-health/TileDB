@@ -34,7 +34,7 @@
 #ifndef URI_HH_
 #define URI_HH_    
 #include <string>
-#include <vector>
+#include <unordered_map>
 
 struct uri {
   uri(const std::string& uri_s);
@@ -45,7 +45,7 @@ struct uri {
   std::string port();
   int16_t nport();
   std::string path();
-  std::vector<std::pair<std::string, std::string>> query();
+  std::unordered_map<std::string, std::string> query();
 
  private:
   void parse(const std::string& uri_s);
@@ -56,7 +56,7 @@ struct uri {
   std::string port_;
   int16_t nport_ = 0;
   std::string path_;
-  std::vector<std::pair<std::string, std::string>> query_;
+  std::unordered_map<std::string, std::string> query_;
 };
 
 struct azure_uri : uri {

@@ -66,7 +66,7 @@ std::string uri::path() {
   return path_;
 }
 
-std::vector<std::pair<std::string, std::string>> uri::query() {
+std::unordered_map<std::string, std::string> uri::query() {
   return query_;
 }
 
@@ -148,7 +148,7 @@ std::size_t startQuery = uri_s.find('?') + 1;
     handle edge cases later
     */
     std::string queryVal = uri_s.substr(startQuery + 1, endQuery - startQuery - 1);
-    query_.emplace_back(std::pair<std::string,std::string>(queryParam,queryVal));
+    query_[queryParam] = queryVal;
     if(endQuery == uri_s.length())
       startQuery = std::string::npos;
     else
