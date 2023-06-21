@@ -45,5 +45,8 @@ TEST_CASE("Test uri parsing", "[uri]") {
   test_uri("hdfs://oda-master:9000/tmp?query&anotherquery=someval&otherquery&", "hdfs", "oda-master", 9000, "/tmp", std::vector<std::pair<std::string, std::string>>({
     std::pair<std::string, std::string>("anotherquery","someval")
   }));
+  test_uri("fdfdfd://dfdfd/fdfdf?firstQ=firstval&secondQ", "fdfdfd", "dfdfd", 0, "/fdfdf", std::vector<std::pair<std::string, std::string>>({
+    std::pair<std::string, std::string>("firstQ","firstval")
+  }));
 }
 
