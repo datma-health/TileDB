@@ -45,7 +45,7 @@ struct uri {
   std::string port();
   int16_t nport();
   std::string path();
-  std::string query();
+  std::vector<std::pair<std::string, std::string>> query();
 
  private:
   void parse(const std::string& uri_s);
@@ -56,8 +56,7 @@ struct uri {
   std::string port_;
   int16_t nport_ = 0;
   std::string path_;
-  std::string query_;
-  std::vector<std::pair<std::string, std::string>> vectorQuery;
+  std::vector<std::pair<std::string, std::string>> query_;
 };
 
 struct azure_uri : uri {

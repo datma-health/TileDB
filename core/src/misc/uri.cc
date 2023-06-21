@@ -38,7 +38,6 @@
 #include <functional>
 #include <system_error>
 #include <stdlib.h>
-#include <iostream>
 #include "uri.h"
 
 // Constructor
@@ -67,7 +66,7 @@ std::string uri::path() {
   return path_;
 }
 
-std::string uri::query() {
+std::vector<std::pair<std::string, std::string>> uri::query() {
   return query_;
 }
 
@@ -121,41 +120,39 @@ void uri::parse(const std::string& uri_s)
       nport_ = (uint16_t)port_val;
     }
   }
+  path_.assign(path_iter,find(path_iter, end_iter,'?'));
+  // No query available
+  if(uri_s.find('?') == std::string::npos || uri_s.find('=') == std::string::npos)
+    return;
 
-  std::string::const_iterator query_iter = find(path_iter, end_iter, '?');
-  path_.assign(path_iter, query_iter);
+std::size_t startQuery = uri_s.find('?') + 1;
+  while(startQuery != std::string::npos && startQuery <= uri_s.length() - 2){
+    std::size_t endQuery = uri_s.find('=', startQuery);
+    std::size_t nextQuery = uri_s.find('&', startQuery);
+    // todo: handle edge cases
+    if(endQuery == std::string::npos || endQuery > nextQuery){
+      if(nextQuery == std::string::npos){
+        //throw std::system_error(EINVAL, std::generic_category(), "Query doesn't have value or not in proper format");
+        break;
+      }
+      startQuery = nextQuery + 1;
+      continue;
+    }  
 
-  if (query_iter != end_iter) {
-    ++query_iter;
-    query_.assign(query_iter, end_iter);
-  }
-
-std::size_t startQuery = uri_s.find('?');
-  while(startQuery != std::string::npos){
-    std::size_t endQuery = uri_s.find('=',startQuery);
-    /* todo: handle edge cases
-    if(endQuery == std::string::npos)
-  */    
-
-    std::string queryParam = uri_s.substr(startQuery + 1,endQuery - startQuery - 1);
+    std::string queryParam = uri_s.substr(startQuery,endQuery - startQuery);
     startQuery = endQuery;
-    endQuery = uri_s.find('&', startQuery);
+    endQuery = nextQuery;
     if(endQuery == std::string::npos)
       endQuery = uri_s.length();
     /*
     handle edge cases later
     */
     std::string queryVal = uri_s.substr(startQuery + 1, endQuery - startQuery - 1);
-    vectorQuery.emplace_back(std::pair<std::string,std::string>(queryParam,queryVal));
+    query_.emplace_back(std::pair<std::string,std::string>(queryParam,queryVal));
     if(endQuery == uri_s.length())
       startQuery = std::string::npos;
     else
-      startQuery = endQuery;
-    std::cout << queryParam  + "--" << queryVal+"\n"; 
-  }
-  std::cout << "after while\n";
-  for(auto tempPair:vectorQuery){
-    std::cout << "for key " + tempPair.first << " for val " + tempPair.second+"\n";
+      startQuery = endQuery + 1; 
   }
 }
 
