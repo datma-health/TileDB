@@ -40,7 +40,6 @@
 #include <stdlib.h>
 #include "uri.h"
 #include <cstring>
-#include <iostream>
 // Constructor
 uri::uri(const std::string& uri_s) {
   parse(uri_s);
