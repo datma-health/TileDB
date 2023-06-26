@@ -39,7 +39,8 @@
 #include <system_error>
 #include <stdlib.h>
 #include "uri.h"
-
+#include <cstring>
+#include <iostream>
 // Constructor
 uri::uri(const std::string& uri_s) {
   parse(uri_s);
@@ -120,33 +121,23 @@ void uri::parse(const std::string& uri_s)
       nport_ = (uint16_t)port_val;
     }
   }
-  path_.assign(path_iter,find(path_iter, end_iter,'?'));
-  // No query available
-  if(uri_s.find('?') == std::string::npos || uri_s.find('=') == std::string::npos)
-    return;
-
-std::size_t startQuery = uri_s.find('?') + 1;
-  while(startQuery != std::string::npos && startQuery <= uri_s.length() - 2){
-    std::size_t endQuery = uri_s.find('=', startQuery);
-    std::size_t nextQuery = uri_s.find('&', startQuery);
-    
-    if(endQuery == std::string::npos || endQuery > nextQuery || startQuery == endQuery){
-      throw std::system_error(EINVAL, std::generic_category(), "Query is in incorrect format");
-    }  
-
-    std::string queryParam = uri_s.substr(startQuery,endQuery - startQuery);
-    startQuery = endQuery;
-    endQuery = nextQuery;
-
-    if(endQuery == std::string::npos)
-      endQuery = uri_s.length();
-
-    std::string queryVal = uri_s.substr(startQuery + 1, endQuery - startQuery - 1);
-    query_[queryParam] = queryVal;
-    if(endQuery == uri_s.length())
-      startQuery = std::string::npos;
-    else
-      startQuery = endQuery + 1; 
+  std::string::const_iterator query_iter = find(path_iter, end_iter, '?');
+  path_.assign(path_iter, query_iter);
+  if (query_iter != end_iter) {
+    ++query_iter;
+    std::string queryTemp(query_iter, end_iter);
+    char* save_ptr;
+    for (char* token = strtok_r(queryTemp.data(), "&", &save_ptr);
+         token != NULL; token = strtok_r(NULL, "&", &save_ptr)) {
+      char* search = strchr(token, '=');
+      if (search == NULL || (std::size_t)(search - token) == 0) {
+        throw std::system_error(EINVAL, std::generic_category(),
+                                "Query is in incorrect format");
+      }
+      std::string key(
+          std::string(token).substr(0, (std::size_t)(search - token)));
+      query_[key] = std::string(++search);
+    }
   }
 }
 

@@ -42,5 +42,8 @@ TEST_CASE("Test uri parsing", "[uri]") {
   REQUIRE_THROWS(test_uri("hdfs://oda-master:9000/tmp?query&anotherquery=someval&otherquery&", "hdfs", "oda-master", 9000, "/tmp",emptyMap));
   REQUIRE_THROWS(test_uri("fdfdfd://dfdfd/fdfdf?firstQ=firstval&secondQ", "fdfdfd", "dfdfd", 0, "/fdfdf",emptyMap));
   REQUIRE_THROWS(test_uri("hdfs://oda-master:9000/tmp?query=someval&=otherquery", "hdfs", "oda-master", 9000, "/tmp",emptyMap));
+  REQUIRE_THROWS(test_uri("hdfs://oda-master:9000/tmp?initialQuery=val&&anotherval&latterQuery=lastval", "hdfs", "oda-master", 9000, "/tmp",emptyMap));
+  test_uri("hdfs://oda-master:9000/tmp?firstQuery=val&&secondquery=anotherval&thirdQuery=lastval", "hdfs", "oda-master", 9000, "/tmp", std::unordered_map<std::string, std::string>{
+    {"firstQuery","val"},{"secondquery","anotherval"},{"thirdQuery","lastval"}});
 }
 
