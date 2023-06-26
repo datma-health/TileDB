@@ -88,7 +88,7 @@ elseif(NOT GCSSDK_FOUND)
 
   ExternalProject_Add(crc32-build
     PREFIX ${GCSSDK_PREFIX}
-    URL "https://github.com/google/crc32c/archive/1.1.0.tar.gz"
+    URL "https://github.com/google/crc32c/archive/1.1.2.tar.gz"
     CMAKE_ARGS
         -DBUILD_SHARED_LIBS=OFF
         -DCRC32C_BUILD_TESTS=OFF
