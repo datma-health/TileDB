@@ -58,6 +58,9 @@ Expression::Expression(std::string expression, std::vector<std::string> attribut
     EXPRESSION_ERROR("Expression parsing for dense arrays not yet implemented");
   } else if (expression_.size() != 0) {
     parser_->EnableOptimizer(true);
+
+    // muparser takes full control of DefineFun/Oprt pointers
+    // Do not release them.
     parser_->DefineFun(new SplitCompare);
     parser_->DefineOprt(new OprtSplitCompare);
     parser_->DefineOprt(new OprtSplitCompareAll);
@@ -84,7 +87,7 @@ Expression::Expression(std::string expression, std::vector<std::string> attribut
 void Expression::add_attribute(std::string name) {
   int attribute_id = array_schema_->attribute_id(name);
   int attribute_type = array_schema_->type(attribute_id);
-  int attribute_cell_val_num = array_schema_->cell_val_num(attribute_id)==TILEDB_VAR_NUM?0:array_schema_->cell_val_num(attribute_id);
+  int attribute_cell_val_num = array_schema_->cell_val_num(attribute_id)==TILEDB_VAR_NUM?0:get_cell_val_num(name);
 
   switch (attribute_type) {
     case TILEDB_CHAR: {

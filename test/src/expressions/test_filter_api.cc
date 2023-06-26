@@ -40,11 +40,13 @@ int num_attributes = 4;
 const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 
 // Sizes to be used for buffers
-size_t sizes[2] = { 1024, 40 };
+size_t sizes[4] = { 1024, 40, 512, 4096 };
 
 // filter expression that results in just one match for genomicsdb_ws
-std::string filters[2] = { "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-                           "REF == \"G\" && ALT |= \"T\" && GT &= \"11\"" };
+std::string filters[4] = { "__coords[0] >= 0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
+  "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
+  "REF == \"G\" && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
+  "REF == \"G\" && ALT |= \"T\" && GT &= \"11\"" };
 
 // Only match expected for the following test cases
 char expected_REF = 'G';
@@ -53,7 +55,7 @@ int expected_GT_values[3] = { 1, 0, 1 };
 int64_t expected_coords[2] = { 1, 17384 };
 
 TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_iterator]") {
-  for (auto i=0; i<2; i++) {
+  for (auto i=0; i<4; i++) {
     SECTION("Test filter expressions for iteration " + std::to_string(i)) {
       // Initialize tiledb context
       TileDB_CTX* tiledb_ctx;
@@ -66,7 +68,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
       void *buffers[7];
       auto nBuffers = sizeof(buffer_sizes)/sizeof(size_t);
       CHECK(nBuffers == 7);
-      for (auto i=0; i<nBuffers; i++) {
+      for (auto i=0u; i<nBuffers; i++) {
         buffers[i] = malloc(buffer_sizes[i]);
       }
 
@@ -114,7 +116,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
           &ALT_size),               // Value size (useful in variable-sized attributes)
                TILEDB_OK);
       CHECK(ALT_size == 3*sizeof(char));
-      for (auto i=0; i<ALT_size/sizeof(char); i++) {
+      for (auto i=0u; i<ALT_size/sizeof(char); i++) {
         CHECK(ALT_val[i] == expected_ALT[i]);
       }
 
@@ -125,7 +127,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
           &GT_size),               // Value size (useful in variable-sized attributes)
                TILEDB_OK);
       CHECK(GT_size == 3*sizeof(int));
-      for (auto i=0; i<GT_size/sizeof(int); i++) {
+      for (auto i=0u; i<GT_size/sizeof(int); i++) {
         CHECK(GT_val[i] == expected_GT_values[i]);
       }
  
@@ -154,7 +156,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
       CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
 
       // Deallocate memory
-      for (auto i=0; i<nBuffers; i++) {
+      for (auto i=0u; i<nBuffers; i++) {
         free(buffers[i]);
       }
     }
@@ -162,7 +164,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
 }
 
 TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read]") {
-  for (auto i=0; i<2; i++) {
+  for (auto i=0; i<4; i++) {
     SECTION("Test filter expressions for " + std::to_string(i)) {
       // Initialize tiledb context
       TileDB_CTX* tiledb_ctx;
@@ -176,7 +178,7 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
       auto nBuffers = sizeof(buffer_sizes)/sizeof(size_t);
       CHECK(nBuffers == 7);
 
-      for (auto i=0; i<nBuffers; i++) {
+      for (auto i=0u; i<nBuffers; i++) {
         buffers[i] = malloc(1024);
       }
 
@@ -206,7 +208,7 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
         for (auto i=0, j=0; i<num_attributes; i++, j++) {
           // Adjust offset sizes
           if (i != num_attributes-1 && buffer_sizes[j] != 0) {
-            for (auto k=0; adjust_offsets[i]>0 && k<buffer_sizes[j]; k++) {
+            for (auto k=0u; adjust_offsets[i]>0 && k<buffer_sizes[j]; k++) {
               *((size_t *)buffers[j] + k) += adjust_offsets[i];
             }
             adjust_offsets[i] += buffer_sizes[j+1];
@@ -231,7 +233,7 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
         }
       } while(continue_read);
 
-      for (auto j=0; j<nBuffers; j++) {
+      for (auto j=0u; j<nBuffers; j++) {
         buffer_sizes[j] = actual_buffer_sizes[j];
         buffers[j] = (char *)buffers[j] -  actual_buffer_sizes[j];
       }
@@ -239,7 +241,7 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
       // Evaluate cells basied on the filter expression
       auto ncells = buffer_sizes[nBuffers-1]/16; // Coords
       CHECK(ncells == 7); // Number of cells found should be 7
-      for (auto i=0; i<ncells; i++) {
+      for (auto i=0u; i<ncells; i++) {
         // Check return buffers, there should only be one match based on the filter
         int64_t positions[] = {i, i, i, i, i, i, i };
         INFO(std::string("Evaluating cell for cell position=") + std::to_string(i));
@@ -287,7 +289,7 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
       CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
 
       // Deallocate memory
-      for (auto i=0; i<nBuffers; i++) {
+      for (auto i=0u; i<nBuffers; i++) {
         free(buffers[i]);
       }
     }
