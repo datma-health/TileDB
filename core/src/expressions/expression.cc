@@ -207,7 +207,7 @@ void Expression::assign_fixed_cell_values(const int attribute_id, void** buffers
                                           const uint64_t buffer_index, const uint64_t position) {
   auto& attribute_name = array_schema_->attribute(attribute_id);
   auto attribute_type = array_schema_->type(attribute_id);
-  long num_cells = array_schema_->cell_val_num(attribute_id);
+  long num_cells = get_cell_val_num(attribute_name);
   switch (attribute_type) {
     case TILEDB_CHAR: {
       attribute_map_[attribute_name] = mup::string_type(get_value<char>(buffers[buffer_index], position*num_cells), num_cells);
@@ -302,7 +302,7 @@ bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* po
     int attribute_id = array_schema_->attribute_id(attributes_[i]);
     if (attribute_map_.find(attributes_[i]) != attribute_map_.end()) {
       try {
-        switch (array_schema_->cell_val_num(attribute_id)) {
+        switch (get_cell_val_num(attributes_[i])) {
           case 1:
             assign_single_cell_value(attribute_id, buffers, j, position);
             break;
