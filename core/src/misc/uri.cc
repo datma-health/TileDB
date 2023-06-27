@@ -71,15 +71,15 @@ std::unordered_map<std::string, std::string> uri::query() {
 }
 
 // Private Methods
-std::string uri::urlDecode(const std::string& value) {
+std::string uri::urlDecode(const std::string& uri_s) {
   std::string result;
-  result.reserve(value.size());
+  result.reserve(uri_s.size());
 
-  for (std::size_t i = 0; i < value.size(); ++i) {
-    auto ch = value[i];
+  for (std::size_t i = 0; i < uri_s.size(); ++i) {
+    auto ch = uri_s[i];
 
-    if (ch == '%' && (i + 2) < value.size()) {
-      auto hex = value.substr(i + 1, 2);
+    if (ch == '%' && (i + 2) < uri_s.size()) {
+      auto hex = uri_s.substr(i + 1, 2);
       auto dec = static_cast<char>(std::strtol(hex.c_str(), nullptr, 16));
       result.push_back(dec);
       i += 2;
