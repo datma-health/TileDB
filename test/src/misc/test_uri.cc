@@ -45,5 +45,11 @@ TEST_CASE("Test uri parsing", "[uri]") {
   REQUIRE_THROWS(test_uri("hdfs://oda-master:9000/tmp?initialQuery=val&&anotherval&latterQuery=lastval", "hdfs", "oda-master", 9000, "/tmp",emptyMap));
   test_uri("hdfs://oda-master:9000/tmp?firstQuery=val&&secondquery=anotherval&thirdQuery=lastval", "hdfs", "oda-master", 9000, "/tmp", std::unordered_map<std::string, std::string>{
     {"firstQuery","val"},{"secondquery","anotherval"},{"thirdQuery","lastval"}});
+  test_uri("hdfs://oda-master:9000/tmp?firstQuery=val&&secondquery=anotherval&thirdQuery=last%20val", "hdfs", "oda-master", 9000, "/tmp", std::unordered_map<std::string, std::string>{
+    {"firstQuery","val"},{"secondquery","anotherval"},{"thirdQuery","last val"}});
+  test_uri("hdfs://oda-master:9000/tmp?thirdQuery=someval123+otherval123==", "hdfs", "oda-master", 9000, "/tmp", std::unordered_map<std::string, std::string>{
+    {"thirdQuery","someval123+otherval123=="}});
+  test_uri("hdfs://oda-master:9000/tmp?firstQuery=this%20is%20a%20field&secondquery=was%20it%20clear%20%28already%29%3F", "hdfs", "oda-master", 9000, "/tmp", std::unordered_map<std::string, std::string>{
+    {"firstQuery","this is a field"},{"secondquery","was it clear (already)?"}});
 }
 

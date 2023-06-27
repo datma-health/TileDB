@@ -71,6 +71,26 @@ std::unordered_map<std::string, std::string> uri::query() {
 }
 
 // Private Methods
+std::string uri::urlDecode(const std::string& value) {
+  std::string result;
+  result.reserve(value.size());
+
+  for (std::size_t i = 0; i < value.size(); ++i) {
+    auto ch = value[i];
+
+    if (ch == '%' && (i + 2) < value.size()) {
+      auto hex = value.substr(i + 1, 2);
+      auto dec = static_cast<char>(std::strtol(hex.c_str(), nullptr, 16));
+      result.push_back(dec);
+      i += 2;
+    } else {
+      result.push_back(ch);
+    }
+  }
+
+  return result;
+}
+
 void uri::parse(const std::string& uri_s)
 {
   if (uri_s.empty()) {
@@ -124,7 +144,7 @@ void uri::parse(const std::string& uri_s)
   path_.assign(path_iter, query_iter);
   if (query_iter != end_iter) {
     ++query_iter;
-    std::string queryTemp(query_iter, end_iter);
+    std::string queryTemp(urlDecode(std::string(query_iter, end_iter)));
     char* save_ptr;
     for (char* token = strtok_r(queryTemp.data(), "&", &save_ptr);
          token != NULL; token = strtok_r(NULL, "&", &save_ptr)) {

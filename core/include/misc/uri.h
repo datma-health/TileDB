@@ -49,6 +49,7 @@ struct uri {
 
  private:
   void parse(const std::string& uri_s);
+  std::string urlDecode(const std::string& value);
 
  private:
   std::string protocol_;
