@@ -295,3 +295,120 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
     }
   }
 }
+
+TEST_CASE("Test genomicsdb demo test case", "[genomicsdb_demo]") {
+  char *workspace = getenv("GENOMICSDB_DEMO_WS");
+  if (!workspace) return;
+
+  std::string array = std::string(workspace) + "/allcontigs$1$3095677412";
+
+  std::vector<std::string> filters = {"", // zlib 38s
+    "__coords[0]==10000", // 4s
+    "__coords[0]==10000 && REF==\"T\"", // 5s
+    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\"", // 6s
+    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && GT[0]==1", // 7s
+    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && GT&=\"1|1\"", // eval true 7s
+    "__coords[0]==10000 && REF==\"C\" && ALT|=\"T\" && GT&=\"1|1\"" // eval false 7s 
+    };
+
+  const int64_t subarray[] = {0ul, 200000ul, 2000000000ul, 2100000000ul};
+
+  for (auto filter_i=0u; filter_i<filters.size(); filter_i++) {
+    // Initialize tiledb context
+    TileDB_CTX* tiledb_ctx;
+    TileDB_Config tiledb_config;
+    tiledb_config.home_ = workspace;
+
+    // Initialize Context
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx, &tiledb_config), TILEDB_OK);
+
+    Catch::Timer t;
+    t.start();
+
+    printf("Starting evaluation for %s\n", filters[filter_i].c_str());
+
+    size_t buffer_size = 4096;
+    size_t buffer_sizes[] = { buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size, buffer_size };
+    void *buffers[7];
+    auto nBuffers = sizeof(buffer_sizes)/sizeof(size_t);
+    CHECK(nBuffers == 7);
+    for (auto i=0u; i<nBuffers; i++) {
+      buffers[i] = malloc(buffer_sizes[i]);
+    }
+
+    // Initialize array
+    TileDB_ArrayIterator* tiledb_array_it;
+    CHECK_RC(tiledb_array_iterator_init_with_filter(
+        tiledb_ctx,                                       // Context
+        &tiledb_array_it,                                 // Array object
+        array.c_str(),                                    // Array name
+        TILEDB_ARRAY_READ,                                // Mode
+        subarray,                                         // Subarray
+        attributes,                                       // Subset on attributes
+        sizeof(attributes)/sizeof(char *),                // Number of attributes
+        buffers,                                          // Preallocated buffers for internal use
+        buffer_sizes,                                     // buffer_sizes
+        filters[filter_i].c_str()),
+             TILEDB_OK);
+
+    while (tiledb_array_iterator_end(tiledb_array_it) == TILEDB_OK) {
+      char* REF_val;
+      size_t REF_size;
+      CHECK_RC(tiledb_array_iterator_get_value(
+          tiledb_array_it,          // Array iterator
+          0,                        // Attribute id for REF
+          (const void**) &REF_val,  // Value
+          &REF_size),               // Value size (useful in variable-sized attributes)
+               TILEDB_OK);
+      for (auto i=0u; i<REF_size/sizeof(char); i++, REF_val++) {
+        if (!i) printf("REF=");
+        printf("%c ", *REF_val);
+      }
+      char* ALT_val;
+      size_t ALT_size;
+      CHECK_RC(tiledb_array_iterator_get_value(
+          tiledb_array_it,          // Array iterator
+          1,                        // Attribute id for ALT
+          (const void**) &ALT_val,  // Value
+          &ALT_size),               // Value size (useful in variable-sized attributes)
+               TILEDB_OK);
+      for (auto i=0u; i<ALT_size/sizeof(char); i++, ALT_val++) {
+        if (!i) printf("ALT=");
+        printf("%c ", *ALT_val);
+      }
+      int* GT_val = NULL;
+      size_t GT_size = 0;
+      CHECK_RC(tiledb_array_iterator_get_value(
+          tiledb_array_it,         // Array iterator
+          2,                       // Attribute id for GT
+          (const void**) &GT_val,  // Value
+          &GT_size),               // Value size (useful in variable-sized attributes)
+               TILEDB_OK);
+      for (auto i=0u; i<GT_size/sizeof(int); i++, GT_val++) {
+        if (!i) printf("GT=");
+        printf("%d ", *GT_val);
+      }
+      int64_t* coords = NULL;
+      size_t coords_size = 0;
+      CHECK_RC(tiledb_array_iterator_get_value(
+          tiledb_array_it,         // Array iterator
+          3,                       // Attribute id for coords
+          (const void**) &coords,  // Value
+          &coords_size),           // Value size (useful in variable-sized attributes)
+               TILEDB_OK);
+      CHECK(coords_size == 16);
+      printf("coords[0]=%lld coords[1]=%lld\n", (long long)(coords[0]), (long long)(coords[1]));
+
+      // Advance iterator
+      CHECK_RC(tiledb_array_iterator_next(tiledb_array_it), TILEDB_OK);
+    }
+
+    // Finalize the array
+    CHECK_RC(tiledb_array_iterator_finalize(tiledb_array_it), TILEDB_OK);
+
+    printf("Elapsed Time=%us for %s\n", t.getElapsedMilliseconds()/1000, filters[filter_i].c_str());
+
+    // Finalize context
+    CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
+  }
+}

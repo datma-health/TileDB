@@ -274,15 +274,16 @@ void Expression::assign_var_cell_values(const int attribute_id, void** buffers, 
         default:
           throw std::range_error("Attribute Type " + std::to_string(attribute_type) + " not supported in expressions");
       }
-      parser_->RemoveVar(attribute_name);
-      assert(!parser_->IsVarDefined(attribute_name));
-      mup::Value x_array(mup::int_type(info.second), mup::int_type(0));
-      for (auto i=0u; i<info.second; i++) {
-        x_array.At(i) = get_single_cell_value(attribute_type, buffers, buffer_index+1, info.first+i);
+      if (attribute_map_[attribute_name].GetRows() != (int)info.second) {
+        parser_->RemoveVar(attribute_name);
+        assert(!parser_->IsVarDefined(attribute_name));
+        mup::Value x_array(mup::int_type(info.second), mup::int_type(0));
+        attribute_map_[attribute_name] = std::move(x_array);
+        parser_->DefineVar(attribute_name, (mup::Variable)&(attribute_map_[attribute_name]));
       }
-      assert(x_array.IsMatrix());
-      attribute_map_[attribute_name] = std::move(x_array);
-      parser_->DefineVar(attribute_name, (mup::Variable)&(attribute_map_[attribute_name]));
+      for (auto i=0u; i<info.second; i++) {
+        attribute_map_[attribute_name].At(i) = get_single_cell_value(attribute_type, buffers, buffer_index+1, info.first+i);
+      }
     }
   }
 }
