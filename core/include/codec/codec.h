@@ -229,7 +229,7 @@ class Codec {
 
   std::string dl_error_;
 #ifdef __APPLE__
-  std::vector<std::string> dl_paths_ = {"/usr/local/Cellar/lib/", "/usr/local/lib/", "/usr/lib/", ""};
+  std::vector<std::string> dl_paths_ = {"/opt/homebrew/lib/", "/usr/local/Cellar/lib/", "/usr/local/lib/", "/usr/lib/", ""};
 #elif __linux__
   std::vector<std::string> dl_paths_ = {"/usr/lib64/", "/usr/lib/", ""};
 #else
