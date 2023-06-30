@@ -246,15 +246,25 @@ class OprtSplitCompareAll : public mup::IOprtBin {
     *ret = (mup::bool_type)false;
 
     // A vector is represented as a matrix in muparserx with nCols=1
-    if (with.length() > 0 && input.GetRows()/2+1u == with.length()) {
-      *ret = (mup::bool_type)true;
-      for (int i=0, j=0; i<input.GetRows(); i++) {
-        if (i%2 == 0) {
-          if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[j++]-'0') {
-            *ret = (mup::bool_type)false;
-            break;
+    if (with.length() > 0) {
+      if (input.GetRows()+1u == with.length()*2) { // e.g. input has a delimiter, e.g GT with Ploidy
+        *ret = (mup::bool_type)true;
+        for (int i=0, j=0; i<input.GetRows(); i++) {
+          if (i%2 == 0) {
+            if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[j++]-'0') {
+              *ret = (mup::bool_type)false;
+              break;
+            }
           }
         }
+      } else if (input.GetRows() == with.length()) { // e.g input without delimiters, e.g. GT without Ploidy
+        *ret = (mup::bool_type)true;
+         for (int i=0; i<input.GetRows(); i++) {
+            if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[i]-'0') {
+              *ret = (mup::bool_type)false;
+              break;
+            }
+         }
       }
     }
   }
