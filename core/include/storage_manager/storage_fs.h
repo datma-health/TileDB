@@ -141,7 +141,7 @@ class StorageFS {
     }
   }
 
-  static inline std::string append_paths(const std::string& path1, const std::string& path2) {//mod
+  static inline std::string append_paths(const std::string& path1, const std::string& path2) {
     return slashify(path1) + path2;
   }
 
