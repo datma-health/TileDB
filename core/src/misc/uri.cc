@@ -161,13 +161,18 @@ void uri::parse(const std::string& uri_s)
 }
 
 azure_uri::azure_uri(const std::string& uri_s) : uri(uri_s) {
-  std::size_t begin = this->host().find('@');
-  std::size_t end = this->host().find('.');
-  if (begin != std::string::npos && end != std::string::npos) {
-    account_ = this->host().substr(begin+1, end-begin-1);
-  }
-  if (begin != std::string::npos) {
-    container_ = this->host().substr(0, begin);
+  if (this->protocol().compare("azb") == 0) {
+    account_ = this->query()["account"];
+    container_ = this->host();
+  } else {
+    std::size_t begin = this->host().find('@');
+    std::size_t end = this->host().find('.');
+    if (begin != std::string::npos && end != std::string::npos) {
+      account_ = this->host().substr(begin + 1, end - begin - 1);
+    }
+    if (begin != std::string::npos) {
+      container_ = this->host().substr(0, begin);
+    }
   }
 }
 

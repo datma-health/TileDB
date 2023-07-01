@@ -122,12 +122,14 @@ class StorageFS {
 
 
   static inline std::string slashify(const std::string& path) {
-    if (path.empty()) {
+    std::size_t query_pos = path.find('?');
+    std::string query_checked = query_pos == std::string::npos ? path : path.substr(0,query_pos);
+    if (query_checked.empty()) {
       return "/";
-    } else if (path.back() != '/') {
-      return path + '/';
+    } else if (query_checked.back() != '/') {
+      return query_checked + '/';
     } else {
-      return path;
+      return query_checked;
     }
   }
 
@@ -139,7 +141,7 @@ class StorageFS {
     }
   }
 
-  static inline std::string append_paths(const std::string& path1, const std::string& path2) {
+  static inline std::string append_paths(const std::string& path1, const std::string& path2) {//mod
     return slashify(path1) + path2;
   }
 

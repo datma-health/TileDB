@@ -43,8 +43,9 @@ check_results_from_examples() {
 run_azure_tests() {
   source $1
   echo "Running TEST_DIR=$TEST"
-  echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
+  echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" && tiledb_utils_tests "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT" &&
     echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
+    $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT" &&
     echo "az schema storage buffer test" && $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema examples" && time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema small size storage test" &&

@@ -40,17 +40,26 @@
 #include <string.h>
 #include <thread>
 
-const std::string& workspace("WORKSPACE");
+const std::string& workspace("/WORKSPACE");
+std::string append_helper(const std::string &temp_dir,
+                          const std::string &append) {
+  std::size_t find = temp_dir.find('?');
+  if (find == std::string::npos)
+    return temp_dir + append;
+  else {
+    return temp_dir.substr(0, find) + append + temp_dir.substr(find);
+  }
+}
 
 TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]") {
-  std::string workspace_path = get_temp_dir()+"/"+workspace;
+  std::string workspace_path = append_helper(get_temp_dir(), workspace);
 
   TileDB_CTX *tiledb_ctx;
   REQUIRE(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, false) == 0); // OK
   CHECK(!set_working_dir(tiledb_ctx, workspace_path));
   std::string cwd = current_working_dir(tiledb_ctx);
   CHECK(cwd.size() > 0);
-  CHECK(set_working_dir(tiledb_ctx, workspace_path+".non-existent"));
+  CHECK(set_working_dir(tiledb_ctx, append_helper(workspace_path, ".nonexistent")));
   CHECK(current_working_dir(tiledb_ctx) == cwd);
 
   CHECK(!tiledb_ctx_finalize(tiledb_ctx));
@@ -60,18 +69,18 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
   CHECK(!tiledb_ctx_finalize(tiledb_ctx));
 
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, true) == 0); // OK
-  CHECK(!create_file(tiledb_ctx, workspace_path+".new", O_WRONLY | O_CREAT | O_SYNC, S_IRWXU));
+  CHECK(!create_file(tiledb_ctx, append_helper(workspace_path,".new"), O_WRONLY | O_CREAT | O_SYNC, S_IRWXU));
   CHECK(!tiledb_ctx_finalize(tiledb_ctx));
 
-  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path+".new", true) == -1); // NOT_DIR
+  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, append_helper(workspace_path,".new"), true) == -1); // NOT_DIR
   
-  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path+".new") == -1); // NOT_DIR
+  CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, append_helper(workspace_path,".new")) == -1); // NOT_DIR
 
   // Try paths with trailing slashes
-  workspace_path = workspace_path+"1/";
+  workspace_path = append_helper(workspace_path,"1/");
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path) == 0); // OK
   CHECK(TileDBUtils::is_dir(workspace_path));
-  CHECK(TileDBUtils::is_file(workspace_path+TILEDB_WORKSPACE_FILENAME));
+  CHECK(TileDBUtils::is_file(append_helper(workspace_path,TILEDB_WORKSPACE_FILENAME)));
 
   // Check out real dir
   auto real_workspace_path = TileDBUtils::real_dir(workspace_path);
@@ -81,7 +90,7 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
     CHECK(real_workspace_path.find("//") == std::string::npos);
     CHECK(real_workspace_path.find("../") == std::string::npos);
   }
-  auto non_existent_path = workspace_path+"2";
+  auto non_existent_path = append_helper(workspace_path,"2");
   auto real_non_existent_path = TileDBUtils::real_dir(non_existent_path);
   if (TileDBUtils::is_cloud_path(workspace_path)) {
     CHECK(real_non_existent_path == non_existent_path);
@@ -92,7 +101,7 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
 }
 
 TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
-  std::string workspace_path = get_temp_dir()+"/"+workspace;
+  std::string workspace_path = append_helper(get_temp_dir(), workspace);
 
   REQUIRE(!TileDBUtils::workspace_exists(workspace_path));
   REQUIRE(TileDBUtils::get_dirs(workspace_path).size() == 0);
@@ -110,7 +119,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::workspace_exists(workspace_path));
 
   std::string test_str("TESTING");
-  std::string test_file(workspace_path+"/test");
+  std::string test_file(append_helper(workspace_path,"/test"));
   CHECK(TileDBUtils::write_file(test_file, test_str.data(), 4) == TILEDB_OK);
   CHECK(TileDBUtils::is_file(test_file));
 
@@ -128,14 +137,14 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
 
   // Try paths with trailing slashes
-  workspace_path = workspace_path + "1/";
+  workspace_path = append_helper(workspace_path , "1/");
   CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
   CHECK(TileDBUtils::is_dir(workspace_path));
-  CHECK(TileDBUtils::is_file(workspace_path+TILEDB_WORKSPACE_FILENAME));
+  CHECK(TileDBUtils::is_file(append_helper(workspace_path,TILEDB_WORKSPACE_FILENAME)));
 }
 
 TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
-  std::string workspace_path = get_temp_dir()+"/"+workspace;
+  std::string workspace_path = append_helper(get_temp_dir(),workspace);
   std::string non_existent_array = std::string("non_existent_array");
 
   // No workspace or array
@@ -168,7 +177,7 @@ TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
-  std::string workspace_path = get_temp_dir()+"/"+workspace;
+  std::string workspace_path = append_helper(get_temp_dir(),workspace);
 
   // No workspace or array or fragments
   REQUIRE(TileDBUtils::get_fragment_names(workspace_path).size() == 0);
@@ -191,11 +200,11 @@ TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test multithreaded file utils", "[file_utils_multi_threads]") {
-  std::string test_dir = get_temp_dir()+"/test_dir";
+  std::string test_dir = append_helper(get_temp_dir(),"/test_dir");
   CHECK(TileDBUtils::create_dir(test_dir) == TILEDB_OK);
   CHECK(!TileDBUtils::is_file(test_dir));
 
-  std::string test_file = test_dir+"/test_file";
+  std::string test_file = append_helper(test_dir,"/test_file");
   char buffer[1024];
   memset(buffer, 'T', 1024);
   CHECK(TileDBUtils::write_file(test_file, buffer, 1024) == TILEDB_OK);
@@ -227,7 +236,7 @@ TEST_CASE_METHOD(TempDir, "Test multithreaded file utils", "[file_utils_multi_th
 }
 
 TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
-  std::string filename = get_temp_dir()+"/"+"test_file";
+  std::string filename = append_helper(get_temp_dir(),"/test_file");
   char buffer[1024];
   memset(buffer, 'H', 1024);
   CHECK(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);
@@ -255,7 +264,7 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
   CHECK(TileDBUtils::file_size("non-existing-file") == -1);
 
   // Try renaming file and reading contents
-  std::string new_filename = filename+".old";
+  std::string new_filename = append_helper(filename,".old");
   CHECK(TileDBUtils::move_across_filesystems(filename, new_filename) == TILEDB_OK);
   CHECK(TileDBUtils::file_size(new_filename) == 1024);
   CHECK(TileDBUtils::read_entire_file(new_filename, &read_buffer, &length) == TILEDB_OK);
@@ -293,7 +302,7 @@ TEST_CASE("Test create temp file", "[create_temp_file]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test move across filesystems", "[move_across_filesystems]") {
-  std::string filename = get_temp_dir()+"/"+"test_file";
+  std::string filename = append_helper(get_temp_dir(),"/test_file");
   char buffer[1024];
   memset(buffer, 'H', 1024);
   CHECK(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);

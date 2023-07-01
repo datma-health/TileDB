@@ -244,7 +244,7 @@ bool is_azure_path(const std::string& pathURL) {
 }
 
 bool is_azure_blob_storage_path(const std::string& pathURL) {
-  if (!pathURL.empty() && starts_with(pathURL, "az:")) {
+  if (!pathURL.empty() && (starts_with(pathURL, "az:") || starts_with(pathURL, "azb:"))) {
     return true;
   } else {
     return false;
@@ -866,11 +866,15 @@ std::string parent_dir(StorageFS *fs, const std::string& dir) {
   if(real_dir[pos] == '/')
     --pos;
 
+  std::size_t query_index = real_dir.find("?");
+  pos = query_index == std::string::npos ? pos : query_index;
   // Scan backwords until you find the next '/'
   while(pos > 0 && real_dir[pos] != '/')
     --pos;
-
-  return real_dir.substr(0, pos); 
+  if(query_index == std::string::npos)
+    return real_dir.substr(0, pos);
+  else
+    return (real_dir.substr(0,pos)).append("/" + real_dir.substr(query_index));
 }
 
 int read_from_file(StorageFS *fs,

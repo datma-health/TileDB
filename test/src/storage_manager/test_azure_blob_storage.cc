@@ -51,7 +51,14 @@ class AzureBlobTestFixture {
     if (is_azure_blob_storage_path(get_test_dir())) {
       try {
         temp_dir = new TempDir();
-        std::string home_dir = temp_dir->get_temp_dir()+"/test_azure_blob";
+        std::string home_dir;
+        std::size_t query_pos = temp_dir->get_temp_dir().find('?');
+        if (query_pos != std::string::npos) {
+          home_dir = temp_dir->get_temp_dir();
+          home_dir.insert(query_pos, "/test_azure_blob");
+        } else {
+          home_dir = temp_dir->get_temp_dir() + "/test_azure_blob";
+        }
         azure_blob = new AzureBlob(home_dir);
         CHECK(!azure_blob->locking_support());
       } catch(...) {
