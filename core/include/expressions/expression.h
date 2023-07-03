@@ -61,7 +61,6 @@ extern std::string tiledb_expr_errmsg;
 
 //Forward declaration
 class ArrayReadState;
-class SplitCompare;
 
 class Expression {
  public:
