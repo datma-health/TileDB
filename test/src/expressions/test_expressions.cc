@@ -30,7 +30,6 @@
  * Tests for the Expression class
  */
 
-
 #include "catch.h"
 #include "expression.h"
 #include "storage_posixfs.h"
@@ -313,6 +312,106 @@ TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions with VAR_NUM and diffe
   TestType *buffer_values = reinterpret_cast<TestType *>(AF::var_buffers_1[1]);
   for (auto i=0u; i<5; i++) {
     CHECK(buffer_values[i] == expected_values[i]);
+  }
+}
+
+TEST_CASE("Test custom operator |= in Expression filters", "[custom_operators]") {
+  const std::string array_name = "test_custom_operator_array";
+  const char *attr_names[] = { "a1" };
+  std::vector<std::string> attribute_names = { "a1" };
+  int types[2] = { TILEDB_CHAR, TILEDB_INT32 };
+  int cell_val_nums[1] = { TILEDB_VAR_NUM };
+
+  PosixFS posix_fs;
+  ArraySchema array_schema(&posix_fs);
+  array_schema.set_attributes(const_cast<char **>(attr_names), 1);
+  array_schema.set_cell_val_num(cell_val_nums);
+  array_schema.set_types(types);
+  array_schema.set_dense(0);
+
+  size_t buffer_offsets[] = { 0, 3, 6, 13 };
+  char buffer[17] = "A|CT|GA|C|T|GA|C"; // A|C T|G A|C|T|G A|C
+  void *buffers[2] = { buffer_offsets, buffer };
+  size_t buffer_sizes[2] = { sizeof(buffer_offsets), sizeof(buffer) };
+  int64_t positions[] = { 0 };
+
+  Expression expression("a1 |= \"A\"", attribute_names, &array_schema);
+  REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions)); // A|C
+  positions[0] = 1;
+  REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions)); // T|G
+  positions[0] = 2;
+  REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions)); // A|C|T|G
+  positions[0] = 3;
+  REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions)); // A|C
+}
+
+TEST_CASE_METHOD(ArrayFixture<int>, "Test custom operator &= in Expression filters", "[custom_operators]") {
+  setup(2);
+  SECTION("passing expression evaluation") {
+    Expression expression("a1 &= \"0/1\"", attribute_names, array_schema_);
+    int64_t positions[] = { 0 };
+    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
+  }
+  SECTION("failing expression evaluation") {
+    Expression expression("a1 &= \"1/0\"", attribute_names, array_schema_);
+    int64_t positions[] = { 0 };
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+  }
+  SECTION("another failing expression evaluation") {
+    Expression expression("a1 &= \"0\"", attribute_names, array_schema_);
+    int64_t positions[] = { 0 };
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+  }
+}
+
+TEST_CASE("Test custom operator &= in Expression filters with delimiters", "[custom_operators]") {
+  const std::string array_name = "test_custom_operator_array";
+  const char *attr_names[] = { "a1" };
+  std::vector<std::string> attribute_names = { "a1" };
+  int types[2] = { TILEDB_INT32 };
+  int cell_val_nums[1] = { 3 };
+
+  PosixFS posix_fs;
+  ArraySchema array_schema(&posix_fs);
+  array_schema.set_attributes(const_cast<char **>(attr_names), 1);
+  array_schema.set_cell_val_num(cell_val_nums);
+  array_schema.set_types(types);
+  array_schema.set_dense(0);
+
+  int buffer[12] = { 0, 1, 1, 2, 1, 0, 0, 1, 1, 3, 0, 3 };
+  void *buffers[1] = { buffer };
+  size_t buffer_sizes[1] = { sizeof(buffer) };
+  int64_t positions[] = { 0 };
+
+  SECTION("with 0|1") {
+    Expression expression("a1 &= \"0|1\"", attribute_names, &array_schema);
+    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 1;
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 2;
+    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 3;
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+  }
+  SECTION("with 20") {
+    Expression expression("a1 &= \"20\"", attribute_names, &array_schema);
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 1;
+    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 2;
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 3;
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+  }
+  SECTION("with 3|3") {
+    Expression expression("a1 &= \"3|3\"", attribute_names, &array_schema);
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 1;
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 2;
+    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+    positions[0] = 3;
+    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
   }
 }
 

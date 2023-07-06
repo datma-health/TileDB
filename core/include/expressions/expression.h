@@ -94,6 +94,7 @@ class Expression {
 
  private:
   void fixup_return_buffers(void** buffers, size_t* buffer_sizes, size_t number_of_cells, std::vector<size_t> cells_to_be_dropped);
+
   
   std::string expression_;
   std::vector<std::string> attributes_;
@@ -112,7 +113,11 @@ class Expression {
   void assign_var_cell_values(const int attribute_id, void** buffers, size_t *buffer_sizes, const uint64_t buffer_index, const uint64_t position);
 
   inline const int get_cell_val_num(const std::string& attribute_name) const {
-    return array_schema_->cell_val_num(array_schema_->attribute_id(attribute_name));
+    if (attribute_name == TILEDB_COORDS) {
+      return array_schema_->dim_num();
+    } else {
+      return array_schema_->cell_val_num(array_schema_->attribute_id(attribute_name));
+    }
   }
 
   inline const size_t get_cell_size(const std::string& attribute_name) const {
@@ -120,8 +125,6 @@ class Expression {
     int cell_val_num = get_cell_val_num(attribute_name);
     if (cell_val_num == TILEDB_VAR_NUM) {
       return sizeof(size_t);
-    } else if (attribute_name.compare(TILEDB_COORDS) == 0) {
-      return array_schema_->type_size(attribute_id)*array_schema_->dim_num();
     } else {
       return array_schema_->type_size(attribute_id)*cell_val_num;
     }
@@ -242,15 +245,25 @@ class OprtSplitCompareAll : public mup::IOprtBin {
     *ret = (mup::bool_type)false;
 
     // A vector is represented as a matrix in muparserx with nCols=1
-    if (with.length() > 0 && input.GetRows()/2+1 == with.length()) {
-      *ret = (mup::bool_type)true;
-      for (int i=0, j=0; i<input.GetRows(); i++) {
-        if (i%2 == 0) {
-          if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[j++]-'0') {
-            *ret = (mup::bool_type)false;
-            break;
+    if (with.length() > 0) {
+      if (input.GetRows()+1u == with.length()*2) { // e.g. input has a delimiter, e.g GT with Ploidy
+        *ret = (mup::bool_type)true;
+        for (int i=0, j=0; i<input.GetRows(); i++) {
+          if (i%2 == 0) {
+            if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[j++]-'0') {
+              *ret = (mup::bool_type)false;
+              break;
+            }
           }
         }
+      } else if (input.GetRows() == with.length()) { // e.g input without delimiters, e.g. GT without Ploidy
+        *ret = (mup::bool_type)true;
+         for (int i=0; i<input.GetRows(); i++) {
+            if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[i]-'0') {
+              *ret = (mup::bool_type)false;
+              break;
+            }
+         }
       }
     }
   }
