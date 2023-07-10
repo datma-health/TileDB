@@ -69,6 +69,11 @@ bool is_cloud_path(const std::string& path) {
   return path.find("://") != std::string::npos;
 }
 
+std::string get_path(const std::string &workspace) {
+  if (is_cloud_path(workspace)) return uri(workspace).path();
+  return workspace;
+}
+
 /**
  * Returns 0 when workspace is created
  *        -1 when path is not a directory
@@ -85,17 +90,18 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
   *ptiledb_ctx = NULL;
   int rc;
   rc = setup(ptiledb_ctx, workspace, enable_shared_posixfs_optimizations);
+  std::string workspace_path = get_path(workspace);
   if (rc) {
     return NOT_CREATED;
   }
 
-  if (is_file(*ptiledb_ctx, workspace)) {
+  if (is_file(*ptiledb_ctx, workspace_path)) {
     return NOT_DIR;
   }
 
-  if (is_workspace(*ptiledb_ctx, workspace)) {
+  if (is_workspace(*ptiledb_ctx, workspace_path)) {
     if (replace) {
-      if (is_dir(*ptiledb_ctx, workspace) && delete_dir(*ptiledb_ctx, workspace) ) {
+      if (is_dir(*ptiledb_ctx, workspace_path) && delete_dir(*ptiledb_ctx, workspace_path) ) {
         return NOT_CREATED;
       }
     } else {
@@ -103,7 +109,7 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
     }
   }
 
-  rc = tiledb_workspace_create(*ptiledb_ctx, workspace.c_str());
+  rc = tiledb_workspace_create(*ptiledb_ctx, workspace_path.c_str());
   if (rc != TILEDB_OK) {
     rc = NOT_CREATED;
   } else {
@@ -133,7 +139,7 @@ bool workspace_exists(const std::string& workspace)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_workspace(tiledb_ctx, workspace);
+  exists = !rc && is_workspace(tiledb_ctx, get_path(workspace));
   FINALIZE;
   return exists;
 }
@@ -143,7 +149,7 @@ bool array_exists(const std::string& workspace, const std::string& array_name)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(workspace, array_name));
+  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(get_path(workspace), array_name));
   FINALIZE;
   return exists;
 }

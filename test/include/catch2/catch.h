@@ -136,6 +136,14 @@ class TempDir {
 const std::string get_test_dir() {
   return g_test_dir;
 }
+std::string append(const std::string &temp_dir, const std::string &append) {
+  std::size_t find = temp_dir.find('?');
+  if (find == std::string::npos)
+    return temp_dir + append;
+  else {
+    return temp_dir.substr(0, find) + append + temp_dir.substr(find);
+  }
+}
 
 int main( int argc, char* argv[] )
 {

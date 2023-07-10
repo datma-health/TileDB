@@ -120,16 +120,13 @@ class StorageFS {
     upload_buffer_size_ = buffer_size;
   }
 
-
   static inline std::string slashify(const std::string& path) {
-    std::size_t query_pos = path.find('?');
-    std::string query_checked = query_pos == std::string::npos ? path : path.substr(0,query_pos);
-    if (query_checked.empty()) {
+    if (path.empty()) {
       return "/";
-    } else if (query_checked.back() != '/') {
-      return query_checked + '/';
+    } else if (path.back() != '/') {
+      return path + '/';
     } else {
-      return query_checked;
+      return path;
     }
   }
 
