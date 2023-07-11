@@ -343,6 +343,7 @@ TEST_CASE("Test custom operator |= in Expression filters", "[custom_operators]")
   const std::string array_name = "test_custom_operator_array";
   const char *attr_names[] = { "a1" };
   std::vector<std::string> attribute_names = { "a1" };
+  std::vector<int> attribute_ids = { 0 };
   int types[2] = { TILEDB_CHAR, TILEDB_INT32 };
   int cell_val_nums[1] = { TILEDB_VAR_NUM };
 
@@ -359,7 +360,8 @@ TEST_CASE("Test custom operator |= in Expression filters", "[custom_operators]")
   size_t buffer_sizes[2] = { sizeof(buffer_offsets), sizeof(buffer) };
   int64_t positions[] = { 0 };
 
-  Expression expression("a1 |= \"A\"", attribute_names, &array_schema);
+  Expression expression("a1 |= \"A\"");
+  REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
   REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions)); // A|C
   positions[0] = 1;
   REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions)); // T|G
@@ -372,17 +374,20 @@ TEST_CASE("Test custom operator |= in Expression filters", "[custom_operators]")
 TEST_CASE_METHOD(ArrayFixture<int>, "Test custom operator &= in Expression filters", "[custom_operators]") {
   setup(2);
   SECTION("passing expression evaluation") {
-    Expression expression("a1 &= \"0/1\"", attribute_names, array_schema_);
+    Expression expression("a1 &= \"0/1\"");
+    REQUIRE(expression.init(attribute_ids, array_schema_) == TILEDB_OK);
     int64_t positions[] = { 0 };
     REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
   }
   SECTION("failing expression evaluation") {
-    Expression expression("a1 &= \"1/0\"", attribute_names, array_schema_);
+    Expression expression("a1 &= \"1/0\"");
+    REQUIRE(expression.init(attribute_ids, array_schema_) == TILEDB_OK);
     int64_t positions[] = { 0 };
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
   }
   SECTION("another failing expression evaluation") {
-    Expression expression("a1 &= \"0\"", attribute_names, array_schema_);
+    Expression expression("a1 &= \"0\"");
+    REQUIRE(expression.init(attribute_ids, array_schema_) == TILEDB_OK);
     int64_t positions[] = { 0 };
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
   }
@@ -392,6 +397,7 @@ TEST_CASE("Test custom operator &= in Expression filters with delimiters", "[cus
   const std::string array_name = "test_custom_operator_array";
   const char *attr_names[] = { "a1" };
   std::vector<std::string> attribute_names = { "a1" };
+  std::vector<int> attribute_ids = { 0 };
   int types[2] = { TILEDB_INT32 };
   int cell_val_nums[1] = { 3 };
 
@@ -408,7 +414,8 @@ TEST_CASE("Test custom operator &= in Expression filters with delimiters", "[cus
   int64_t positions[] = { 0 };
 
   SECTION("with 0|1") {
-    Expression expression("a1 &= \"0|1\"", attribute_names, &array_schema);
+    Expression expression("a1 &= \"0|1\"");
+    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
     REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
     positions[0] = 1;
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
@@ -418,7 +425,8 @@ TEST_CASE("Test custom operator &= in Expression filters with delimiters", "[cus
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
   }
   SECTION("with 20") {
-    Expression expression("a1 &= \"20\"", attribute_names, &array_schema);
+    Expression expression("a1 &= \"20\"");
+    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
     positions[0] = 1;
     REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
@@ -428,7 +436,8 @@ TEST_CASE("Test custom operator &= in Expression filters with delimiters", "[cus
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
   }
   SECTION("with 3|3") {
-    Expression expression("a1 &= \"3|3\"", attribute_names, &array_schema);
+    Expression expression("a1 &= \"3|3\"");
+    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
     positions[0] = 1;
     REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));

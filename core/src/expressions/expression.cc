@@ -332,7 +332,7 @@ int Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* pos
             assign_fixed_cell_values(attribute_id, buffers, j, position);
         }
       } catch (EmptyValueException& e) {
-        EXPRESSION_ERROR("NYI: Filter expressions do not handle empty values yet" + std::string(e.what()));
+        EXPRESSION_ERROR("NYI: Filter expressions do not handle empty values yet");
         return true;
       }
     }
