@@ -87,7 +87,7 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
         }
       }
     } catch (mup::ParserError const &e) {
-      EXPRESSION_ERROR("Parser SetExpr error: " + e.GetMsg());
+      EXPRESSION_ERROR("Parser SetExpr error for expression '" + expression_ + "': " + e.GetMsg());
       return TILEDB_EXPR_ERR;
     }
     last_processed_buffer_index_.resize(attributes_.size());
@@ -164,7 +164,7 @@ void print_parser_expr_varmap(mup::ParserX *parser)
 
 struct EmptyValueException : public std::exception {
   const char* what () const throw () {
-    return "Empty Value Exception";
+    return "NYI: Filter expressions do not handle empty values yet";
   }
 };
 
@@ -332,7 +332,7 @@ int Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* pos
             assign_fixed_cell_values(attribute_id, buffers, j, position);
         }
       } catch (EmptyValueException& e) {
-        EXPRESSION_ERROR("NYI: Filter expressions do not handle empty values yet");
+        EXPRESSION_ERROR(e.what());
         return true;
       }
     }

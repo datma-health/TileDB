@@ -167,7 +167,7 @@ TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions Empty", "[expressions_
   }
 }
 
-TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All", "[expressions_all]", uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All", "[expressions_all]", char, uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
   SECTION("cell sizes = 1") {
     AF::setup(1);
     Expression expression("a1 >= 0");
@@ -191,7 +191,17 @@ TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All", "[expressions_al
   }
 }
 
-TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All - Out-of-bound expression", "[expressions_all_exception]", uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All", "[expressions_char]", char) {
+  SECTION("cell sizes = 1") {
+    AF::setup(1);
+    Expression expression("a1 >= 0");
+    REQUIRE(expression.init(AF::attribute_ids, AF::array_schema_) == TILEDB_OK);
+    REQUIRE(expression.evaluate(AF::buffers, AF::buffer_sizes) == TILEDB_OK);
+    AF::check_buffer(AF::buffers, AF::buffer_sizes, &AF::expected_buffer[0], 16);
+  }
+}
+
+TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All - Out-of-bound expression", "[expressions_exception]", uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
   SECTION("cell sizes = 2") {
     AF::setup(2);
     Expression expression("a1[0] >= 0 && a1[2] >=0");
@@ -206,10 +216,21 @@ TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions All - Out-of-bound exp
   }
 }
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions Non-existent Attribute", "[expressions_non_existent_attr]") {
+TEST_CASE_METHOD(ArrayFixture<int>, "Test Expressions with ex", "[expression_exceptions]") {
   setup(1);
-  Expression expression("a2 > a1");
+  Expression expression("a2 > a1"); // Attribute a2 does not exist
   CHECK_RC(expression.init(attribute_ids, array_schema_), TILEDB_ERR);
+
+  Expression expression1("a1 === 22"); // Bad Operator
+  CHECK_RC(expression1.init(attribute_ids, array_schema_), TILEDB_ERR);
+
+  Expression expression2("a1 == 22"); // Evaluate without initialization
+  REQUIRE(expression2.evaluate(buffers, buffer_sizes) == TILEDB_ERR);
+  REQUIRE(expression2.evaluate_cell(buffers, buffer_sizes, NULL) == TILEDB_ERR);
+
+  Expression expression3("a1 = 22"); // Assisgnment expression, not evaluating to a boolean
+  CHECK_RC(expression3.init(attribute_ids, array_schema_), TILEDB_OK);
+  REQUIRE(expression3.evaluate(buffers, buffer_sizes) == TILEDB_ERR);
 }
 
 TEMPLATE_TEST_CASE_METHOD(ArrayFixture, "Test Expressions With Dropped Cells from left", "[expressions_dropped_cells_left]", int, uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
