@@ -66,6 +66,9 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
 
   if (expression_.size() != 0) {
     parser_->EnableOptimizer(true);
+
+    // muparser takes full control of DefineFun/Oprt pointers
+    // Do not release them.
     parser_->DefineFun(new SplitCompare);
     parser_->DefineOprt(new OprtSplitCompare);
     parser_->DefineOprt(new OprtSplitCompareAll);
@@ -97,7 +100,7 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
 void Expression::add_attribute(std::string name) {
   int attribute_id = array_schema_->attribute_id(name);
   int attribute_type = array_schema_->type(attribute_id);
-  int attribute_cell_val_num = array_schema_->cell_val_num(attribute_id)==TILEDB_VAR_NUM?0:array_schema_->cell_val_num(attribute_id);
+  int attribute_cell_val_num = array_schema_->cell_val_num(attribute_id)==TILEDB_VAR_NUM?0:get_cell_val_num(name);
 
   switch (attribute_type) {
     case TILEDB_CHAR: {
@@ -217,7 +220,7 @@ void Expression::assign_fixed_cell_values(const int attribute_id, void** buffers
                                           const uint64_t buffer_index, const uint64_t position) {
   auto& attribute_name = array_schema_->attribute(attribute_id);
   auto attribute_type = array_schema_->type(attribute_id);
-  long num_cells = array_schema_->cell_val_num(attribute_id);
+  long num_cells = get_cell_val_num(attribute_name);
   switch (attribute_type) {
     case TILEDB_CHAR: {
       attribute_map_[attribute_name] = mup::string_type(get_value<char>(buffers[buffer_index], position*num_cells), num_cells);
@@ -284,15 +287,16 @@ void Expression::assign_var_cell_values(const int attribute_id, void** buffers, 
         default:
           throw std::range_error("Attribute Type " + std::to_string(attribute_type) + " not supported in expressions");
       }
-      parser_->RemoveVar(attribute_name);
-      assert(!parser_->IsVarDefined(attribute_name));
-      mup::Value x_array(mup::int_type(info.second), mup::int_type(0));
-      for (auto i=0u; i<info.second; i++) {
-        x_array.At(i) = get_single_cell_value(attribute_type, buffers, buffer_index+1, info.first+i);
+      if (attribute_map_[attribute_name].GetRows() != (int)info.second) {
+        parser_->RemoveVar(attribute_name);
+        assert(!parser_->IsVarDefined(attribute_name));
+        mup::Value x_array(mup::int_type(info.second), mup::int_type(0));
+        attribute_map_[attribute_name] = std::move(x_array);
+        parser_->DefineVar(attribute_name, (mup::Variable)&(attribute_map_[attribute_name]));
       }
-      assert(x_array.IsMatrix());
-      attribute_map_[attribute_name] = std::move(x_array);
-      parser_->DefineVar(attribute_name, (mup::Variable)&(attribute_map_[attribute_name]));
+      for (auto i=0u; i<info.second; i++) {
+        attribute_map_[attribute_name].At(i) = get_single_cell_value(attribute_type, buffers, buffer_index+1, info.first+i);
+      }
     }
   }
 }
@@ -317,7 +321,7 @@ int Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* pos
     int attribute_id = array_schema_->attribute_id(attributes_[i]);
     if (attribute_map_.find(attributes_[i]) != attribute_map_.end()) {
       try {
-        switch (array_schema_->cell_val_num(attribute_id)) {
+        switch (get_cell_val_num(attributes_[i])) {
           case 1:
             assign_single_cell_value(attribute_id, buffers, j, position);
             break;
