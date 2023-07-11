@@ -546,6 +546,7 @@ int tiledb_array_apply_filter(
   // Apply filter
   if (tiledb_array->array_->apply_filter(filter_expression) != TILEDB_AR_OK) {
     strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
+    return TILEDB_ERR;
   }
 
   // Success

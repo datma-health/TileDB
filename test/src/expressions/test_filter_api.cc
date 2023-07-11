@@ -44,10 +44,12 @@ const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 size_t sizes[4] = { 1024, 40, 512, 4096 };
 
 // filter expression that results in just one match for genomicsdb_ws
-std::string filters[4] = { "__coords[0] >= 0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
+std::string filters[5] = { "__coords[0] >= 0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
   "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
   "REF == \"G\" && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-  "REF == \"G\" && ALT |= \"T\" && GT &= \"11\"" };
+  "REF == \"G\" && ALT |= \"T\" && GT &= \"11\"",
+  // This last one should throw TILEDB_ERR as POS does not exist as an attribute
+  "POS==17384 && REF == \"G\" && ALT |= \"T\" && GT &= \"1/1\""};
 
 // Only match expected for the following test cases
 char expected_REF = 'G';
@@ -56,7 +58,7 @@ int expected_GT_values[3] = { 1, 0, 1 };
 int64_t expected_coords[2] = { 1, 17384 };
 
 TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_iterator]") {
-  for (auto i=0; i<4; i++) {
+  for (auto i=0; i<5; i++) {
     SECTION("Test filter expressions for iteration " + std::to_string(i)) {
       // Initialize tiledb context
       TileDB_CTX* tiledb_ctx;
@@ -75,7 +77,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
 
       // Initialize array
       TileDB_ArrayIterator* tiledb_array_it;
-      CHECK_RC(tiledb_array_iterator_init_with_filter(
+      int rc = tiledb_array_iterator_init_with_filter(
           tiledb_ctx,                                       // Context
           &tiledb_array_it,                                 // Array object
           array.c_str(),                                    // Array name
@@ -85,8 +87,13 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
           sizeof(attributes)/sizeof(char *),                // Number of attributes
           buffers,                                          // Preallocated buffers for internal use
           buffer_sizes,                                     // buffer_sizes
-          filters[i].c_str()),
-               TILEDB_OK);
+          filters[i].c_str());
+      if (i==4) {
+        CHECK_RC(rc, TILEDB_ERR);
+        continue;
+      } else {
+        CHECK_RC(rc,TILEDB_OK);
+      }
 
       int* GT_val = NULL;
       size_t GT_size = 0;
@@ -165,7 +172,7 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
 }
 
 TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read]") {
-  for (auto i=0; i<4; i++) {
+  for (auto i=0; i<5; i++) {
     SECTION("Test filter expressions for " + std::to_string(i)) {
       // Initialize tiledb context
       TileDB_CTX* tiledb_ctx;
@@ -196,7 +203,12 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
                TILEDB_OK);
 
       // Apply expression filter
-      CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_OK);
+      if (i==4) {
+        CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_ERR);
+        continue;
+      } else {
+        CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_OK);
+      }
 
       // Read from array
       bool continue_read;
