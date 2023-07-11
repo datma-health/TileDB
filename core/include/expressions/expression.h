@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2019, 2022-2023 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,22 +71,21 @@ class Expression {
   /* ********************************* */
   Expression();
 
-  Expression(std::string expression, std::vector<std::string> attribute_vec,
-             const ArraySchema* array_schema);
+  Expression(std::string expression) : expression_(expression) {};
 
   ~Expression() {
     delete parser_;
   }
 
-  void set_array_schema(const ArraySchema *array_schema);
+  int init(const std::vector<int>& attribute_ids, const ArraySchema* array_schema);
 
   void add_attribute(std::string name);
 
   int add_expression(std::string expression);
 
-  bool evaluate_cell(void **buffers, size_t* buffer_sizes, std::vector<int64_t>& positions);
+  int evaluate_cell(void **buffers, size_t* buffer_sizes, std::vector<int64_t>& positions);
 
-  bool evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* positions);
+  int evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* positions);
 
   /**
    * Only used for unit testing.
@@ -98,6 +98,7 @@ class Expression {
   std::string expression_;
   std::vector<std::string> attributes_;
   const ArraySchema* array_schema_;
+  bool is_initialized = false;
 
   mup::ParserX *parser_ = new mup::ParserX(mup::pckALL_NON_COMPLEX | mup::pckMATRIX);
   std::map<std::string, mup::Value> attribute_map_;

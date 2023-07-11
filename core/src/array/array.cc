@@ -7,6 +7,7 @@
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2018-2019, 2022-2023 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -320,14 +321,14 @@ int Array::read(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
 
 int Array::evaluate_cell(void** buffer, size_t* buffer_sizes, int64_t* positions) {
   if (expression_) {
-    if (expression_->evaluate_cell(buffer, buffer_sizes, positions)) {
-      return TILEDB_AR_OK;
-    } else {
+    int rc = expression_->evaluate_cell(buffer, buffer_sizes, positions);
+    if (rc == TILEDB_EXPR_ERR) {
       tiledb_ar_errmsg = tiledb_expr_errmsg;
       return TILEDB_AR_ERR;
     }
+    return rc;
   }
-  return TILEDB_AR_OK;
+  return true;
 }
 
 int Array::read_default(void** buffers, size_t* buffer_sizes, size_t* skip_counts) {
@@ -854,7 +855,11 @@ int Array::apply_filter(const char* filter_expression) {
     for (std::vector<int>::iterator it = attribute_ids_.begin(); it != attribute_ids_.end(); it++) {
       attributes_vec.push_back(array_schema_->attribute(*it));
     }
-    expression_ = new Expression(filter_expression, attributes_vec, array_schema_);
+    expression_ = new Expression(filter_expression);
+    if (expression_->init(attribute_ids_, array_schema_)) {
+      tiledb_ar_errmsg = tiledb_expr_errmsg;
+      return TILEDB_AR_ERR;
+    }
   }
 
   return TILEDB_AR_OK;

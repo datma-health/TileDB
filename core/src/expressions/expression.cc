@@ -7,6 +7,7 @@
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2019, 2022-2023 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,12 +52,19 @@
 
 std::string tiledb_expr_errmsg = "";
 
-Expression::Expression(std::string expression, std::vector<std::string> attributes,
-                       const ArraySchema *array_schema) :
-    expression_(expression), attributes_(attributes), array_schema_(array_schema) {
-  if (array_schema->dense()) {
+int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* array_schema) {
+  array_schema_ = array_schema;
+
+  for (std::vector<int>::const_iterator it = attribute_ids.begin(); it != attribute_ids.end(); it++) {
+    attributes_.push_back(array_schema_->attribute(*it));
+  }
+
+  if (array_schema_->dense()) {
     EXPRESSION_ERROR("Expression parsing for dense arrays not yet implemented");
-  } else if (expression_.size() != 0) {
+    return TILEDB_EXPR_ERR;
+  }
+
+  if (expression_.size() != 0) {
     parser_->EnableOptimizer(true);
     parser_->DefineFun(new SplitCompare);
     parser_->DefineOprt(new OprtSplitCompare);
@@ -68,17 +76,22 @@ Expression::Expression(std::string expression, std::vector<std::string> attribut
       // Get map of all variables used in the expression
       mup::var_maptype vmap = parser_->GetExprVar();
       for (mup::var_maptype::iterator item = vmap.begin(); item!=vmap.end(); ++item) {
-        if (std::find(attributes.begin(), attributes.end(), item->first) != attributes.end()) {
+        if (std::find(attributes_.begin(), attributes_.end(), item->first) != attributes_.end()) {
           add_attribute(item->first);
         } else {
           EXPRESSION_ERROR("Attribute " + item->first + " in expression filter not present in the array schema");
+          return TILEDB_EXPR_ERR;
         }
       }
     } catch (mup::ParserError const &e) {
       EXPRESSION_ERROR("Parser SetExpr error: " + e.GetMsg());
+      return TILEDB_EXPR_ERR;
     }
     last_processed_buffer_index_.resize(attributes_.size());
   }
+
+  is_initialized = true;
+  return TILEDB_EXPR_OK;
 }
 
 void Expression::add_attribute(std::string name) {
@@ -284,13 +297,18 @@ void Expression::assign_var_cell_values(const int attribute_id, void** buffers, 
   }
 }
 
-bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, std::vector<int64_t>& positions) {
+int Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, std::vector<int64_t>& positions) {
   return evaluate_cell(buffers, buffer_sizes, positions.data());
 }
 
-bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* positions) {
-  if (expression_.size() == 0 || attributes_.size() == 0 || attribute_map_.size() == 0) {
+int Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* positions) {
+  if (expression_.empty()) {
     return true;
+  }
+
+  if (!is_initialized) {
+    EXPRESSION_ERROR("Initialization not completed");
+    return TILEDB_EXPR_ERR;
   }
 
   for (auto i = 0u, j = 0u; i < attributes_.size(); i++, j++) {
@@ -310,7 +328,8 @@ bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* po
             assign_fixed_cell_values(attribute_id, buffers, j, position);
         }
       } catch (EmptyValueException& e) {
-        return true; // TODO: Filter expressions do not handle empty values yet.
+        EXPRESSION_ERROR("NYI: Filter expressions do not handle empty values yet" + std::string(e.what()));
+        return true;
       }
     }
 
@@ -331,10 +350,13 @@ bool Expression::evaluate_cell(void** buffers, size_t* buffer_sizes, int64_t* po
     // TODO: Only supports expressions evaluating to booleans for now.
     if (value.GetType() == 'b') {
       keep_cell = value.GetBool();
+    } else {
+      EXPRESSION_ERROR("Only expressions evaluating to booleans is supported");
+      return TILEDB_EXPR_ERR;
     }
   } catch (mup::ParserError const &e) {
     EXPRESSION_ERROR("Parser evaluate error, possibly due to bad filter expression: " + "\n\t" + e.GetMsg());
-    throw e;
+    return TILEDB_EXPR_ERR;
   }
 
   return keep_cell;
@@ -352,8 +374,13 @@ int get_num_cells(const ArraySchema *array_schema, int attribute_id, size_t* buf
  * Only used by the unit tests now
  */
 int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
-  if (expression_.size() == 0 || attributes_.size() == 0 || attribute_map_.size() == 0) {
+  if (expression_.empty()) {
     return TILEDB_EXPR_OK;
+  }
+
+  if (!is_initialized) {
+    EXPRESSION_ERROR("Initialization not completed");
+    return TILEDB_EXPR_ERR;
   }
 
   // Get minimum number of cells in buffers for evaluation to account for overflow.
@@ -381,12 +408,11 @@ int Expression::evaluate(void** buffers, size_t* buffer_sizes) {
   print_parser_expr_varmap(parser_);
 
   for (auto i_cell = 0u; i_cell < number_of_cells; i_cell++) {
-    try {
-      if (!evaluate_cell(buffers, buffer_sizes, last_processed_buffer_index_)) {
-        cells_to_be_dropped.push_back(i_cell);
-      }
-    } catch (mup::ParserError const &e) {
+    int rc = evaluate_cell(buffers, buffer_sizes, last_processed_buffer_index_);
+    if (rc == TILEDB_EXPR_ERR) {
       return TILEDB_EXPR_ERR;
+    } else if (!rc) {
+      cells_to_be_dropped.push_back(i_cell);
     }
     
     for (auto i = 0u; i<attributes_.size(); i++) {
