@@ -69,8 +69,6 @@ class Expression {
   /* ********************************* */
   /*            MUTATORS               */
   /* ********************************* */
-  Expression();
-
   Expression(std::string expression) : expression_(expression) {};
 
   ~Expression() {
