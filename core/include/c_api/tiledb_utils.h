@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
  * @copyright Copyright (c) 2020-2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,6 +45,8 @@ namespace TileDBUtils {
 bool is_cloud_path(const std::string& path);
 
 std::string get_path(const std::string &workspace);
+
+std::string append_path(std::string temp_dir, std::string path);
 
 int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite=false,
                          const bool enable_shared_posixfs_optimizations=false);

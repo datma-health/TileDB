@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -98,7 +99,7 @@ class TempDir {
     }
   }
   std::string append_slash(std::string path) {
-    if(path.find('?') == std::string::npos && path[path.size()]!='/') {
+    if(path[path.size()]!='/') {
       return path+"/";
     } else {
       return path;
@@ -119,8 +120,7 @@ class TempDir {
         tmp_dirname_ = append_slash(g_test_dir)+mktemp(const_cast<char *>(dirname_pattern.c_str()));
       }
       else{
-        tmp_dirname_ = append_slash(g_test_dir);
-        tmp_dirname_.insert(query_pos, "/" + std::string(mktemp(const_cast<char *>(dirname_pattern.c_str()))));
+        tmp_dirname_= TileDBUtils::append_path(g_test_dir, mktemp(const_cast<char *>(dirname_pattern.c_str())));
       }
       if (!TileDBUtils::is_dir(g_test_dir)) {
         REQUIRE(TileDBUtils::create_dir(g_test_dir) == 0);

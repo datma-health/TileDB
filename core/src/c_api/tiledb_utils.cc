@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
  * @copyright Copyright (c) 2019-2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -75,6 +76,16 @@ std::string get_path(const std::string &workspace) {
       workspace.substr(0, check_cloud).compare("hdfs") != 0)
     return uri(workspace).path();
   return workspace;
+}
+
+std::string append_path(std::string dir, std::string path) {
+  std::size_t query_pos = dir.find('?');
+  if (query_pos == std::string::npos)
+    return dir + "/" + path;
+  else {
+    return dir.substr(0, query_pos) + ("/" + path) +
+           dir.substr(query_pos);
+  }
 }
 
 /**
