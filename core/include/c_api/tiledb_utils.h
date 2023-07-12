@@ -46,7 +46,7 @@ bool is_cloud_path(const std::string& path);
 
 std::string get_path(const std::string &workspace);
 
-std::string append_path(std::string temp_dir, std::string path);
+std::string append_path(std::string dir, std::string path);
 
 int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace, const bool overwrite=false,
                          const bool enable_shared_posixfs_optimizations=false);
