@@ -261,9 +261,9 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
         int rc = tiledb_array_evaluate_cell(tiledb_array, buffers, buffer_sizes, positions);
         CHECK(rc != TILEDB_ERR);
         if (i != 5) {
-          // REQUIRE(tiledb_array_evaluate_cell(tiledb_array, buffers, buffer_sizes, positions) == true);
+          REQUIRE(rc == false);
         } else {
-          //REQUIRE(tiledb_array_evaluate_cell(tiledb_array, buffers, buffer_sizes, positions) == false);
+          REQUIRE(rc == true);
           for (auto j=0; j<7; j++) {
             switch (j) {
               case 1: // REF - string
