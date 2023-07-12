@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corp.
  * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -545,6 +546,7 @@ int tiledb_array_apply_filter(
   // Apply filter
   if (tiledb_array->array_->apply_filter(filter_expression) != TILEDB_AR_OK) {
     strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
+    return TILEDB_ERR;
   }
 
   // Success
@@ -797,13 +799,14 @@ int tiledb_array_evaluate_cell(
     return TILEDB_ERR;
 
   // Evaluate cell
-  if(tiledb_array->array_->evaluate_cell(buffers, buffer_sizes, positions) != TILEDB_AR_OK) {
+  int rc;
+  if((rc = tiledb_array->array_->evaluate_cell(buffers, buffer_sizes, positions)) == TILEDB_AR_ERR) {
     strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
     return TILEDB_ERR;
   }
 
-  // Success
-  return TILEDB_OK;
+  // true/false depending on the evaluation
+  return rc;
 }
 
 int tiledb_array_overflow(

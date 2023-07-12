@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -622,7 +623,7 @@ TILEDB_EXPORT int tiledb_array_skip_and_read(
    *     input buffers (there is a one-to-one correspondence).
    * @param positions The position of the cell in the buffer to be evaluated.
    *     There should be one position for each of the input buffers.
-   * @return TILEDB_OK for successful evaluation and TILEDB_ERR otherwise.
+   * @return true(1) or false(0) for successful evaluation and TILEDB_ERR(-1) otherwise.
    *     The onus is on the client to check if there was an error during
    *     evaluation when TILEB_ERR is returned.
    */
