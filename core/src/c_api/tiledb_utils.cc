@@ -80,12 +80,10 @@ std::string get_path(const std::string &workspace) {
 
 std::string append_path(std::string dir, std::string path) {
   std::size_t query_pos = dir.find('?');
-  if (query_pos == std::string::npos)
-    return dir + "/" + path;
-  else {
-    return dir.substr(0, query_pos) + ("/" + path) +
-           dir.substr(query_pos);
-  }
+  if (query_pos == std::string::npos) return StorageFS::slashify(dir) + path;
+
+  return StorageFS::slashify(dir.substr(0, query_pos)) + path +
+         dir.substr(query_pos);
 }
 
 /**

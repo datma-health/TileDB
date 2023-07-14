@@ -111,7 +111,7 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::workspace_exists(workspace_path));
 
   std::string test_str("TESTING");
-  std::string test_file(append(workspace_path,"/test"));
+  std::string test_file(TileDBUtils::append_path(workspace_path,"test"));
   CHECK(TileDBUtils::write_file(test_file, test_str.data(), 4) == TILEDB_OK);
   CHECK(TileDBUtils::is_file(test_file));
 
@@ -192,11 +192,11 @@ TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
 }
 
 TEST_CASE_METHOD(TempDir, "Test multithreaded file utils", "[file_utils_multi_threads]") {
-  std::string test_dir = append(get_temp_dir(),"/test_dir");
+  std::string test_dir = TileDBUtils::append_path(get_temp_dir(),"test_dir");
   CHECK(TileDBUtils::create_dir(test_dir) == TILEDB_OK);
   CHECK(!TileDBUtils::is_file(test_dir));
 
-  std::string test_file = append(test_dir,"/test_file");
+  std::string test_file = TileDBUtils::append_path(test_dir,"test_file");
   char buffer[1024];
   memset(buffer, 'T', 1024);
   CHECK(TileDBUtils::write_file(test_file, buffer, 1024) == TILEDB_OK);
