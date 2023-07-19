@@ -174,7 +174,7 @@ std::vector<std::string> get_array_names(const std::string& workspace)
     return std::vector<std::string>{};
   }
   std::vector<std::string> array_names;
-  std::vector<std::string> dirs = get_dirs(tiledb_ctx, workspace);
+  std::vector<std::string> dirs = get_dirs(tiledb_ctx, get_path(workspace));
   if (!dirs.empty()) {
     for (std::vector<std::string>::iterator dir = dirs.begin() ; dir != dirs.end(); dir++) {
       std::string path(*dir);
@@ -200,7 +200,7 @@ std::vector<std::string> get_fragment_names(const std::string& workspace)
     return std::vector<std::string>{};
   }
   std::vector<std::string> fragment_names;
-  std::vector<std::string> dirs = get_dirs(tiledb_ctx, workspace);
+  std::vector<std::string> dirs = get_dirs(tiledb_ctx, get_path(workspace));
   if (!dirs.empty()) {
     for (std::vector<std::string>::iterator dir = dirs.begin() ; dir != dirs.end(); dir++) {
       std::string path(*dir);
