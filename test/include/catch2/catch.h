@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -98,7 +99,7 @@ class TempDir {
     }
   }
   std::string append_slash(std::string path) {
-    if (path[path.size()]!='/') {
+    if(path[path.size()]!='/') {
       return path+"/";
     } else {
       return path;
@@ -114,7 +115,8 @@ class TempDir {
       assert(tmp_dir != NULL);
       tmp_dirname_ = mkdtemp(const_cast<char *>((append_slash(tmp_dir)+dirname_pattern).c_str()));
     } else {
-      tmp_dirname_ = append_slash(g_test_dir)+mktemp(const_cast<char *>(dirname_pattern.c_str()));
+        tmp_dirname_ = TileDBUtils::append_path(
+            g_test_dir, mktemp(const_cast<char *>(dirname_pattern.c_str())));
       if (!TileDBUtils::is_dir(g_test_dir)) {
         REQUIRE(TileDBUtils::create_dir(g_test_dir) == 0);
         delete_test_dir_in_destructor_ = g_test_dir;
@@ -128,6 +130,14 @@ class TempDir {
 
 const std::string get_test_dir() {
   return g_test_dir;
+}
+std::string append(const std::string &temp_dir, const std::string &append) {
+  std::size_t find = temp_dir.find('?');
+  if (find == std::string::npos)
+    return temp_dir + append;
+  else {
+    return temp_dir.substr(0, find) + append + temp_dir.substr(find);
+  }
 }
 
 int main( int argc, char* argv[] )

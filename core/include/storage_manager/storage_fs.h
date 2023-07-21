@@ -120,7 +120,6 @@ class StorageFS {
     upload_buffer_size_ = buffer_size;
   }
 
-
   static inline std::string slashify(const std::string& path) {
     if (path.empty()) {
       return "/";
