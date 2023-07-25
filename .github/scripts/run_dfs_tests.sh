@@ -43,7 +43,7 @@ check_results_from_examples() {
 run_azure_tests() {
   source $1
   echo "Running TEST_DIR=$TEST"
-  echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" && tiledb_utils_tests "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT" &&
+  echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" && tiledb_utils_tests "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT&endpoint=$AZURE_STORAGE_ACCOUNT.blob.core.windows.net" &&
     echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT" &&
     echo "az schema storage buffer test" && $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
@@ -106,14 +106,14 @@ elif [[ $INSTALL_TYPE == azure ]]; then
 
 elif [[ $INSTALL_TYPE == azurite ]]; then
   setup_azurite
-  tiledb_utils_tests "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
-  tiledb_utils_tests "azb://test/$TEST?account=devstoreaccount1" &&
-  $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
-  $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
+  tiledb_utils_tests "az://test@devstoreaccount1.blob/$TEST" &&
+  tiledb_utils_tests "azb://test/$TEST?account=devstoreaccount1&endpoint=https://127.0.0.1:10000/devstoreaccount1" &&
+  $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://test@devstoreaccount1.blob/$TEST" &&
+  $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob/$TEST" &&
   TEMP_VAR=$AZURE_STORAGE_ACCOUNT && unset AZURE_STORAGE_ACCOUNT &&
-  $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
+  $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob/$TEST" &&
   AZURE_STORAGE_ACCOUNT=$TEMP_VAR
-  $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob.core.windows.net/$TEST" &&
+  $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob/$TEST" &&
   $GITHUB_WORKSPACE/examples/run_examples.sh "azb://test/$TEST?account=devstoreaccount1"
 
 elif [[ $INSTALL_TYPE == aws ]]; then
