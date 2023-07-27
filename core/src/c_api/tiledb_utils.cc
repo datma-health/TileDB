@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
  * @copyright Copyright (c) 2019-2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -69,6 +70,22 @@ bool is_cloud_path(const std::string& path) {
   return path.find("://") != std::string::npos;
 }
 
+std::string get_path(const std::string &workspace) {
+  std::size_t check_cloud = workspace.find("://");
+  if (check_cloud != std::string::npos &&
+      workspace.substr(0, check_cloud).compare("hdfs") != 0)
+    return uri(workspace).path();
+  return workspace;
+}
+
+std::string append_path(std::string dir, std::string path) {
+  std::size_t query_pos = dir.find('?');
+  if (query_pos == std::string::npos) return StorageFS::slashify(dir) + path;
+
+  return StorageFS::slashify(dir.substr(0, query_pos)) + path +
+         dir.substr(query_pos);
+}
+
 /**
  * Returns 0 when workspace is created
  *        -1 when path is not a directory
@@ -85,17 +102,18 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
   *ptiledb_ctx = NULL;
   int rc;
   rc = setup(ptiledb_ctx, workspace, enable_shared_posixfs_optimizations);
+  std::string workspace_path = get_path(workspace);
   if (rc) {
     return NOT_CREATED;
   }
 
-  if (is_file(*ptiledb_ctx, workspace)) {
+  if (is_file(*ptiledb_ctx, workspace_path)) {
     return NOT_DIR;
   }
 
-  if (is_workspace(*ptiledb_ctx, workspace)) {
+  if (is_workspace(*ptiledb_ctx, workspace_path)) {
     if (replace) {
-      if (is_dir(*ptiledb_ctx, workspace) && delete_dir(*ptiledb_ctx, workspace) ) {
+      if (is_dir(*ptiledb_ctx, workspace_path) && delete_dir(*ptiledb_ctx, workspace_path) ) {
         return NOT_CREATED;
       }
     } else {
@@ -103,7 +121,7 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
     }
   }
 
-  rc = tiledb_workspace_create(*ptiledb_ctx, workspace.c_str());
+  rc = tiledb_workspace_create(*ptiledb_ctx, workspace_path.c_str());
   if (rc != TILEDB_OK) {
     rc = NOT_CREATED;
   } else {
@@ -133,7 +151,7 @@ bool workspace_exists(const std::string& workspace)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_workspace(tiledb_ctx, workspace);
+  exists = !rc && is_workspace(tiledb_ctx, get_path(workspace));
   FINALIZE;
   return exists;
 }
@@ -143,7 +161,7 @@ bool array_exists(const std::string& workspace, const std::string& array_name)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(workspace, array_name));
+  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(get_path(workspace), array_name));
   FINALIZE;
   return exists;
 }

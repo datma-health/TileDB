@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,8 +52,7 @@ class AzureBlobTestFixture {
     if (is_azure_blob_storage_path(get_test_dir())) {
       try {
         temp_dir = new TempDir();
-        std::string home_dir = temp_dir->get_temp_dir()+"/test_azure_blob";
-        azure_blob = new AzureBlob(home_dir);
+        azure_blob = new AzureBlob(TileDBUtils::append_path(temp_dir->get_temp_dir(), "test_azure_blob"));
         CHECK(!azure_blob->locking_support());
       } catch(...) {
         INFO("Azure Blob Storage could not be credentialed. Set env AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY");

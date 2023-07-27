@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2019-2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -166,8 +167,8 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   // az://<container_name>@<blob_storage_account_name>.blob.core.windows.net/<path>
   // e.g. az://test@mytest.blob.core.windows.net/ws
-  if (path_uri.protocol().compare("az") != 0) {
-    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// URI protocols");
+  if (path_uri.protocol().compare("az") != 0 && path_uri.protocol().compare("azb") != 0) {
+    throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "Azure Blob FS only supports az:// or azb:// URI protocols");
   }
 
   if (path_uri.account().size() == 0 || path_uri.container().size() == 0) {
