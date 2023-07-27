@@ -43,7 +43,7 @@ check_results_from_examples() {
 run_azure_tests() {
   source $1
   echo "Running TEST_DIR=$TEST"
-  echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" && tiledb_utils_tests "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT&endpoint=$AZURE_STORAGE_ACCOUNT.blob.core.windows.net" &&
+  echo "az schema utils test" && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.$3/$TEST" && tiledb_utils_tests "azb://$AZURE_CONTAINER_NAME/$TEST?endpoint=$AZURE_STORAGE_ACCOUNT.$3" &&
     echo "az schema storage test" && $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT" &&
     echo "az schema storage buffer test" && $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
@@ -90,8 +90,8 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
   CHECK_RESULTS=(-1 -1)
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh 0 & pids[0]=$!
-  TEST=github_test_${RANDOM}_adls run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh 1 & pids[1]=$!
+  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh 0 "blob.core.windows.net" & pids[0]=$!
+  TEST=github_test_${RANDOM}_adls run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh 1 "dfs.core.windows.net" & pids[1]=$!
   wait ${pids[0]}
   CHECK_RESULTS[0]=$?
   wait ${pids[1]}
