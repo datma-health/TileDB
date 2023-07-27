@@ -259,7 +259,7 @@ int create_dir(const std::string& dirpath)
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(dirpath))) {
     FINALIZE;
-    return false;
+    return TILEDB_ERR;
   }
   int rc = create_dir(tiledb_ctx, dirpath);
   finalize(tiledb_ctx);
@@ -271,7 +271,7 @@ int delete_dir(const std::string& dirpath)
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(dirpath))) {
     FINALIZE;
-    return false;
+    return TILEDB_ERR;
   }
   int rc = delete_dir(tiledb_ctx, dirpath);
   finalize(tiledb_ctx);
