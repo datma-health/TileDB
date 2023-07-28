@@ -165,11 +165,14 @@ azure_uri::azure_uri(const std::string& uri_s) : uri(uri_s) {
   if (this->protocol().compare("azb") == 0) {
     account_ = this->query()["account"];
     container_ = this->host();
+    endpoint_ = this->query()["endpoint"];
   } else {
     std::size_t begin = this->host().find('@');
     std::size_t end = this->host().find('.');
     if (begin != std::string::npos && end != std::string::npos) {
       account_ = this->host().substr(begin + 1, end - begin - 1);
+      endpoint_ = this->host().substr(begin + 1,
+                                      this->host().find('/', end) - begin - 1);
     }
     if (begin != std::string::npos) {
       container_ = this->host().substr(0, begin);
@@ -184,6 +187,8 @@ std::string azure_uri::account() {
 std::string azure_uri::container() {
   return container_;
 }
+
+std::string azure_uri::endpoint() { return endpoint_; }
 
 s3_uri::s3_uri(const std::string& uri_s) : uri(uri_s) {
   bucket_ = this->host();

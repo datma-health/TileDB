@@ -64,10 +64,12 @@ struct azure_uri : uri {
   azure_uri(const std::string& uri_s);
   std::string account();
   std::string container();
+  std::string endpoint();
 
  private:
   std::string account_;
   std::string container_;
+  std::string endpoint_;
 };
 
 struct s3_uri : uri {
