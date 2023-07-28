@@ -120,17 +120,18 @@ static std::string get_sas_token(const std::string& account_name) {
   return "";
 }
 
-static std::string get_blob_endpoint(std::string endpoint,
-                                     std::string account) {
-  // Get enviroment variable for AZURE_BLOB_ENDPOINT
+static std::string get_blob_endpoint(const std::string& endpoint,
+                                     const std::string& account) {
+  // Get enviroment variable for AZURE_STORAGE_SERVICE_ENDPOINT
   std::string az_blob_endpoint(endpoint);
   if (az_blob_endpoint.empty() ||
       az_blob_endpoint.compare(account + ".blob") == 0) {
-    char* az_blob_endpoint_env = getenv("AZURE_BLOB_ENDPOINT");
+    char* az_blob_endpoint_env = getenv("AZURE_STORAGE_SERVICE_ENDPOINT");
     if (az_blob_endpoint_env) {
       az_blob_endpoint = az_blob_endpoint_env;
-    } else
+    } else {
       az_blob_endpoint = "";
+    }
   }
   return az_blob_endpoint;
 }

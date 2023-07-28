@@ -21,7 +21,7 @@ setup_azurite() {
   # Env to run tests
   export AZURE_STORAGE_ACCOUNT=devstoreaccount1
   export AZURE_STORAGE_KEY="Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
-  export AZURE_BLOB_ENDPOINT="https://127.0.0.1:10000/devstoreaccount1"
+  export AZURE_STORAGE_SERVICE_ENDPOINT="https://127.0.0.1:10000/devstoreaccount1"
 }
 
 check_results_from_examples() {
