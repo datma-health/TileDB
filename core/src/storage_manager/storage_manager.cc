@@ -907,9 +907,9 @@ int StorageManager::metadata_load_schema(
   // Load array schema
   if (read_from_file(fs_, filename, 0, buffer, buffer_size) == TILEDB_UT_ERR) {
     free(buffer);
-    std::string errmsg = "Cannot load metadata schema; File reading error";
+    std::string errmsg = "Cannot load metadata schema; File reading error\n" + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
-    tiledb_sm_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
   } 
 
@@ -1695,7 +1695,7 @@ int StorageManager::create_group_file(const std::string& group) const {
   // Create file
   std::string filename = fs_->append_paths(group, TILEDB_GROUP_FILENAME);
   if(create_file(fs_, filename,  O_WRONLY | O_CREAT | O_SYNC, S_IRWXU) == TILEDB_FS_ERR) {
-    std::string errmsg = std::string("Failed to create group file; ") + tiledb_ut_errmsg;
+    std::string errmsg = std::string("Failed to create group file\n") + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
     tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
@@ -1709,7 +1709,7 @@ int StorageManager::create_workspace_file(const std::string& workspace) const {
   // Create file
   std::string filename = fs_->append_paths(workspace, TILEDB_WORKSPACE_FILENAME);
   if(create_file(fs_, filename,  O_WRONLY | O_CREAT | O_SYNC, S_IRWXU) == TILEDB_UT_ERR) {
-    std::string errmsg = std::string("Failed to create workspace file; ") + tiledb_ut_errmsg;
+    std::string errmsg = std::string("Failed to create workspace file\n") + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
     tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
@@ -1833,7 +1833,7 @@ int StorageManager::group_move(
   // Rename
   if(move_path(fs_, old_group_real, new_group_real)) {
     std::string errmsg = 
-        std::string("Cannot move group; ") + tiledb_ut_errmsg;
+        std::string("Cannot move group\n") + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
     tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
