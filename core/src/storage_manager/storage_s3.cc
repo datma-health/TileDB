@@ -161,8 +161,9 @@ std::string S3::real_dir(const std::string& dir) {
     if (path_uri.bucket().compare(bucket_name_)) {
       throw std::runtime_error("Credentialed account during instantiation does not match the uri passed to real_dir. Aborting");
     }
+    return path_uri.path();
   }
-  return get_path(dir);
+  return dir;
 }
 
 int S3::create_path(const std::string& path) {

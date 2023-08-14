@@ -94,12 +94,14 @@ TEST_CASE_METHOD(GCSTestFixture, "Test GCS real_dir", "[real_dir]") {
   if (gcs_instance == nullptr) {
     return;
   }
-  CHECK(gcs_instance->real_dir("").compare(gcs_instance->current_dir()) == 0);
-  CHECK(gcs_instance->real_dir("xxx").compare(gcs_instance->current_dir()+"/xxx") == 0);
-  CHECK(gcs_instance->real_dir("xxx/yyy").compare(gcs_instance->current_dir()+"/xxx/yyy") == 0);
-  CHECK(gcs_instance->real_dir("/xxx/yyy").compare("xxx/yyy") == 0);
+  CHECK(gcs_instance->real_dir("").compare("") == 0);
+  CHECK(gcs_instance->real_dir("xxx").compare("xxx") == 0);
+  CHECK(gcs_instance->real_dir("xxx/yyy").compare("xxx/yyy") == 0);
+  CHECK(gcs_instance->real_dir("/xxx/yyy").compare("/xxx/yyy") == 0);
   gcs_uri test_uri(get_test_dir());
-  CHECK(gcs_instance->real_dir(get_test_dir()).compare(test_uri.path().substr(1)) == 0);
+  auto real_path = gcs_instance->real_dir(get_test_dir());
+  CHECK(real_path.compare(test_uri.path()) == 0);
+  CHECK(real_path.find("//") == std::npos);
   CHECK_THROWS(gcs_instance->real_dir("xxx://yyy"));
 }
 

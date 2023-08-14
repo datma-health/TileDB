@@ -133,6 +133,10 @@ TEST_CASE_METHOD(TempDir, "Test create_workspace", "[create_workspace]") {
   CHECK(TileDBUtils::create_workspace(workspace_path) == TILEDB_OK);
   CHECK(TileDBUtils::is_dir(workspace_path));
   CHECK(TileDBUtils::is_file(append(workspace_path,TILEDB_WORKSPACE_FILENAME)));
+
+  // create_workspace in an existing workspace should fail
+  workspace_path = TileDBUtils::append_path(workspace_path, "nested_workspace");
+  CHECK(TileDBUtils::create_workspace(workspace_path) == -2); // Could not be created
 }
 
 TEST_CASE_METHOD(TempDir, "Test array exists", "[array_exists]") {

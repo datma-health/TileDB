@@ -131,6 +131,8 @@ class TempDir {
 const std::string get_test_dir() {
   return g_test_dir;
 }
+
+/** Append to filesystem URI */
 std::string append(const std::string &temp_dir, const std::string &append) {
   std::size_t find = temp_dir.find('?');
   if (find == std::string::npos)

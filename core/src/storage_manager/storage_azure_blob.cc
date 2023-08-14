@@ -301,8 +301,9 @@ std::string AzureBlob::real_dir(const std::string& dir) {
           "Credentialed account during instantiation does not match the uri "
           "passed to real_dir. Aborting");
     }
+    return path_uri.path();
   }
-  return get_path(dir);
+  return dir;
 }
 
 int AzureBlob::create_path(const std::string& path) {

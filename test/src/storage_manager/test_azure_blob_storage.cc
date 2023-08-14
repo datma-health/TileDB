@@ -100,12 +100,14 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob real_dir", "[real-dir]") 
   if (azure_blob == nullptr) {
     return;
   }
-  CHECK(azure_blob->real_dir("").compare(azure_blob->current_dir()) == 0);
-  CHECK(azure_blob->real_dir("xxx").compare(azure_blob->current_dir()+"/xxx") == 0);
-  CHECK(azure_blob->real_dir("xxx/yyy").compare(azure_blob->current_dir()+"/xxx/yyy") == 0);
-  CHECK(azure_blob->real_dir("/xxx/yyy").compare("xxx/yyy") == 0);
+  CHECK(azure_blob->real_dir("").compare("") == 0);
+  CHECK(azure_blob->real_dir("xxx").compare("xxx") == 0);
+  CHECK(azure_blob->real_dir("xxx/yyy").compare("xxx/yyy") == 0);
+  CHECK(azure_blob->real_dir("/xxx/yyy").compare("/xxx/yyy") == 0);
   azure_uri test_uri(get_test_dir());
-  CHECK(azure_blob->real_dir(get_test_dir()).compare(test_uri.path().substr(1)) == 0);
+  auto real_path = azure_blob->real_dir(get_test_dir());
+  CHECK(real_path.compare(test_uri.path()) == 0);
+  CHECK(real_path.find("//") == std::npos);
   CHECK_THROWS(azure_blob->real_dir("xxx://yyy"));
 }
 

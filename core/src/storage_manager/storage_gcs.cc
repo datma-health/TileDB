@@ -236,13 +236,14 @@ int GCS::delete_path(const std::string& path) {
 }
 
 std::string GCS::real_dir(const std::string& dir) {
-   if (dir.find("://") != std::string::npos) {
+  if (dir.find("://") != std::string::npos) {
     gcs_uri path_uri(dir);
     if (path_uri.bucket().compare(bucket_name_)) {
       throw std::runtime_error("Credentialed account during instantiation does not match the uri passed to real_dir. Aborting");
     }
+    return path_uri.path();
   }
-  return get_path(dir);
+  return dir;
 }
 
 int GCS::create_dir(const std::string& dir) {
