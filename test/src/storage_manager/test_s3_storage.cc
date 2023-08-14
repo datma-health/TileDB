@@ -103,7 +103,7 @@ TEST_CASE_METHOD(S3TestFixture, "Test S3 real_dir", "[real_dir]") {
   s3_uri test_uri(get_test_dir());
   auto real_path = s3_instance->real_dir(get_test_dir());
   CHECK(real_path.compare(test_uri.path()) == 0);
-  CHECK(real_path.find("//") == std::npos);
+  CHECK(real_path.find("//") == std::string::npos);
   CHECK_THROWS(s3_instance->real_dir("xxx://yyy"));
 }
 

@@ -107,7 +107,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob real_dir", "[real-dir]") 
   azure_uri test_uri(get_test_dir());
   auto real_path = azure_blob->real_dir(get_test_dir());
   CHECK(real_path.compare(test_uri.path()) == 0);
-  CHECK(real_path.find("//") == std::npos);
+  CHECK(real_path.find("//") == std::string::npos);
   CHECK_THROWS(azure_blob->real_dir("xxx://yyy"));
 }
 
