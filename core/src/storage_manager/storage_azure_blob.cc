@@ -239,10 +239,12 @@ AzureBlob::AzureBlob(const std::string& home) {
   bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
   blob_client_wrapper_ = reinterpret_cast<blob_client_wrapper *>(bc_wrapper_.get());
 
+  /*
   if (!blob_client_wrapper_->container_exists(path_uri.container())) {
       AZ_BLOB_ERROR("Container does not seem to exist", path_uri.container());
       throw std::system_error(EIO, std::generic_category(), "AzureBlobFS only supports accessible and already existing containers");
   }
+  */
 
   account_name_ = azure_account;
   container_name_ = path_uri.container();
@@ -506,7 +508,7 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
     if (!blob_client_wrapper_->blob_exists(container_name_, path)) {
       auto result = bclient->create_append_blob(container_name_, path).get();
       if (!result.success()) {
-        AZ_BLOB_ERROR("Could not create zero length file", path);
+        AZ_BLOB_ERROR("Could not create zero length file: " + result.error().message, path);
         return TILEDB_FS_ERR;
       } else {
         return TILEDB_FS_OK;
@@ -558,7 +560,7 @@ int AzureBlob::commit_file(const std::string& path) {
     std::vector<std::pair<std::string, std::string>> empty_metadata;
     auto put_result = bclient->put_block_list(container_name_, filepath, search->second, empty_metadata).get();
     if (!put_result.success()) {
-      AZ_BLOB_ERROR("Could not sync path with put_block_list", filepath);
+      AZ_BLOB_ERROR("Could not sync path with put_block_list: " + put_result.error().message, filepath);
       rc = TILEDB_FS_ERR;
     }
     write_map_.erase(search->first);

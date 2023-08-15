@@ -231,7 +231,7 @@ TEST_CASE_METHOD(TempDir, "Test file operations", "[file_ops]") {
   std::string filename = TileDBUtils::append_path(get_temp_dir(),"test_file");
   char buffer[1024];
   memset(buffer, 'H', 1024);
-  CHECK(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);
+  REQUIRE(TileDBUtils::write_file(filename, buffer, 1024) == TILEDB_OK);
   TileDBUtils::print_md5_hash((unsigned char *)buffer, 1024);
 
   void *read_buffer = NULL;
