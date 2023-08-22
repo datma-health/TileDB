@@ -44,12 +44,12 @@ const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 size_t sizes[4] = { 1024, 40, 512, 4096 };
 
 // filter expression that results in just one match for genomicsdb_ws
-std::string filters[5] = { "__coords[0] >= 0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-  "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-  "REF == \"G\" && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-  "REF == \"G\" && ALT |= \"T\" && GT &= \"11\"",
+std::string filters[5] = { "__coords[0] >= 0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "REF == \"G\" && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "REF == \"G\" && ALT |= \"T\" && resolve(GT, REF,  ALT) &= \"T\"",
   // This last one should throw TILEDB_ERR as POS does not exist as an attribute
-  "POS==17384 && REF == \"G\" && ALT |= \"T\" && GT &= \"1/1\""};
+  "POS==17384 && REF == \"G\" && ALT |= \"T\" && resolve(GT, REF, ALT) &= \"T/T\""};
 
 // Only match expected for the following test cases
 char expected_REF = 'G';
@@ -322,8 +322,8 @@ TEST_CASE("Test genomicsdb demo test case", "[genomicsdb_demo]") {
     "__coords[0]==10000 && REF==\"T\"", // 5s
     "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\"", // 6s
     "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && GT[0]==1", // 7s
-    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && GT&=\"1|1\"", // eval true 7s
-    "__coords[0]==10000 && REF==\"C\" && ALT|=\"T\" && GT&=\"1|1\"" // eval false 7s 
+    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && resolve(GT,REF,ALT)&=\"1|1\"", // eval true 7s
+    "__coords[0]==10000 && REF==\"C\" && ALT|=\"T\" && resolve(GT,REF,ALT)&=\"1|1\"" // eval false 7s
     };
 
   const int64_t subarray[] = {0ul, 200000ul, 2000000000ul, 2100000000ul};

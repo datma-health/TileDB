@@ -71,7 +71,8 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
     // Do not release them.
     parser_->DefineFun(new SplitCompare);
     parser_->DefineOprt(new OprtSplitCompare);
-    parser_->DefineOprt(new OprtSplitCompareAll);
+    parser_->DefineFun(new Resolve);
+    parser_->DefineOprt(new OprtCompareAll);
 
     // Setup muparserx variables for the attributes
     try {
