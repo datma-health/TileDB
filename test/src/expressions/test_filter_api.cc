@@ -322,8 +322,9 @@ TEST_CASE("Test genomicsdb demo test case", "[genomicsdb_demo]") {
     "__coords[0]==10000 && REF==\"T\"", // 5s
     "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\"", // 6s
     "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && GT[0]==1", // 7s
-    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && resolve(GT,REF,ALT)&=\"1|1\"", // eval true 7s
-    "__coords[0]==10000 && REF==\"C\" && ALT|=\"T\" && resolve(GT,REF,ALT)&=\"1|1\"" // eval false 7s
+    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && resolve(GT,REF,ALT)&=\"C|C\"", // eval true 7s
+    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && resolve(GT,REF,ALT)&=\"C/C\"", // eval true 7s
+    "__coords[0]==10000 && REF==\"C\" && ALT|=\"T\" && resolve(GT,REF,ALT)&=\"C\"" // eval false 7s
     };
 
   const int64_t subarray[] = {0ul, 200000ul, 2000000000ul, 2100000000ul};
