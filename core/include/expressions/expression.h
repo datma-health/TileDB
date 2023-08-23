@@ -462,7 +462,7 @@ class IsHomAlt : public mup::ICallback {
 };
 
 /**
- * IsHomAlt accepts 1 argument
+ * IsHet accepts 1 argument
  *       Input attribute name where the attributes are represented internally as an array of integers separated
  *               by a delimiter. Each input integer is compared against the input comparison strings.
  * Returns true if all the integers ignoring delimiters are different values.
