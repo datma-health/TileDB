@@ -229,7 +229,7 @@ class OprtSplitCompare : public mup::IOprtBin {
 /**
  * Resolve accepts 3 arguments
  *       Input attribute name where the attributes are represented internally as an array of integers separated
- *               optionally by a delimiter. Each input integer is compared against the input comparison strings.
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
  *       First Comparison String which is compared with input integer if -eq 0
  *       Second Comparison String which is a delimited string, with the delimited position specified by the input
                  integer if -gt 0
@@ -264,7 +264,7 @@ class Resolve : public mup::ICallback {
   }
 
   const mup::char_type* GetDesc() const {
-    return  "resolve(input, compare_string1, compare_string2) - the operator works on a list of integers with optional delimiters '|' or '/' and compares against compare_string1 if the integer is 0 and with compare_string2 otherwise";
+    return  "resolve(input, compare_string1, compare_string2) - the function works on a list of integers with optional delimiters '|' or '/' and compares against compare_string1 if the integer is 0 and with compare_string2 otherwise";
   }
 
   mup::IToken* Clone() const {
@@ -382,6 +382,120 @@ class OprtCompareAll : public mup::IOprtBin {
     } else {
       return slashed_pos;
     }
+  }
+};
+
+/**
+ * IsHomRef accepts 1 argument
+ *       Input attribute name where the attributes are represented internally as an array of integers separated
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
+ * Returns true if all the integers ignoring delimiters are zero.
+ */
+class IsHomRef : public mup::ICallback {
+ public:
+  IsHomRef():mup::ICallback(mup::cmFUNC, "ishomref", 1){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+     mup::matrix_type input = a_pArg[0]->GetArray();
+
+    // The return type is boolean
+    // A vector is represented as a matrix in muparserx with nCols=1
+    for (int i=0; i<input.GetRows(); i++) {
+      if (i%2) continue;
+      auto val = input.At(i).GetInteger();
+      if (val!=0) {
+        *ret = (mup::bool_type)false;
+        return; //false
+      }
+    }
+    *ret = (mup::bool_type)true;
+  }
+
+  const mup::char_type* GetDesc() const {
+    return  "ishomref(input) 0 - the function takes a list of integers and compares them to zero, ignoring delimiter positions";
+  }
+
+  mup::IToken* Clone() const {
+    return new IsHomRef(*this);
+  }
+};
+
+/**
+ * IsHomAlt accepts 1 argument
+ *       Input attribute name where the attributes are represented internally as an array of integers separated
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
+ * Returns true if all the integers ignoring delimiters are the same value.
+ */
+class IsHomAlt : public mup::ICallback {
+ public:
+  IsHomAlt():mup::ICallback(mup::cmFUNC, "ishomalt", 1){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+    mup::matrix_type input = a_pArg[0]->GetArray();
+
+    // The return type is boolean
+    // A vector is represented as a matrix in muparserx with nCols=1
+    mup::int_type first_val = 0;
+    for (int i=0; i<input.GetRows(); i++) {
+      if (i%2) continue;
+      auto val = input.At(i).GetInteger();
+      if (val == 0) {
+        *ret = (mup::bool_type)false;
+        return;
+      } else if (i==0) {
+        first_val = val;
+      } else if (val!=first_val) {
+        *ret = (mup::bool_type)false;
+        return;
+      }
+    }
+    *ret = (mup::bool_type)true;
+  }
+
+  const mup::char_type* GetDesc() const {
+    return  "ishomalt(input) 0 - the function takes a list of integers, ignoring even positions, checks if they are all the same value and greater than zero";
+  }
+
+  mup::IToken* Clone() const {
+    return new IsHomAlt(*this);
+  }
+};
+
+/**
+ * IsHomAlt accepts 1 argument
+ *       Input attribute name where the attributes are represented internally as an array of integers separated
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
+ * Returns true if all the integers ignoring delimiters are different values.
+ */
+class IsHet : public mup::ICallback {
+ public:
+  IsHet():mup::ICallback(mup::cmFUNC, "ishet", 1){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+    mup::matrix_type input = a_pArg[0]->GetArray();
+
+    // The return type is boolean
+    // A vector is represented as a matrix in muparserx with nCols=1
+    std::vector<mup::int_type> vals;
+    for (int i=0; i<input.GetRows(); i++) {
+      if (i%2) continue;
+      auto val = input.At(i).GetInteger();
+      if (std::find(vals.begin(), vals.end(), val) != vals.end()) {
+        *ret = (mup::bool_type)false;
+        return;
+      } else {
+        vals.push_back(val);
+      }
+    }
+    *ret = (mup::bool_type)true;
+  }
+
+  const mup::char_type* GetDesc() const {
+    return  "ishet(input) 0 - the function takes a list of integers, ignoring even positions, checks if the values are all different";
+  }
+
+  mup::IToken* Clone() const {
+    return new IsHet(*this);
   }
 };
 

@@ -392,7 +392,22 @@ TEST_CASE("Test custom operator |= in Expression filters", "[custom_operators]")
   REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions)); // A|C
 }
 
-TEST_CASE("Test custom function resolve and operator &= in Expression filters", "[custom_operators_new]") {
+void check_evaluate_cell(const std::string& filter, ArraySchema *array_schema,
+                         std::vector<int>& attribute_ids, void **buffers, size_t* buffer_sizes,
+                         std::vector<int64_t> positions, const std::vector<bool>& evaluations) {
+   Expression expression(filter);
+   REQUIRE(expression.init(attribute_ids, array_schema) == TILEDB_OK);
+   for (auto i=0; i<evaluations.size(); i++) {
+     std::fill(positions.begin(), positions.end(), i);
+     INFO("Checking iteration i=" << i << " for filter=" << filter);
+     CHECK(expression.evaluate_cell(buffers, buffer_sizes, positions) == evaluations[i]);
+   }
+}
+
+#define EVAL_ARGS &array_schema, attribute_ids, buffers, buffer_sizes, positions
+
+TEST_CASE("Test custom function resolve/ishomref/ishomalt/ishet and operator &= in Expression filters",
+          "[custom_operators]") {
   const std::string array_name = "test_custom_operator_array";
   const char *attr_names[] = { "a1", "a2", "a3" };
   std::vector<int> attribute_ids = { 0, 1, 2 };
@@ -407,132 +422,51 @@ TEST_CASE("Test custom function resolve and operator &= in Expression filters", 
   array_schema.set_dense(0);
 
   // GT
-  int buffer_a1[] = { 0, 1, 1, 2, 1, 0, 0, 1, 2, 0, 0, 1 };
+  int buffer_a1[] = { 0, 1, 1, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 0, 1, 0, 0, 0 };
 
   // REF
-  size_t buffer_a2_offsets[] = {0, 1, 2, 3};
-  char buffer_a2[] = "TCGTAAAA"; // T C G TAAAA
+  size_t buffer_a2_offsets[] = {0, 1, 2, 3, 8, 9};
+  char buffer_a2[] = "TCGTAAAATG"; // T C G TAAAA T G
 
   // ALT
-  size_t buffer_a3_offsets[] = { 0, 3, 7, 12 };
-  char buffer_a3[] = "A|CTT|GA|C|TA|C"; // A|C TT|G A|C|T A|C
+  size_t buffer_a3_offsets[] = { 0, 3, 7, 12, 15, 16 };
+  char buffer_a3[] = "A|CTT|GA|C|TA|CAA"; // A|C TT|G A|C|T A|C A A
 
   void *buffers[] = { buffer_a1, buffer_a2_offsets, buffer_a2, buffer_a3_offsets, buffer_a3 };
   size_t buffer_sizes[] = { sizeof(buffer_a1), sizeof(buffer_a2_offsets), sizeof(buffer_a2)-1,
     sizeof(buffer_a3_offsets), sizeof(buffer_a3)-1};
-  int64_t positions[] = { 0, 0, 0 };
+  std::vector<int64_t> positions = { 0, 0, 0 };
 
-  // GT for positions 0 is "T|A"
-  // GT for positions 1 is "G|C"
-  // GT for positions 2 is "G|C"
-  // GT for positions 3 is "TAAAA/A"
+  // GT for positions 0 is "T|A"     - het
+  // GT for positions 1 is "G|C"     - het
+  // GT for positions 2 is "G|C"     - het
+  // GT for positions 3 is "TAAAA/A" - het
+  // GT for positions 4 is "T/T"     - homalt
+  // GT for positions 5 is "G/A"     - homref
 
   SECTION("errors") {
     Expression empty_expression("resolve(a1, a2, a3) &= \"\"");
     REQUIRE(empty_expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(empty_expression.evaluate_cell(buffers, buffer_sizes, positions) == TILEDB_ERR);//0
+    CHECK(empty_expression.evaluate_cell(buffers, buffer_sizes, positions.data()) == TILEDB_ERR);//0
 
     Expression expression("resolve(a1) &= \"\"");
     REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_ERR);
   }
-  SECTION("equal") {
-    Expression expression("resolve(a1, a2, a3) &= \"T|A\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == true);//0
-    positions[0] = 1;
-    positions[1] = 1;
-    positions[2] = 1;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//1
-    positions[0] = 2;
-    positions[1] = 2;
-    positions[2] = 2;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//2
-    positions[0] = 3;
-    positions[1] = 3;
-    positions[2] = 3;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//3
-  }
-  SECTION("insertion") {
-    Expression expression("resolve(a1, a2, a3) &= \"G|C\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//0
-    positions[0] = 1;
-    positions[1] = 1;
-    positions[2] = 1;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == true);//1
-    positions[0] = 2;
-    positions[1] = 2;
-    positions[2] = 2;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == true);//2
-    positions[0] = 3;
-    positions[1] = 3;
-    positions[2] = 3;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//3
-  }
-  SECTION("nophase") {
-    Expression expression("resolve(a1, a2, a3) &= \"T/A\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == true);//0
-    positions[0] = 1;
-    positions[1] = 1;
-    positions[2] = 1;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//1
-    positions[0] = 2;
-    positions[1] = 2;
-    positions[2] = 2;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//2
-    positions[0] = 3;
-    positions[1] = 3;
-    positions[2] = 3;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//3
-  }
-  SECTION("nophase-reverse") {
-    Expression expression("resolve(a1, a2, a3) &= \"A/T\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == true);//0
-    positions[0] = 1;
-    positions[1] = 1;
-    positions[2] = 1;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//1
-    positions[0] = 2;
-    positions[1] = 2;
-    positions[2] = 2;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//2
-    positions[0] = 3;
-    positions[1] = 3;
-    positions[2] = 3;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//3
-  }
-  SECTION("deletion") {
-    positions[0] = 3;
-    positions[1] = 3;
-    positions[2] = 3;
-    Expression expression("resolve(a1, a2, a3) &= \"TAAAA|A\""); //3
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);
-    Expression expression_np("resolve(a1, a2, a3) &= \"TAAAA/A\"");
-    REQUIRE(expression_np.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression_np.evaluate_cell(buffers, buffer_sizes, positions) == true);
-    Expression reverse_expression_np("resolve(a1, a2, a3) &= \"A/TAAAA\"");
-    REQUIRE(reverse_expression_np.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(reverse_expression_np.evaluate_cell(buffers, buffer_sizes, positions) == true);
-  }
-  SECTION("any") {
-    Expression expression("resolve(a1, a2, a3) &= \"T\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == true);//0
-    positions[0] = 1;
-    positions[1] = 1;
-    positions[2] = 1;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//1
-    positions[0] = 2;
-    positions[1] = 2;
-    positions[2] = 2;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//2
-    positions[0] = 3;
-    positions[1] = 3;
-    positions[2] = 3;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions) == false);//3
+
+  SECTION("evaluate") {
+    check_evaluate_cell("ishet(a1)", EVAL_ARGS, {true, true, true, true, false, false});
+    check_evaluate_cell("ishomref(a1)", EVAL_ARGS, {false, false, false, false, false, true});
+    check_evaluate_cell("ishomalt(a1)", EVAL_ARGS, {false, false, false, false, true, false});
+    
+    check_evaluate_cell("ishet(a1) && resolve(a1, a2, a3) &= \"T|A\"", EVAL_ARGS,
+                        {true, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"G|C\"", EVAL_ARGS, {false, true, true, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"T/A\"", EVAL_ARGS, {true, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/T\"", EVAL_ARGS, {true, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA|A\"", EVAL_ARGS, {false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA/A\"", EVAL_ARGS, {false, false, false, true, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/TAAAA\"", EVAL_ARGS, {false, false, false, true, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"T\"", EVAL_ARGS, {true, false, false, false, false, false});
   }
 }
 

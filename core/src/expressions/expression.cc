@@ -37,6 +37,7 @@
 #include "expression.h"
 #include "tiledb.h"
 #include <algorithm>
+#include <regex>
 #include <typeindex>
 
 
@@ -73,9 +74,22 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
     parser_->DefineOprt(new OprtSplitCompare);
     parser_->DefineFun(new Resolve);
     parser_->DefineOprt(new OprtCompareAll);
+    parser_->DefineFun(new IsHomRef);
+    parser_->DefineFun(new IsHomAlt);
+    parser_->DefineFun(new IsHet);
 
     // Setup muparserx variables for the attributes
     try {
+      if (array_schema_->dim_num() == 2 && array_schema_->cell_order() == TILEDB_COL_MAJOR) {
+        std::regex row("(.*)(ROW)(.*)");
+        while (std::regex_search(expression_, row)) {
+          expression_ = std::regex_replace(expression_, row, "$1__coords[0]$3");
+        }
+        std::regex pos("(.*)(POS)(.*)");
+        while (std::regex_search(expression_, pos)) {
+          expression_ = std::regex_replace(expression_, pos, "$1__coords[1]$3");
+        }
+      }
       parser_->SetExpr(expression_);
       // Get map of all variables used in the expression
       mup::var_maptype vmap = parser_->GetExprVar();
