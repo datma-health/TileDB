@@ -408,7 +408,7 @@ void check_evaluate_cell(const std::string& filter, ArraySchema *array_schema,
 
 TEST_CASE("Test custom function resolve/ishomref/ishomalt/ishet and operator &= in Expression filters",
           "[custom_operators]") {
-  const std::string array_name = "test_custom_operator_array";
+  const std::string array_name = "test_custom_function_array";
   const char *attr_names[] = { "a1", "a2", "a3" };
   std::vector<int> attribute_ids = { 0, 1, 2 };
   int types[] = { TILEDB_INT32, TILEDB_CHAR, TILEDB_CHAR};
