@@ -231,7 +231,8 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   auto num_threads = getenv("TILEDB_NUM_THREADS");
   if (num_threads) {
-    num_threads_ = std::stoll(num_threads);
+    num_threads_ = num_threads=="0"?1:std::stoll(num_threads);
+    if (!num_threads_) num_threads_ = 1;
   }
   std::cerr << "*** Using threads=" << num_threads_ << " with azure SDK client" << std::endl;
 
@@ -424,7 +425,7 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   storage_outcome<void> read_result;
   // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
-  if (length <= max_stream_size_ || num_threads_ <= 1) {
+  if (length <= max_stream_size_ || num_threads_ == 1) {
     omemstream os_buf(buffer, length);
     read_result = bclient->download_blob_to_stream(container_name_, path, offset, length, os_buf).get();
   } else {
