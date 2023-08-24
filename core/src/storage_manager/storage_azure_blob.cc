@@ -229,11 +229,17 @@ AzureBlob::AzureBlob(const std::string& home) {
       azure_account, cred, /* use_https */ true,
       get_blob_endpoint(path_uri.endpoint(), azure_account));
 
+  auto num_threads = getenv("TILEDB_NUM_THREADS");
+  if (num_threads) {
+    num_threads_ = std::stoll(num_threads);
+  }
+  std::cerr << "*** Using threads=" << num_threads_ << " with azure SDK client" << std::endl;
+
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
-    blob_client_ = std::make_shared<blob_client>(account, std::thread::hardware_concurrency());
+    blob_client_ = std::make_shared<blob_client>(account, num_threads_);
   } else {
-    blob_client_ = std::make_shared<blob_client>(account, std::thread::hardware_concurrency(), ca_certs_location);
+    blob_client_ = std::make_shared<blob_client>(account, num_threads_, ca_certs_location);
   }
   
   bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
@@ -251,7 +257,7 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   working_dir_ = get_path(path_uri.path());
 
-  adls_client_ = std::make_shared<azure::storage_adls::adls_client>(account, std::thread::hardware_concurrency()/2, false);
+  adls_client_ = std::make_shared<azure::storage_adls::adls_client>(account, num_threads_, false);
 
   // Set default buffer sizes, overridden with env vars TILEDB_DOWNLOAD_BUFFER_SIZE and TILEDB_UPLOAD_BUFFER_SIZE
   download_buffer_size_ = constants::default_block_size; // 8M
@@ -418,12 +424,12 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
   auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
   storage_outcome<void> read_result;
   // Heuristic: if the file can be contained in a block use download_blob_to_stream(), otherwise use the parallel download_blob_to_buffer()
-  if (length <= max_stream_size_) {
+  if (length <= max_stream_size_ || num_threads_ <= 1) {
     omemstream os_buf(buffer, length);
     read_result = bclient->download_blob_to_stream(container_name_, path, offset, length, os_buf).get();
   } else {
     try {
-      read_result = bclient->download_blob_to_buffer(container_name_, path, offset, length, reinterpret_cast<char *>(buffer), std::thread::hardware_concurrency()/2).get();
+      read_result = bclient->download_blob_to_buffer(container_name_, path, offset, length, reinterpret_cast<char *>(buffer), num_threads_).get();
     } catch (const std::exception& ex) {
       // Catch random exceptions from download_blob_to_buffer. Bug??
       std::string message = "Random error from azure sdk with the download_blob_to_buffer api : "
@@ -539,7 +545,7 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
   } 
   auto res = upload_block_blob(path, block_size, num_blocks, block_ids,
                                reinterpret_cast<const char *>(buffer), buffer_size,
-                               std::thread::hardware_concurrency()/2).get();
+                               num_threads_).get();
   if (!res.success()) {
     AZ_BLOB_ERROR(res.error().message, path);
     return TILEDB_FS_ERR;

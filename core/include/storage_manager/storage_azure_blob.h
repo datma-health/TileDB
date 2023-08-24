@@ -136,6 +136,8 @@ class AzureBlob : public StorageCloudFS {
 
   size_t max_stream_size_ = 1024;
 
+  size_t num_threads_ = std::thread::hardware_concurrency()/2;
+
   std::string get_path(const std::string& path);
 
   std::vector<std::string> generate_block_ids(const std::string& path, int num_blocks) {
