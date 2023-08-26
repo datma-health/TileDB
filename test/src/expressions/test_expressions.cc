@@ -397,7 +397,7 @@ void check_evaluate_cell(const std::string& filter, ArraySchema *array_schema,
                          std::vector<int64_t> positions, const std::vector<bool>& evaluations) {
    Expression expression(filter);
    REQUIRE(expression.init(attribute_ids, array_schema) == TILEDB_OK);
-   for (auto i=0; i<evaluations.size(); i++) {
+   for (auto i=0ul; i<evaluations.size(); i++) {
      std::fill(positions.begin(), positions.end(), i);
      INFO("Checking iteration i=" << i << " for filter=" << filter);
      CHECK(expression.evaluate_cell(buffers, buffer_sizes, positions) == evaluations[i]);
@@ -411,8 +411,8 @@ TEST_CASE("Test custom function resolve/ishomref/ishomalt/ishet and operator &= 
   const std::string array_name = "test_custom_function_array";
   const char *attr_names[] = { "a1", "a2", "a3" };
   std::vector<int> attribute_ids = { 0, 1, 2 };
-  int types[] = { TILEDB_INT32, TILEDB_CHAR, TILEDB_CHAR};
-  int cell_val_nums[] = { 3, TILEDB_VAR_NUM, TILEDB_VAR_NUM };
+  int types[] = { TILEDB_INT32, TILEDB_CHAR, TILEDB_CHAR, TILEDB_INT64};
+  int cell_val_nums[] = { 3, TILEDB_VAR_NUM, TILEDB_VAR_NUM, 2 };
 
   PosixFS posix_fs;
   ArraySchema array_schema(&posix_fs);

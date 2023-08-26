@@ -41,7 +41,7 @@ int num_attributes = 4;
 const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 
 // Sizes to be used for buffers
-size_t sizes[4] = { 1024, 40, 512, 4096 };
+size_t sizes[5] = { 1024, 40, 512, 4096, 4096 };
 
 // filter expression that results in just one match for genomicsdb_ws
 std::string filters[5] = { "POS >= 0 && ROW >=0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
