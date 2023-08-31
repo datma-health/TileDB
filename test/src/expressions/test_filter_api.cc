@@ -310,7 +310,11 @@ TEST_CASE("Test genomicsdb demo test case", "[genomicsdb_demo]") {
 
   std::vector<std::string> filters = {"", // zlib 38s
     "ROW==10000", // 4s
+    "POS==2084172232", // 4s
     "ROW==10000 && REF==\"T\"", // 5s
+    "resolve(GT,REF,ALT)&=\"C|C\"",
+    "resolve(GT,REF,ALT)&=\"C/C\"",
+    "resolve(GT,REF,ALT)&=\"C\"",
     "ROW==10000 && REF==\"T\" && ALT|=\"C\"", // 6s
     "ROW==10000 && REF==\"T\" && ALT|=\"C\" && GT[0]==1", // 7s
     "ROW==10000 && REF==\"T\" && ALT|=\"C\" && resolve(GT,REF,ALT)&=\"C|C\"", // eval true 7s

@@ -272,7 +272,7 @@ class Resolve : public mup::ICallback {
   }
 
  private:
-  std::string get_segment(const std::string& str, int segment_pos) {
+  std::string_view get_segment(std::string_view str, int segment_pos) {
     std::string::size_type pos;
     std::string::size_type next_pos = -1;
     for (int j=0; j<segment_pos; j++) {
@@ -280,7 +280,7 @@ class Resolve : public mup::ICallback {
       next_pos = str.find(PIPED_SEP);
       if (next_pos == std::string::npos) {
         assert(j == segment_pos-1);
-        return str.substr(pos);
+        return str.substr(pos, str.length());
       }
     }
     return str.substr(pos, next_pos);
@@ -339,31 +339,29 @@ class OprtCompareAll : public mup::IOprtBin {
     }
   }
 
-  bool match_noorder(const std::string& input, std::string with) {
+  bool match_noorder(std::string_view input, std::string_view with) {
+    std::vector<std::string_view> vals;
     std::string::size_type pos = 0, next_pos;
+    while ((next_pos = next(with, pos)) != std::string::npos) {
+      vals.push_back(with.substr(pos, next_pos));
+      pos = next_pos+1;
+    }
+    vals.push_back(with.substr(pos));
+
+    pos = 0;
     while ((next_pos = next(input, pos)) != std::string::npos) {
-      std::string::size_type with_pos = 0, with_next_pos;
-      bool found = false;
-      while ((with_next_pos = next(with, with_pos)) != std::string::npos) {
-        if (input.substr(pos, next_pos) == with.substr(with_pos, with_next_pos)) {
-          with = with.substr(0, with_pos) + with.substr(with_next_pos+1);
-          found = true;
-        }
-        with_pos = with_next_pos+1;
-      }
-      if (!found) {
-        if (input.substr(pos, next_pos) == with.substr(with_pos)) {
-          with = with.substr(0, with_pos-1);
-        } else {
-          return false;
-        }
+      auto found = std::find(vals.begin(), vals.end(), input.substr(pos, next_pos));
+      if (found != vals.end()) {
+        vals.erase(found);
+      } else {
+        return false;
       }
       pos = next_pos+1;
     }
-    return input.substr(pos) == with;
+    return (vals.size() == 1) && input.substr(pos) == vals[0];
   }
 
-  bool match_any(const std::string& input, const std::string& with) {
+  bool match_any(std::string_view input, std::string_view with) {
     std::string::size_type pos = 0, next_pos;
     while ((next_pos = next(input, pos)) != std::string::npos) {
       if (input.substr(pos, next_pos) == with) {
@@ -374,7 +372,7 @@ class OprtCompareAll : public mup::IOprtBin {
     return input.substr(pos) == with;
   }
 
-  std::string::size_type next(const std::string& str,  std::string::size_type pos) {
+  std::string::size_type next(std::string_view str,  std::string::size_type pos) {
     auto piped_pos = str.find(PIPED_SEP, pos);
     auto slashed_pos = str.find(SLASHED_SEP, pos);
     if (piped_pos < slashed_pos) {
@@ -400,8 +398,7 @@ class IsHomRef : public mup::ICallback {
 
     // The return type is boolean
     // A vector is represented as a matrix in muparserx with nCols=1
-    for (int i=0; i<input.GetRows(); i++) {
-      if (i%2) continue;
+    for (int i=0; i<input.GetRows(); i+=2) {
       auto val = input.At(i).GetInteger();
       if (val!=0) {
         *ret = (mup::bool_type)false;
@@ -436,8 +433,7 @@ class IsHomAlt : public mup::ICallback {
     // The return type is boolean
     // A vector is represented as a matrix in muparserx with nCols=1
     mup::int_type first_val = 0;
-    for (int i=0; i<input.GetRows(); i++) {
-      if (i%2) continue;
+    for (int i=0; i<input.GetRows(); i+=2) {
       auto val = input.At(i).GetInteger();
       if (val == 0) {
         *ret = (mup::bool_type)false;
@@ -477,8 +473,7 @@ class IsHet : public mup::ICallback {
     // The return type is boolean
     // A vector is represented as a matrix in muparserx with nCols=1
     std::vector<mup::int_type> vals;
-    for (int i=0; i<input.GetRows(); i++) {
-      if (i%2) continue;
+    for (int i=0; i<input.GetRows(); i+=2) {
       auto val = input.At(i).GetInteger();
       if (std::find(vals.begin(), vals.end(), val) != vals.end()) {
         *ret = (mup::bool_type)false;
