@@ -461,7 +461,7 @@ class IsHomAlt : public mup::ICallback {
  * IsHet accepts 1 argument
  *       Input attribute name where the attributes are represented internally as an array of integers separated
  *               by a delimiter. Each input integer is compared against the input comparison strings.
- * Returns true if all the integers ignoring delimiters are different values.
+ * Returns true if all the integers ignoring delimiters are not *unknown* and not the same(IsHomRef/IsHomAlt).
  */
 class IsHet : public mup::ICallback {
  public:
@@ -471,22 +471,24 @@ class IsHet : public mup::ICallback {
     mup::matrix_type input = a_pArg[0]->GetArray();
 
     // The return type is boolean
-    // A vector is represented as a matrix in muparserx with nCols=1
-    std::vector<mup::int_type> vals;
-    for (int i=0; i<input.GetRows(); i+=2) {
-      auto val = input.At(i).GetInteger();
-      if (std::find(vals.begin(), vals.end(), val) != vals.end()) {
-        *ret = (mup::bool_type)false;
-        return;
-      } else {
-        vals.push_back(val);
+    *ret = (mup::bool_type)false;
+    // input.GetRows() is zero for *unknown* values
+    if (input.GetRows() > 0) {
+      mup::int_type first_val = 0;
+      for (int i=0; i<input.GetRows(); i+=2) {
+        auto val = input.At(i).GetInteger();
+        if (i==0) {
+          first_val = val;
+        } else if (val!=first_val) {
+          *ret = (mup::bool_type)true;
+          return;
+        }
       }
     }
-    *ret = (mup::bool_type)true;
   }
 
   const mup::char_type* GetDesc() const {
-    return  "ishet(input) 0 - the function takes a list of integers, ignoring even positions, checks if the values are all different";
+    return  "ishet(input) 0 - the function takes a list of integers, ignoring even positions, checks if the values are not unknown or HomRef or HomAlt";
   }
 
   mup::IToken* Clone() const {
