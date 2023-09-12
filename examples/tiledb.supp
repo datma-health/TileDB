@@ -1,0 +1,33 @@
+{
+   <gomp>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   obj:/usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0
+   obj:/usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0
+   obj:/usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0
+   fun:call_init.part.0
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+   obj:*
+   obj:*
+   obj:*
+}
+{
+   <s3 leak>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:_ZN3Aws31InitializeEnumOverflowContainerEv
+   fun:_ZN3Aws7InitAPIERKNS_10SDKOptionsE
+   fun:_Z15awssdk_init_apiv
+   fun:_ZSt13__invoke_implIvRFvvEJEET_St14__invoke_otherOT0_DpOT1_
+   fun:_ZSt8__invokeIRFvvEJEENSt15__invoke_resultIT_JDpT0_EE4typeEOS3_DpOS4_
+   fun:_ZZSt9call_onceIRFvvEJEEvRSt9once_flagOT_DpOT0_ENKUlvE_clEv
+   fun:_ZZNSt9once_flag18_Prepare_executionC4IZSt9call_onceIRFvvEJEEvRS_OT_DpOT0_EUlvE_EERS6_ENKUlvE_clEv
+   fun:_ZZNSt9once_flag18_Prepare_executionC4IZSt9call_onceIRFvvEJEEvRS_OT_DpOT0_EUlvE_EERS6_ENUlvE_4_FUNEv
+   fun:__pthread_once_slow
+   fun:_ZL14__gthread_oncePiPFvvE
+   fun:_ZSt9call_onceIRFvvEJEEvRSt9once_flagOT_DpOT0_
+}
