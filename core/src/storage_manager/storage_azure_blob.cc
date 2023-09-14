@@ -231,7 +231,7 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   auto num_threads = getenv("TILEDB_NUM_THREADS");
   if (num_threads) {
-    num_threads_ = num_threads=="0"?1:std::stoll(num_threads);
+    num_threads_ = num_threads=="0"?1:std::stoi(num_threads);
     if (!num_threads_) num_threads_ = 1;
   }
   std::cerr << "*** Using threads=" << num_threads_ << " with azure SDK client" << std::endl;
@@ -453,9 +453,8 @@ int AzureBlob::read_from_file(const std::string& filename, off_t offset, void *b
 // This method is based on upload_block_blob_from_buffer from the SDK except for the put_block_list stage which happens in commit_path() now
 std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::string &blob, uint64_t block_size,
                                                                 int num_blocks, std::vector<std::string> block_ids,
-                                                                const char* buffer, uint64_t bufferlen, uint parallelism) {
-  auto bclient = reinterpret_cast<blob_client *>(blob_client_.get());
-  parallelism = std::min(parallelism, bclient->concurrency());
+                                                                const char* buffer, uint64_t bufferlen, int parallelism) {
+  parallelism = std::min(num_blocks, parallelism);
 
   struct concurrent_task_info {
     std::string blob;
@@ -476,8 +475,8 @@ std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::strin
     std::vector<std::future<void>> task_futures;
   };
 
-  auto info = std::make_shared<concurrent_task_info>(concurrent_task_info{ blob, buffer, bufferlen, block_size, num_blocks, empty_metadata });
-  auto context = std::make_shared<concurrent_task_context>();
+  auto info = new concurrent_task_info(concurrent_task_info{ blob, buffer, bufferlen, block_size, num_blocks, empty_metadata });
+  auto context = new concurrent_task_context();
   context->num_workers = parallelism;
 
   auto thread_upload_func = [this, block_ids, info, context]() {
@@ -500,11 +499,15 @@ std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::strin
     }
   };
 
-  for (uint i = 0; i < parallelism; ++i) {
+  for (int i = 0; i < parallelism; ++i) {
     context->task_futures.emplace_back(std::async(std::launch::async, thread_upload_func));
   }
 
-  return context->task_promise.get_future();
+  auto future = context->task_promise.get_future();
+  delete context;
+  delete info;
+
+  return future;
 }
 
 int AzureBlob::write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) {
@@ -538,12 +541,13 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
   block_size = std::min(block_size, constants::max_block_size);
   block_size = std::max(block_size, constants::default_block_size);
   int num_blocks = int((buffer_size + block_size-1)/block_size);
+  printf("num blocks=%d\n", num_blocks);
 
   auto block_ids = generate_block_ids(path, num_blocks);
   if (block_ids.size() == 0) {
     AZ_BLOB_ERROR("Could not get block_ids for upload_block_blob", path);
     return TILEDB_FS_ERR;
-  } 
+  }
   auto res = upload_block_blob(path, block_size, num_blocks, block_ids,
                                reinterpret_cast<const char *>(buffer), buffer_size,
                                num_threads_).get();
