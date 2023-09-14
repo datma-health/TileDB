@@ -541,7 +541,6 @@ int AzureBlob::write_to_file(const std::string& filename, const void *buffer, si
   block_size = std::min(block_size, constants::max_block_size);
   block_size = std::max(block_size, constants::default_block_size);
   int num_blocks = int((buffer_size + block_size-1)/block_size);
-  printf("num blocks=%d\n", num_blocks);
 
   auto block_ids = generate_block_ids(path, num_blocks);
   if (block_ids.size() == 0) {
