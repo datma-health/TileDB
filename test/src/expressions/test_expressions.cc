@@ -457,9 +457,8 @@ TEST_CASE("Test custom function resolve/ishomref/ishomalt/ishet and operator &= 
   SECTION("evaluate") {
     check_evaluate_cell("ishet(a1)", EVAL_ARGS, {true, true, true, true, false, false, false});
     check_evaluate_cell("ishomref(a1)", EVAL_ARGS, {false, false, false, false, false, true, false});
-    check_evaluate_cell("ishomalt(a1)", EVAL_ARGS, {false, false, false, false, true, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"G|C\"", EVAL_ARGS, {false, true, true, false, false, false, false});
-    
+    check_evaluate_cell("ishomalt(a1)", EVAL_ARGS, {false, false, false, false, true, false, false});    
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"G|C\"", EVAL_ARGS, {false, true, true, false, false, false, false});  
     check_evaluate_cell("ishet(a1) && resolve(a1, a2, a3) &= \"T|A\"", EVAL_ARGS, {true, false, false, false, false, false, false});
     check_evaluate_cell("resolve(a1, a2, a3) &= \"T/A\"", EVAL_ARGS, {true, false, false, false, false, false, false});
     check_evaluate_cell("resolve(a1, a2, a3) &= \"A/T\"", EVAL_ARGS, {true, false, false, false, false, false, false});
