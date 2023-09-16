@@ -422,14 +422,14 @@ TEST_CASE("Test custom function resolve/ishomref/ishomalt/ishet and operator &= 
   array_schema.set_dense(0);
 
   // GT
-  int buffer_a1[] = { 0, 1, 1, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 0, 1, 0, 0, 0 };
+  int buffer_a1[] = { 0, 1, 1, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 0, 1, 0, 0, 0, -1, 0, -1 };
 
   // REF
-  size_t buffer_a2_offsets[] = {0, 1, 2, 3, 8, 9};
+  size_t buffer_a2_offsets[] = {0, 1, 2, 3, 8, 9, 10};
   char buffer_a2[] = "TCGTAAAATG"; // T C G TAAAA T G
 
   // ALT
-  size_t buffer_a3_offsets[] = { 0, 3, 7, 12, 15, 16 };
+  size_t buffer_a3_offsets[] = { 0, 3, 7, 12, 15, 16, 17 };
   char buffer_a3[] = "A|CTT|GA|C|TA|CAA"; // A|C TT|G A|C|T A|C A A
 
   void *buffers[] = { buffer_a1, buffer_a2_offsets, buffer_a2, buffer_a3_offsets, buffer_a3 };
@@ -441,32 +441,33 @@ TEST_CASE("Test custom function resolve/ishomref/ishomalt/ishet and operator &= 
   // GT for positions 1 is "G|C"     - het
   // GT for positions 2 is "G|C"     - het
   // GT for positions 3 is "TAAAA/A" - het
-  // GT for positions 4 is "T/T"     - homalt
-  // GT for positions 5 is "G/A"     - homref
+  // GT for positions 4 is "A/A"     - homalt
+  // GT for positions 5 is "G/G"     - homref
+  // GT for positions 6 is "./."     - not homref or homalt or het
 
-  SECTION("errors") {
+  SECTION("evaluation_with_empty") {
     Expression empty_expression("resolve(a1, a2, a3) &= \"\"");
     REQUIRE(empty_expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    CHECK(empty_expression.evaluate_cell(buffers, buffer_sizes, positions.data()) == TILEDB_ERR);//0
+    CHECK(empty_expression.evaluate_cell(buffers, buffer_sizes, positions.data()) == 0); //false
 
     Expression expression("resolve(a1) &= \"\"");
     REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_ERR);
   }
 
   SECTION("evaluate") {
-    check_evaluate_cell("ishet(a1)", EVAL_ARGS, {true, true, true, true, false, false});
-    check_evaluate_cell("ishomref(a1)", EVAL_ARGS, {false, false, false, false, false, true});
-    check_evaluate_cell("ishomalt(a1)", EVAL_ARGS, {false, false, false, false, true, false});
+    check_evaluate_cell("ishet(a1)", EVAL_ARGS, {true, true, true, true, false, false, false});
+    check_evaluate_cell("ishomref(a1)", EVAL_ARGS, {false, false, false, false, false, true, false});
+    check_evaluate_cell("ishomalt(a1)", EVAL_ARGS, {false, false, false, false, true, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"G|C\"", EVAL_ARGS, {false, true, true, false, false, false, false});
     
-    check_evaluate_cell("ishet(a1) && resolve(a1, a2, a3) &= \"T|A\"", EVAL_ARGS,
-                        {true, false, false, false, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"G|C\"", EVAL_ARGS, {false, true, true, false, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"T/A\"", EVAL_ARGS, {true, false, false, false, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/T\"", EVAL_ARGS, {true, false, false, false, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA|A\"", EVAL_ARGS, {false, false, false, false, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA/A\"", EVAL_ARGS, {false, false, false, true, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/TAAAA\"", EVAL_ARGS, {false, false, false, true, false, false});
-    check_evaluate_cell("resolve(a1, a2, a3) &= \"T\"", EVAL_ARGS, {true, false, false, false, false, false});
+    check_evaluate_cell("ishet(a1) && resolve(a1, a2, a3) &= \"T|A\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"T/A\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/T\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA|A\"", EVAL_ARGS, {false, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA/A\"", EVAL_ARGS, {false, false, false, true, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/TAAAA\"", EVAL_ARGS, {false, false, false, true, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"T\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"./.\"", EVAL_ARGS, {false, false, false, false, false, false, true});
   }
 }
 

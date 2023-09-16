@@ -253,10 +253,12 @@ class Resolve : public mup::ICallback {
         auto val = input.At(i).GetInteger();
         if (i%2) { // Phase
           if (val) ret_val += PIPED_SEP; else ret_val += SLASHED_SEP;
-        } else if (val) { // ALT
+        } else if (val > 0) { // ALT
           ret_val += get_segment(cmp_str2, val);
-        } else { // REF
+        } else if (val == 0) { // REF
           ret_val += cmp_str1;
+        } else { // UNKNOWN
+          ret_val += ".";
         }
       }
     }
@@ -289,7 +291,7 @@ class Resolve : public mup::ICallback {
 
 /**
  * OprtCompareAll uses the special operator "&=" where the LHS of the expression is a string, possibly the result of
- * running resolve() and the RHS is the string to be compared with. The RHS string is first compared simply and then
+ * running resolve() and the RHS is the string to be compared with. The RHS string is first just compared and then
  * checked for all available segments in the LHS if the delimiter '/' instead of '|' is used. In the case of no
  * delimiter in the RHS, any match from the LHS will return true.
  */
@@ -303,7 +305,9 @@ class OprtCompareAll : public mup::IOprtBin {
 
     // The return type is boolean
     *ret = (mup::bool_type)false;
-    if (with.length() > 0) {
+    if (input.length() == 0 && with.length() == 0) {
+      *ret = (mup::bool_type) true;
+    } else if (with.length() > 0) {
       if (input == with) {
         *ret = (mup::bool_type)true;
       } else {
@@ -314,9 +318,6 @@ class OprtCompareAll : public mup::IOprtBin {
           *ret = (mup::bool_type)match_any(input, with);
         }
       }
-    } else {
-      std::string errmsg = "LHS="+input+" RHS=EMPTY";
-      throw mup::ParserError(errmsg, mup::ecUNEXPECTED_VAL);
     }
   }
 
@@ -435,7 +436,7 @@ class IsHomAlt : public mup::ICallback {
     mup::int_type first_val = 0;
     for (int i=0; i<input.GetRows(); i+=2) {
       auto val = input.At(i).GetInteger();
-      if (val == 0) {
+      if (val <= 0) { // // *unknown* or ref value
         *ret = (mup::bool_type)false;
         return;
       } else if (i==0) {
@@ -477,11 +478,14 @@ class IsHet : public mup::ICallback {
       mup::int_type first_val = 0;
       for (int i=0; i<input.GetRows(); i+=2) {
         auto val = input.At(i).GetInteger();
+        if (val < 0) { // *unknown* value
+          *ret = (mup::bool_type)false;
+          return;
+        }
         if (i==0) {
           first_val = val;
         } else if (val!=first_val) {
           *ret = (mup::bool_type)true;
-          return;
         }
       }
     }

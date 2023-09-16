@@ -45,8 +45,8 @@ size_t sizes[5] = { 1024, 40, 512, 4096, 4096 };
 
 // filter expression that results in just one match for genomicsdb_ws
 std::string filters[5] = { "POS >= 0 && ROW >=0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
-  "ishomalt(GT) && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
-  "ishet(GT) != true && REF == \"G\" && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "ISHOMALT && !ISHOMREF && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "!ISHET && REF == \"G\" && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
   "REF == \"G\" && ALT |= \"T\" && resolve(GT, REF,  ALT) &= \"T\"",
   "POS==17384 && REF == \"G\" && ALT |= \"T\" && resolve(GT, REF, ALT) &= \"T/T\""};
 

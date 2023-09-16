@@ -80,14 +80,28 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
 
     // Setup muparserx variables for the attributes
     try {
+      // TODO: Move this block to GenomicsDB as they are GenomicsDB aliases!
       if (array_schema_->dim_num() == 2 && array_schema_->cell_order() == TILEDB_COL_MAJOR) {
-        std::regex row("(.*)(ROW)(.*)");
-        while (std::regex_search(expression_, row)) {
-          expression_ = std::regex_replace(expression_, row, "$1__coords[0]$3");
-        }
-        std::regex pos("(.*)(POS)(.*)");
-        while (std::regex_search(expression_, pos)) {
-          expression_ = std::regex_replace(expression_, pos, "$1__coords[1]$3");
+        //muparserx does not have a unary negation operator, so use regex to replace !IS* aliases
+        std::regex alias("(ROW)|(POS)|(!ISHOMREF)|(!ISHOMALT)|(!ISHET)|(ISHOMREF)|(ISHOMALT)|(ISHET)");
+        for (std::smatch match; std::regex_search(expression_, match, alias); ) {
+          if (match[0] == "ROW") {
+            expression_ = match.prefix().str() +  "__coords[0]" + match.suffix().str();
+          } else if (match[0] == "POS") {
+            expression_ = match.prefix().str() +  "__coords[1]" + match.suffix().str();
+          } else if (match[0] == "ISHOMREF") {
+            expression_ = match.prefix().str() +  "ishomref(GT)" + match.suffix().str();
+          } else if (match[0] == "ISHOMALT") {
+            expression_ = match.prefix().str() +  "ishomalt(GT)" + match.suffix().str();
+          } else if (match[0] == "ISHET") {
+            expression_ = match.prefix().str() +  "ishet(GT)" + match.suffix().str();
+          } else if (match[0] == "!ISHOMREF") {
+            expression_ = match.prefix().str() +  "(ishomref(GT) == false)" + match.suffix().str();
+          } else if (match[0] == "!ISHOMALT") {
+            expression_ = match.prefix().str() +  "(ishomalt(GT) == false)" + match.suffix().str();
+          } else if (match[0] == "!ISHET") {
+            expression_ = match.prefix().str() +  "(ishet(GT) == false)" + match.suffix().str();
+          }
         }
       }
       parser_->SetExpr(expression_);
