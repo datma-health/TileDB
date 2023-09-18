@@ -392,80 +392,81 @@ TEST_CASE("Test custom operator |= in Expression filters", "[custom_operators]")
   REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions)); // A|C
 }
 
-TEST_CASE_METHOD(ArrayFixture<int>, "Test custom operator &= in Expression filters", "[custom_operators]") {
-  setup(2);
-  SECTION("passing expression evaluation") {
-    Expression expression("a1 &= \"0/1\"");
-    REQUIRE(expression.init(attribute_ids, array_schema_) == TILEDB_OK);
-    int64_t positions[] = { 0 };
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
-  }
-  SECTION("failing expression evaluation") {
-    Expression expression("a1 &= \"1/0\"");
-    REQUIRE(expression.init(attribute_ids, array_schema_) == TILEDB_OK);
-    int64_t positions[] = { 0 };
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-  }
-  SECTION("another failing expression evaluation") {
-    Expression expression("a1 &= \"0\"");
-    REQUIRE(expression.init(attribute_ids, array_schema_) == TILEDB_OK);
-    int64_t positions[] = { 0 };
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-  }
+void check_evaluate_cell(const std::string& filter, ArraySchema *array_schema,
+                         std::vector<int>& attribute_ids, void **buffers, size_t* buffer_sizes,
+                         std::vector<int64_t> positions, const std::vector<bool>& evaluations) {
+   Expression expression(filter);
+   REQUIRE(expression.init(attribute_ids, array_schema) == TILEDB_OK);
+   for (auto i=0ul; i<evaluations.size(); i++) {
+     std::fill(positions.begin(), positions.end(), i);
+     INFO("Checking iteration i=" << i << " for filter=" << filter);
+     CHECK(expression.evaluate_cell(buffers, buffer_sizes, positions) == evaluations[i]);
+   }
 }
 
-TEST_CASE("Test custom operator &= in Expression filters with delimiters", "[custom_operators]") {
-  const std::string array_name = "test_custom_operator_array";
-  const char *attr_names[] = { "a1" };
-  std::vector<std::string> attribute_names = { "a1" };
-  std::vector<int> attribute_ids = { 0 };
-  int types[2] = { TILEDB_INT32 };
-  int cell_val_nums[1] = { 3 };
+#define EVAL_ARGS &array_schema, attribute_ids, buffers, buffer_sizes, positions
+
+TEST_CASE("Test custom function resolve/ishomref/ishomalt/ishet and operator &= in Expression filters",
+          "[custom_operators]") {
+  const std::string array_name = "test_custom_function_array";
+  const char *attr_names[] = { "a1", "a2", "a3" };
+  std::vector<int> attribute_ids = { 0, 1, 2 };
+  int types[] = { TILEDB_INT32, TILEDB_CHAR, TILEDB_CHAR, TILEDB_INT64};
+  int cell_val_nums[] = { 3, TILEDB_VAR_NUM, TILEDB_VAR_NUM, 2 };
 
   PosixFS posix_fs;
   ArraySchema array_schema(&posix_fs);
-  array_schema.set_attributes(const_cast<char **>(attr_names), 1);
+  array_schema.set_attributes(const_cast<char **>(attr_names), 3);
   array_schema.set_cell_val_num(cell_val_nums);
   array_schema.set_types(types);
   array_schema.set_dense(0);
 
-  int buffer[12] = { 0, 1, 1, 2, 1, 0, 0, 1, 1, 3, 0, 3 };
-  void *buffers[1] = { buffer };
-  size_t buffer_sizes[1] = { sizeof(buffer) };
-  int64_t positions[] = { 0 };
+  // GT
+  int buffer_a1[] = { 0, 1, 1, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 0, 1, 0, 0, 0, -1, 0, -1 };
 
-  SECTION("with 0|1") {
-    Expression expression("a1 &= \"0|1\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 1;
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 2;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 3;
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
+  // REF
+  size_t buffer_a2_offsets[] = {0, 1, 2, 3, 8, 9, 10};
+  char buffer_a2[] = "TCGTAAAATG"; // T C G TAAAA T G
+
+  // ALT
+  size_t buffer_a3_offsets[] = { 0, 3, 7, 12, 15, 16, 17 };
+  char buffer_a3[] = "A|CTT|GA|C|TA|CAA"; // A|C TT|G A|C|T A|C A A
+
+  void *buffers[] = { buffer_a1, buffer_a2_offsets, buffer_a2, buffer_a3_offsets, buffer_a3 };
+  size_t buffer_sizes[] = { sizeof(buffer_a1), sizeof(buffer_a2_offsets), sizeof(buffer_a2)-1,
+    sizeof(buffer_a3_offsets), sizeof(buffer_a3)-1};
+  std::vector<int64_t> positions = { 0, 0, 0 };
+
+  // GT for positions 0 is "T|A"     - het
+  // GT for positions 1 is "G|C"     - het
+  // GT for positions 2 is "G|C"     - het
+  // GT for positions 3 is "TAAAA/A" - het
+  // GT for positions 4 is "A/A"     - homalt
+  // GT for positions 5 is "G/G"     - homref
+  // GT for positions 6 is "./."     - not homref or homalt or het
+
+  SECTION("evaluation_with_empty") {
+    Expression empty_expression("resolve(a1, a2, a3) &= \"\"");
+    REQUIRE(empty_expression.init(attribute_ids, &array_schema) == TILEDB_OK);
+    CHECK(empty_expression.evaluate_cell(buffers, buffer_sizes, positions.data()) == 0); //false
+
+    Expression expression("resolve(a1) &= \"\"");
+    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_ERR);
   }
-  SECTION("with 20") {
-    Expression expression("a1 &= \"20\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 1;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 2;
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 3;
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-  }
-  SECTION("with 3|3") {
-    Expression expression("a1 &= \"3|3\"");
-    REQUIRE(expression.init(attribute_ids, &array_schema) == TILEDB_OK);
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 1;
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 2;
-    REQUIRE(!expression.evaluate_cell(buffers, buffer_sizes, positions));
-    positions[0] = 3;
-    REQUIRE(expression.evaluate_cell(buffers, buffer_sizes, positions));
+
+  SECTION("evaluate") {
+    check_evaluate_cell("ishet(a1)", EVAL_ARGS, {true, true, true, true, false, false, false});
+    check_evaluate_cell("ishomref(a1)", EVAL_ARGS, {false, false, false, false, false, true, false});
+    check_evaluate_cell("ishomalt(a1)", EVAL_ARGS, {false, false, false, false, true, false, false});    
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"G|C\"", EVAL_ARGS, {false, true, true, false, false, false, false});  
+    check_evaluate_cell("ishet(a1) && resolve(a1, a2, a3) &= \"T|A\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"T/A\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/T\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA|A\"", EVAL_ARGS, {false, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"TAAAA/A\"", EVAL_ARGS, {false, false, false, true, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"A/TAAAA\"", EVAL_ARGS, {false, false, false, true, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"T\"", EVAL_ARGS, {true, false, false, false, false, false, false});
+    check_evaluate_cell("resolve(a1, a2, a3) &= \"./.\"", EVAL_ARGS, {false, false, false, false, false, false, true});
   }
 }
 
