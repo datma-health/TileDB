@@ -41,15 +41,14 @@ int num_attributes = 4;
 const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 
 // Sizes to be used for buffers
-size_t sizes[4] = { 1024, 40, 512, 4096 };
+size_t sizes[5] = { 1024, 40, 512, 4096, 4096 };
 
 // filter expression that results in just one match for genomicsdb_ws
-std::string filters[5] = { "__coords[0] >= 0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-  "REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-  "REF == \"G\" && splitcompare(ALT, 124, \"T\") && GT &= \"1/1\"",
-  "REF == \"G\" && ALT |= \"T\" && GT &= \"11\"",
-  // This last one should throw TILEDB_ERR as POS does not exist as an attribute
-  "POS==17384 && REF == \"G\" && ALT |= \"T\" && GT &= \"1/1\""};
+std::string filters[5] = { "POS >= 0 && ROW >=0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "ISHOMALT && !ISHOMREF && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "!ISHET && !ISHOMALT == false && REF == \"G\" && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+  "ISHOMREF == false && ISHET == false && REF == \"G\" && ALT |= \"T\" && resolve(GT, REF,  ALT) &= \"T\"",
+  "POS==17384 && REF == \"G\" && ALT |= \"T\" && resolve(GT, REF, ALT) &= \"T/T\""};
 
 // Only match expected for the following test cases
 char expected_REF = 'G';
@@ -88,12 +87,9 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
           buffers,                                          // Preallocated buffers for internal use
           buffer_sizes,                                     // buffer_sizes
           filters[i].c_str());
-      if (i==4) {
-        CHECK_RC(rc, TILEDB_ERR);
-        continue;
-      } else {
-        CHECK_RC(rc,TILEDB_OK);
-      }
+
+      
+      CHECK_RC(rc,TILEDB_OK);
 
       int* GT_val = NULL;
       size_t GT_size = 0;
@@ -203,12 +199,7 @@ TEST_CASE("Test genomicsdb_ws filter with read api", "[genomicsdb_ws_filter_read
                TILEDB_OK);
 
       // Apply expression filter
-      if (i==4) {
-        CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_ERR);
-        continue;
-      } else {
-        CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_OK);
-      }
+      CHECK_RC(tiledb_array_apply_filter(tiledb_array, filters[i].c_str()), TILEDB_OK);
 
       // Read from array
       bool continue_read;
@@ -318,12 +309,17 @@ TEST_CASE("Test genomicsdb demo test case", "[genomicsdb_demo]") {
   std::string array = std::string(workspace) + "/allcontigs$1$3095677412";
 
   std::vector<std::string> filters = {"", // zlib 38s
-    "__coords[0]==10000", // 4s
-    "__coords[0]==10000 && REF==\"T\"", // 5s
-    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\"", // 6s
-    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && GT[0]==1", // 7s
-    "__coords[0]==10000 && REF==\"T\" && ALT|=\"C\" && GT&=\"1|1\"", // eval true 7s
-    "__coords[0]==10000 && REF==\"C\" && ALT|=\"T\" && GT&=\"1|1\"" // eval false 7s 
+    "ROW==10000", // 4s
+    "POS==2084172232", // 4s
+    "ROW==10000 && REF==\"T\"", // 5s
+    "resolve(GT,REF,ALT)&=\"C|C\"",
+    "resolve(GT,REF,ALT)&=\"C/C\"",
+    "resolve(GT,REF,ALT)&=\"C\"",
+    "ROW==10000 && REF==\"T\" && ALT|=\"C\"", // 6s
+    "ROW==10000 && REF==\"T\" && ALT|=\"C\" && GT[0]==1", // 7s
+    "ROW==10000 && REF==\"T\" && ALT|=\"C\" && resolve(GT,REF,ALT)&=\"C|C\"", // eval true 7s
+    "ROW==10000 && REF==\"T\" && ALT|=\"C\" && resolve(GT,REF,ALT)&=\"C/C\"", // eval true 7s
+    "ROW==10000 && REF==\"C\" && ALT|=\"T\" && resolve(GT,REF,ALT)&=\"C\"" // eval false 7s
     };
 
   const int64_t subarray[] = {0ul, 200000ul, 2000000000ul, 2100000000ul};

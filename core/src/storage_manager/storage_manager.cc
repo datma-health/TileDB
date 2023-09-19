@@ -137,7 +137,7 @@ int StorageManager::workspace_create(const std::string& workspace) {
   }
 
   // Create workspace directory
-  if(fs_->create_dir(workspace) != TILEDB_UT_OK) {  
+  if(create_dir(fs_, workspace) != TILEDB_UT_OK) {
     tiledb_sm_errmsg = tiledb_ut_errmsg;
     return TILEDB_SM_ERR;
   }

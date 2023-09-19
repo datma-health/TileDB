@@ -37,6 +37,7 @@
 #include "expression.h"
 #include "tiledb.h"
 #include <algorithm>
+#include <regex>
 #include <typeindex>
 
 
@@ -71,10 +72,38 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
     // Do not release them.
     parser_->DefineFun(new SplitCompare);
     parser_->DefineOprt(new OprtSplitCompare);
-    parser_->DefineOprt(new OprtSplitCompareAll);
+    parser_->DefineFun(new Resolve);
+    parser_->DefineOprt(new OprtCompareAll);
+    parser_->DefineFun(new IsHomRef);
+    parser_->DefineFun(new IsHomAlt);
+    parser_->DefineFun(new IsHet);
 
     // Setup muparserx variables for the attributes
     try {
+      // TODO: Move this block to GenomicsDB as they are GenomicsDB aliases!
+      if (array_schema_->dim_num() == 2 && array_schema_->cell_order() == TILEDB_COL_MAJOR) {
+        //muparserx does not have a unary negation operator, so use regex to replace !IS* aliases
+        std::regex alias("(ROW)|(POS)|(!ISHOMREF)|(!ISHOMALT)|(!ISHET)|(ISHOMREF)|(ISHOMALT)|(ISHET)");
+        for (std::smatch match; std::regex_search(expression_, match, alias); ) {
+          if (match[0] == "ROW") {
+            expression_ = match.prefix().str() +  "__coords[0]" + match.suffix().str();
+          } else if (match[0] == "POS") {
+            expression_ = match.prefix().str() +  "__coords[1]" + match.suffix().str();
+          } else if (match[0] == "ISHOMREF") {
+            expression_ = match.prefix().str() +  "ishomref(GT)" + match.suffix().str();
+          } else if (match[0] == "ISHOMALT") {
+            expression_ = match.prefix().str() +  "ishomalt(GT)" + match.suffix().str();
+          } else if (match[0] == "ISHET") {
+            expression_ = match.prefix().str() +  "ishet(GT)" + match.suffix().str();
+          } else if (match[0] == "!ISHOMREF") {
+            expression_ = match.prefix().str() +  "(ishomref(GT) == false)" + match.suffix().str();
+          } else if (match[0] == "!ISHOMALT") {
+            expression_ = match.prefix().str() +  "(ishomalt(GT) == false)" + match.suffix().str();
+          } else if (match[0] == "!ISHET") {
+            expression_ = match.prefix().str() +  "(ishet(GT) == false)" + match.suffix().str();
+          }
+        }
+      }
       parser_->SetExpr(expression_);
       // Get map of all variables used in the expression
       mup::var_maptype vmap = parser_->GetExprVar();

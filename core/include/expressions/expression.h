@@ -223,56 +223,280 @@ class OprtSplitCompare : public mup::IOprtBin {
   }
 };
 
+#define PIPED_SEP '|'
+#define SLASHED_SEP '/'
+
 /**
- * OprtSplitCompareAll uses the special operator "&=" where the LHS of the expression is the input attribute name
- * represented internally in TileDB as an array of integers in muparserx and the RHS is the string to be compared with.
- * The with string can optionally have delimiters, currently it should be either "|" or "/".
+ * Resolve accepts 3 arguments
+ *       Input attribute name where the attributes are represented internally as an array of integers separated
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
+ *       First Comparison String which is compared with input integer if -eq 0
+ *       Second Comparison String which is a delimited string, with the delimited position specified by the input
+                 integer if -gt 0
+ * Returns string of the same length as input attribute substituted with their character representations surmised
+ *       from the comparison strings
  */
-class OprtSplitCompareAll : public mup::IOprtBin {
+class Resolve : public mup::ICallback {
  public:
-  OprtSplitCompareAll() : mup::IOprtBin(("&="), (int)mup::prRELATIONAL1, mup::oaLEFT) {}
+  Resolve():mup::ICallback(mup::cmFUNC, "resolve", 3){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+    mup::matrix_type input = a_pArg[0]->GetArray();
+    mup::string_type cmp_str1 = a_pArg[1]->GetString();
+    mup::string_type cmp_str2 =  a_pArg[2]->GetString();
+
+    // The return type is string
+    mup::string_type ret_val;
+    // A vector is represented as a matrix in muparserx with nCols=1
+    for (int i=0; i<input.GetRows(); i++) {
+      if (input.At(i).GetType() == 'i') {
+        auto val = input.At(i).GetInteger();
+        if (i%2) { // Phase
+          if (val) ret_val += PIPED_SEP; else ret_val += SLASHED_SEP;
+        } else if (val > 0) { // ALT
+          ret_val += get_segment(cmp_str2, val);
+        } else if (val == 0) { // REF
+          ret_val += cmp_str1;
+        } else { // UNKNOWN
+          ret_val += ".";
+        }
+      }
+    }
+    *ret = ret_val;
+  }
+
+  const mup::char_type* GetDesc() const {
+    return  "resolve(input, compare_string1, compare_string2) - the function works on a list of integers with optional delimiters '|' or '/' and compares against compare_string1 if the integer is 0 and with compare_string2 otherwise";
+  }
+
+  mup::IToken* Clone() const {
+    return new Resolve(*this);
+  }
+
+ private:
+  std::string_view get_segment(std::string_view str, int segment_pos) {
+    std::string::size_type pos;
+    std::string::size_type next_pos = -1;
+    for (int j=0; j<segment_pos; j++) {
+      pos = next_pos + 1;
+      next_pos = str.find(PIPED_SEP);
+      if (next_pos == std::string::npos) {
+        assert(j == segment_pos-1);
+        return str.substr(pos, str.length());
+      }
+    }
+    return str.substr(pos, next_pos);
+  }
+};
+
+/**
+ * OprtCompareAll uses the special operator "&=" where the LHS of the expression is a string, possibly the result of
+ * running resolve() and the RHS is the string to be compared with. The RHS string is first just compared and then
+ * checked for all available segments in the LHS if the delimiter '/' instead of '|' is used. In the case of no
+ * delimiter in the RHS, any match from the LHS will return true.
+ */
+class OprtCompareAll : public mup::IOprtBin {
+ public:
+  OprtCompareAll() : mup::IOprtBin(("&="), (int)mup::prRELATIONAL1, mup::oaLEFT) {}
 
   void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int) {
-    mup::matrix_type input = a_pArg[0]->GetArray();
-    mup::string_type delimiter = "|/";
+    mup::string_type input = a_pArg[0]->GetString();
     mup::string_type with =  a_pArg[1]->GetString();
-
-    with.erase(std::remove(with.begin(), with.end(), delimiter[0]), with.end());
-    with.erase(std::remove(with.begin(), with.end(), delimiter[1]), with.end());
 
     // The return type is boolean
     *ret = (mup::bool_type)false;
-
-    // A vector is represented as a matrix in muparserx with nCols=1
-    if (with.length() > 0) {
-      if (input.GetRows()+1u == with.length()*2) { // e.g. input has a delimiter, e.g GT with Ploidy
+    if (input.length() == 0 && with.length() == 0) {
+      *ret = (mup::bool_type) true;
+    } else if (with.length() > 0) {
+      if (input == with) {
         *ret = (mup::bool_type)true;
-        for (int i=0, j=0; i<input.GetRows(); i++) {
-          if (i%2 == 0) {
-            if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[j++]-'0') {
-              *ret = (mup::bool_type)false;
-              break;
-            }
-          }
+      } else {
+        auto delimit = delimiter(with);
+        if (delimit == SLASHED_SEP) {
+          *ret = (mup::bool_type)match_noorder(input, with);
+        } else if (delimit == 0) {
+          *ret = (mup::bool_type)match_any(input, with);
         }
-      } else if (input.GetRows() == with.length()) { // e.g input without delimiters, e.g. GT without Ploidy
-        *ret = (mup::bool_type)true;
-         for (int i=0; i<input.GetRows(); i++) {
-            if (input.At(i).GetType() != 'i' || input.At(i).GetInteger() != with[i]-'0') {
-              *ret = (mup::bool_type)false;
-              break;
-            }
-         }
       }
     }
   }
 
   const mup::char_type* GetDesc() const {
-    return "<attribute> &= string - the operator works on a string that is a list of integers with optional delimiters '|' or '/', any delimiters in the string are erased and then compared with the array of integer values for the attribute.";
+    return "string1 &= string2 - the operator works on strings that are composed of segments with optional delimiters '|' or '/'. ";
   }
 
   mup::IToken* Clone() const {
-    return new OprtSplitCompareAll(*this);
+    return new OprtCompareAll(*this);
+  }
+
+ private:
+  char delimiter(const std::string& str) {
+    if (str.find(PIPED_SEP) != std::string::npos) {
+      return PIPED_SEP;
+    } else if (str.find(SLASHED_SEP) != std::string::npos) {
+      return SLASHED_SEP;
+    } else {
+      return 0;
+    }
+  }
+
+  bool match_noorder(std::string_view input, std::string_view with) {
+    std::vector<std::string_view> vals;
+    std::string::size_type pos = 0, next_pos;
+    while ((next_pos = next(with, pos)) != std::string::npos) {
+      vals.push_back(with.substr(pos, next_pos));
+      pos = next_pos+1;
+    }
+    vals.push_back(with.substr(pos));
+
+    pos = 0;
+    while ((next_pos = next(input, pos)) != std::string::npos) {
+      auto found = std::find(vals.begin(), vals.end(), input.substr(pos, next_pos));
+      if (found != vals.end()) {
+        vals.erase(found);
+      } else {
+        return false;
+      }
+      pos = next_pos+1;
+    }
+    return (vals.size() == 1) && input.substr(pos) == vals[0];
+  }
+
+  bool match_any(std::string_view input, std::string_view with) {
+    std::string::size_type pos = 0, next_pos;
+    while ((next_pos = next(input, pos)) != std::string::npos) {
+      if (input.substr(pos, next_pos) == with) {
+        return true;
+      }
+      pos = next_pos+1;
+    }
+    return input.substr(pos) == with;
+  }
+
+  std::string::size_type next(std::string_view str,  std::string::size_type pos) {
+    auto piped_pos = str.find(PIPED_SEP, pos);
+    auto slashed_pos = str.find(SLASHED_SEP, pos);
+    if (piped_pos < slashed_pos) {
+      return piped_pos;
+    } else {
+      return slashed_pos;
+    }
+  }
+};
+
+/**
+ * IsHomRef accepts 1 argument
+ *       Input attribute name where the attributes are represented internally as an array of integers separated
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
+ * Returns true if all the integers ignoring delimiters are zero.
+ */
+class IsHomRef : public mup::ICallback {
+ public:
+  IsHomRef():mup::ICallback(mup::cmFUNC, "ishomref", 1){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+     mup::matrix_type input = a_pArg[0]->GetArray();
+
+    // The return type is boolean
+    // A vector is represented as a matrix in muparserx with nCols=1
+    for (int i=0; i<input.GetRows(); i+=2) {
+      auto val = input.At(i).GetInteger();
+      if (val!=0) {
+        *ret = (mup::bool_type)false;
+        return; //false
+      }
+    }
+    *ret = (mup::bool_type)true;
+  }
+
+  const mup::char_type* GetDesc() const {
+    return  "ishomref(input) 0 - the function takes a list of integers and compares them to zero, ignoring delimiter positions";
+  }
+
+  mup::IToken* Clone() const {
+    return new IsHomRef(*this);
+  }
+};
+
+/**
+ * IsHomAlt accepts 1 argument
+ *       Input attribute name where the attributes are represented internally as an array of integers separated
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
+ * Returns true if all the integers ignoring delimiters are the same value.
+ */
+class IsHomAlt : public mup::ICallback {
+ public:
+  IsHomAlt():mup::ICallback(mup::cmFUNC, "ishomalt", 1){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+    mup::matrix_type input = a_pArg[0]->GetArray();
+
+    // The return type is boolean
+    // A vector is represented as a matrix in muparserx with nCols=1
+    mup::int_type first_val = 0;
+    for (int i=0; i<input.GetRows(); i+=2) {
+      auto val = input.At(i).GetInteger();
+      if (val <= 0) { // // *unknown* or ref value
+        *ret = (mup::bool_type)false;
+        return;
+      } else if (i==0) {
+        first_val = val;
+      } else if (val!=first_val) {
+        *ret = (mup::bool_type)false;
+        return;
+      }
+    }
+    *ret = (mup::bool_type)true;
+  }
+
+  const mup::char_type* GetDesc() const {
+    return  "ishomalt(input) 0 - the function takes a list of integers, ignoring even positions, checks if they are all the same value and greater than zero";
+  }
+
+  mup::IToken* Clone() const {
+    return new IsHomAlt(*this);
+  }
+};
+
+/**
+ * IsHet accepts 1 argument
+ *       Input attribute name where the attributes are represented internally as an array of integers separated
+ *               by a delimiter. Each input integer is compared against the input comparison strings.
+ * Returns true if all the integers ignoring delimiters are not *unknown* and not the same(IsHomRef/IsHomAlt).
+ */
+class IsHet : public mup::ICallback {
+ public:
+  IsHet():mup::ICallback(mup::cmFUNC, "ishet", 1){}
+
+  void Eval(mup::ptr_val_type &ret, const mup::ptr_val_type *a_pArg, int a_iArgc) {
+    mup::matrix_type input = a_pArg[0]->GetArray();
+
+    // The return type is boolean
+    *ret = (mup::bool_type)false;
+    // input.GetRows() is zero for *unknown* values
+    if (input.GetRows() > 0) {
+      mup::int_type first_val = 0;
+      for (int i=0; i<input.GetRows(); i+=2) {
+        auto val = input.At(i).GetInteger();
+        if (val < 0) { // *unknown* value
+          *ret = (mup::bool_type)false;
+          return;
+        }
+        if (i==0) {
+          first_val = val;
+        } else if (val!=first_val) {
+          *ret = (mup::bool_type)true;
+        }
+      }
+    }
+  }
+
+  const mup::char_type* GetDesc() const {
+    return  "ishet(input) 0 - the function takes a list of integers, ignoring even positions, checks if the values are not unknown or HomRef or HomAlt";
+  }
+
+  mup::IToken* Clone() const {
+    return new IsHet(*this);
   }
 };
 
