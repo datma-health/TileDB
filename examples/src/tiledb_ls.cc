@@ -7,6 +7,7 @@
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2018 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -85,8 +86,8 @@ int main(int argc, char** argv) {
   // Clean up
   for(int i=0; i<dir_num; ++i)
     free(dirs[i]);
-  free(dirs);
-  free(dir_types);
+  delete dirs;
+  delete dir_types;
   free(home);
 
   // Finalize context
