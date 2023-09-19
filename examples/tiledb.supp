@@ -15,6 +15,19 @@
    obj:*
 }
 {
+   <another gomp leak>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   obj:/usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0
+   obj:/usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0
+   obj:/usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0
+   fun:call_init.part.0
+   fun:call_init
+   fun:_dl_init
+   obj:/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+}
+{
    <s3 leak>
    Memcheck:Leak
    match-leak-kinds: reachable

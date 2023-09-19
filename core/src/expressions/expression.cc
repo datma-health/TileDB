@@ -129,7 +129,10 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
 void Expression::add_attribute(std::string name) {
   int attribute_id = array_schema_->attribute_id(name);
   int attribute_type = array_schema_->type(attribute_id);
-  int attribute_cell_val_num = array_schema_->cell_val_num(attribute_id)==TILEDB_VAR_NUM?0:get_cell_val_num(name);
+  int attribute_cell_val_num = get_cell_val_num(name);
+  if (attribute_cell_val_num == TILEDB_VAR_NUM) {
+    attribute_cell_val_num = 0;
+  }
 
   switch (attribute_type) {
     case TILEDB_CHAR: {

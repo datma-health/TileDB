@@ -136,7 +136,7 @@ class AzureBlob : public StorageCloudFS {
 
   size_t max_stream_size_ = 1024;
 
-  int num_threads_ = std::thread::hardware_concurrency()/2;
+  int num_threads_ = 1; // use TILEDB_NUM_THREADS if needed
 
   std::string get_path(const std::string& path);
 
