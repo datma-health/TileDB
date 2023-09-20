@@ -238,9 +238,9 @@ AzureBlob::AzureBlob(const std::string& home) {
 
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
-    blob_client_ = std::make_shared<blob_client>(account, num_threads_);
+    blob_client_ = std::make_shared<blob_client>(account, 1/*concurrency*/);
   } else {
-    blob_client_ = std::make_shared<blob_client>(account, num_threads_, ca_certs_location);
+    blob_client_ = std::make_shared<blob_client>(account, 1/*concurrency*/, ca_certs_location);
   }
   
   bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
@@ -475,8 +475,8 @@ std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::strin
     std::vector<std::future<void>> task_futures;
   };
 
-  auto info = new concurrent_task_info(concurrent_task_info{ blob, buffer, bufferlen, block_size, num_blocks, empty_metadata });
-  auto context = new concurrent_task_context();
+  auto info = std::make_shared<concurrent_task_info>(concurrent_task_info{ blob, buffer, bufferlen, block_size, num_blocks, empty_metadata });
+  auto context = std::make_shared<concurrent_task_context>();
   context->num_workers = parallelism;
 
   auto thread_upload_func = [this, block_ids, info, context]() {
@@ -503,11 +503,11 @@ std::future<storage_outcome<void>> AzureBlob::upload_block_blob(const std::strin
     context->task_futures.emplace_back(std::async(std::launch::async, thread_upload_func));
   }
 
-  auto future = context->task_promise.get_future();
-  delete context;
-  delete info;
+  for (int i = 0; i < parallelism; ++i) {
+    context->task_futures[i].get();
+  }
 
-  return future;
+  return context->task_promise.get_future();
 }
 
 int AzureBlob::write_to_file(const std::string& filename, const void *buffer, size_t buffer_size) {
