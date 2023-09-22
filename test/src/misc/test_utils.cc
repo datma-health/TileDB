@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2018-2019,2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +47,7 @@
 /** Tests RLE compression (attribute). */
 TEST_CASE("Test RLE compression(attribute)", "rle") {
   // Initializations
-  unsigned char input[1000000];
+  unsigned char input[1000000] = {0};
   size_t input_size = 0;
   unsigned char compressed[1000000];
   size_t compressed_size = 0;
@@ -220,7 +221,7 @@ TEST_CASE("Test RLE compression(attribute)", "rle") {
 /** Tests RLE compression (coordinates, row-major cell order). */
 TEST_CASE("Tests RLE compression (coordinates, row-major cell order)", "[test_RLE_coords_row]") {
   // Initializations
-  unsigned char input[1000000];
+  unsigned char input[1000000] = {0};
   unsigned char compressed[1000000];
   unsigned char decompressed[1000000];
   size_t input_size = 0;
@@ -377,7 +378,7 @@ TEST_CASE("Tests RLE compression (coordinates, row-major cell order)", "[test_RL
 /** Tests RLE compression (coordinates, column-major cell order). */
 TEST_CASE("Tests RLE compression (coordinates, column-major cell order)", "[test_RLE_coords_col]") {
   // Initializations
-  unsigned char input[1000000];
+  unsigned char input[1000000] = {0};
   unsigned char compressed[1000000];
   unsigned char decompressed[1000000];
   size_t input_size = 0;

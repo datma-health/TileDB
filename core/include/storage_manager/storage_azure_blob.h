@@ -136,6 +136,8 @@ class AzureBlob : public StorageCloudFS {
 
   size_t max_stream_size_ = 1024;
 
+  int num_threads_ = 1; // use TILEDB_NUM_THREADS if needed
+
   std::string get_path(const std::string& path);
 
   std::vector<std::string> generate_block_ids(const std::string& path, int num_blocks) {
@@ -176,7 +178,7 @@ class AzureBlob : public StorageCloudFS {
   std::future<storage_outcome<void>> upload_block_blob(const std::string &blob, uint64_t block_size, int num_blocks,
                                                        std::vector<std::string> block_list,
                                                        const char* buffer, uint64_t bufferlen,
-                                                       uint parallelism=1);
+                                                       int parallelism=1);
 
   void update_expected_filesizes_map(const std::string& path, size_t size) {
     auto search = filesizes_map_.find(path);

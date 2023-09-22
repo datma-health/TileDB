@@ -421,5 +421,10 @@ TEST_CASE("Test genomicsdb demo test case", "[genomicsdb_demo]") {
 
     // Finalize context
     CHECK_RC(tiledb_ctx_finalize(tiledb_ctx), TILEDB_OK);
+
+    // Free allocated memory
+    for (auto i=0u; i<nBuffers; i++) {
+      free(buffers[i]);
+    }
   }
 }

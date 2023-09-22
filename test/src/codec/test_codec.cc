@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2019-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -81,7 +82,7 @@ TEST_CASE("Test codec basic", "[codec_basic]") {
   CHECK(dl_handle == NULL);
   CHECK(!codec_basic->get_dlerror().empty());
 
-  free(codec_basic);
+  delete codec_basic;
 }
 
 TEST_CASE("Test zlib", "[codec-z]") {
@@ -102,7 +103,7 @@ TEST_CASE("Test zlib", "[codec-z]") {
   // Should get Z_DATA_ERROR
   CHECK(zlib->decompress_tile(test_string, 4, decompressed_string, 6) == TILEDB_CD_ERR);
    
-  free(zlib);
+  delete zlib;
 }
 
 #include "codec_lz4.h"
@@ -122,7 +123,7 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
   CHECK(strlen((char *)decompressed_string) == 5);
   CHECK(strcmp((char *)decompressed_string, (char *)test_string) == 0);
 
-  free(lz4);
+  delete lz4;
 
   // Try lz4 with acceleration=2
   lz4 = new CodecLZ4(2);
@@ -135,9 +136,8 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
   CHECK(strlen((char *)decompressed_string) == 5);
   CHECK(strcmp((char *)decompressed_string, (char *)test_string) == 0);
 
-  free(lz4);
-
   free(decompressed_string);
+  delete lz4;
 }
 
 TEST_CASE("Test plugin", "[codec-plugin]") {
