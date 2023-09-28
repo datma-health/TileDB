@@ -72,6 +72,7 @@ bool is_cloud_path(const std::string& path) {
 
 std::string get_path(const std::string &workspace) {
   std::size_t check_cloud = workspace.find("://");
+  std::cout<< "get_path workspace is " << workspace;
   if (check_cloud != std::string::npos &&
       workspace.substr(0, check_cloud).compare("hdfs") != 0)
     return uri(workspace).path();
