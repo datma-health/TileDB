@@ -51,7 +51,30 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         # All supported types
-        type: [hdfs]
+        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        include:
+          - os: macos-11
+            type: basic
+            openssl-version: 1.1
+          - os: macos-11
+            type: basic
+            openssl-version: 3
+          - os: macos-12
+            type: basic
+            openssl-version: 1.1
+          - os: macos-12
+            type: basic
+            openssl-version: 3
+          - os: ubuntu-22.04
+            type: basic
+          - os: ubuntu-22.04
+            type: azurite
+          - os: ubuntu-22.04
+            type: aws
+          - os: ubuntu-22.04
+            type: gcs
+          - os: ubuntu-22.04
+            type: azure 
 
     runs-on: ${{ matrix.os }}
 
