@@ -324,6 +324,7 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
       if (file_info[i].mKind == 'D') {
         uri path_uri(file_info[i].mName);
         path_list.push_back(path_uri.path());
+        PRINT_ERROR("unslashed hdfs is : "path_uri.path());
       }
     }
   }

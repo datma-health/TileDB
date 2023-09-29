@@ -276,7 +276,9 @@ std::vector<std::string> GCS::get_dirs(const std::string& dir) {
     }
     auto result = *std::move(object);
     if (absl::holds_alternative<std::string>(result)) {
-      dirs.push_back(unslashify(absl::get<std::string>(result)));
+      std::string unslashed = unslashify(absl::get<std::string>(result));
+      dirs.push_back(unslashed);
+      PRINT_ERROR("unslashed gcs is :" + unslashed)
     }
   }
   return dirs;

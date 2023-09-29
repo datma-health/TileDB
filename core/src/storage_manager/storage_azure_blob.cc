@@ -361,7 +361,9 @@ std::vector<std::string> AzureBlob::get_dirs(const std::string& dir) {
   do {
     for (auto i=0u; i<response.blobs.size(); i++) {
         if (response.blobs[i].is_directory) {
-          dirs.push_back(unslashify(response.blobs[i].name));
+          std::string unslashifhied = unslashify(response.blobs[i].name);
+          PRINT_ERROR("unslash is azure is : " + unslashifhied);
+          dirs.push_back(unslashifhied);
         }
     }
   } while (!continuation_token.empty());
