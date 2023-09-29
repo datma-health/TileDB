@@ -2047,7 +2047,7 @@ void StorageManager::sort_fragment_names(
     PRINT_ERROR("fragment name is: "+fragment_name);
     std::string parent_fragment_name = parent_dir(fs_, fragment_name);
     std::string stripped_fragment_name = 
-        fragment_name.substr(parent_fragment_name.size() + 1);
+        fragment_name.substr(parent_fragment_name.size() + 2);
     PRINT_ERROR("parent fragment name is: "+parent_fragment_name);
     PRINT_ERROR("stripped fragment name is: "+stripped_fragment_name);
     assert(starts_with(stripped_fragment_name, "__"));
