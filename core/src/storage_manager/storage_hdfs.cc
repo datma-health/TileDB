@@ -281,9 +281,7 @@ std::string HDFS::real_dir(const std::string& dir) {
     return dir;
   } else if (starts_with(dir, "/")) {
     // seems to be an absolute path but without protocol/host information.
-    print_errmsg(dir + ": Not a valid HDFS path");
-    assert(false && "Not a valid HDFS path");
-    return dir;
+    return dir.substr(1);
   } else {
     // relative path
     return current_dir() + "/" + dir;
@@ -324,7 +322,8 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'D') {
-        path_list.push_back(std::string(file_info[i].mName));
+        uri path_uri(file_info[i].mName);
+        path_list.push_back(path_uri.path());
       }
     }
   }
@@ -342,7 +341,8 @@ std::vector<std::string> HDFS::get_files(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'F') {
-        path_list.push_back(std::string(file_info[i].mName));
+        uri path_uri(file_info[i].mName);
+        path_list.push_back(path_uri.path());
       }
     }
   }
