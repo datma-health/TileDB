@@ -2044,6 +2044,7 @@ void StorageManager::sort_fragment_names(
   for(int i=0; i<fragment_num; ++i) {
     // Strip fragment name
     std::string& fragment_name = fragment_names[i];
+    PRINT_ERROR("fragment name is: "+fragment_name);
     std::string parent_fragment_name = parent_dir(fs_, fragment_name);
     std::string stripped_fragment_name = 
         fragment_name.substr(parent_fragment_name.size() + 1);
