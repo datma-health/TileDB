@@ -284,6 +284,7 @@ std::string HDFS::real_dir(const std::string& dir) {
     return dir.substr(1);
   } else {
     // relative path
+    PRINT_ERROR("real_dir else statement " + current_dir() + "/" + dir);
     return current_dir() + "/" + dir;
   }
 }
@@ -323,7 +324,10 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'D') {
         uri path_uri(file_info[i].mName);
-        path_list.push_back(path_uri.path());
+        if(path_uri.path()[0] == '/')
+          path_list.push_back(unslashify(path_uri.path().substr(1)));
+        else
+          path_list.push_back(unslashify(path_uri.path()));
         PRINT_ERROR("unslashed hdfs is : "+path_uri.path());
       }
     }
@@ -343,7 +347,10 @@ std::vector<std::string> HDFS::get_files(const std::string& dir) {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'F') {
         uri path_uri(file_info[i].mName);
-        path_list.push_back(path_uri.path());
+        if(path_uri.path()[0] == '/')
+          path_list.push_back(unslashify(path_uri.path().substr(1)));
+        else
+          path_list.push_back(unslashify(path_uri.path()));
       }
     }
   }
