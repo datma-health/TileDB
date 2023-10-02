@@ -247,8 +247,10 @@ int HDFS::set_working_dir(const std::string& dir) {
 }
 
 static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind) {
+  PRINT_ERROR("is file in hdfs");
   if (!hdfsExists(hdfs_handle, path)) {
     hdfsFileInfo *file_info = hdfsGetPathInfo(hdfs_handle, path);
+    PRINT_ERROR("path is: " + path + " kind is " + kind + " file info kind is " + file_info->mKind);
     if (file_info) {
       bool status = false;
       if ((char)(file_info->mKind) == kind) {
@@ -348,9 +350,9 @@ std::vector<std::string> HDFS::get_files(const std::string& dir) {
       if (file_info[i].mKind == 'F') {
         uri path_uri(file_info[i].mName);
         if(path_uri.path()[0] == '/')
-          path_list.push_back(path_uri.path().substr(1));
+          path_list.push_back(unslashify(path_uri.path().substr(1)));
         else
-          path_list.push_back(path_uri.path());
+          path_list.push_back(unslashify(path_uri.path()));
       }
     }
   }

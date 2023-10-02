@@ -279,6 +279,7 @@ int delete_dir(const std::string& dirpath)
 }
 
 bool is_file(const std::string& filepath) {
+  PRINT_ERROR("is file tiledb utils");
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filepath))) {
     FINALIZE;
