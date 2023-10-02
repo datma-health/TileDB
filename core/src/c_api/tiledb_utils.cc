@@ -285,6 +285,7 @@ bool is_file(const std::string& filepath) {
     FINALIZE;
     return false;
   }
+  PRINT_ERROR("is file tiledb utils after setup");
   bool check = is_file(tiledb_ctx, filepath);
   finalize(tiledb_ctx);
   return check;
