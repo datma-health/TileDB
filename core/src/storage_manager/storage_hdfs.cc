@@ -281,7 +281,7 @@ std::string HDFS::real_dir(const std::string& dir) {
     return dir;
   } else if (starts_with(dir, "/")) {
     // seems to be an absolute path but without protocol/host information.
-    return dir.substr(1);
+    return dir;
   } else {
     // relative path
     return current_dir() + "/" + dir;
