@@ -274,7 +274,7 @@ bool HDFS::is_file(const std::string& file) {
 }
 
 std::string HDFS::real_dir(const std::string& dir) {
-  } if (dir.find("://") != std::string::npos) {
+  if (dir.find("://") != std::string::npos) {
     // absolute path
     uri path_uri(dir);
     return path_uri.path();
