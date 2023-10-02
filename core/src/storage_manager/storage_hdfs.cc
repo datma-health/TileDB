@@ -285,7 +285,7 @@ std::string HDFS::real_dir(const std::string& dir) {
   } else {
     // relative path
     PRINT_ERROR("real_dir else statement " + current_dir() + "/" + dir);
-    return current_dir() + "/" + dir;
+    return dir;
   }
 }
   
