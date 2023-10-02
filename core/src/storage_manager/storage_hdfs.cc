@@ -274,6 +274,8 @@ bool HDFS::is_file(const std::string& file) {
 }
 
 std::string HDFS::real_dir(const std::string& dir) {
+  uri getPath(current_dir() + "/" + dir);
+  std::string path = getPath.path().substr(1);
   if (dir.empty()) {
     return current_dir();
   } else if (dir.find("://") != std::string::npos) {
@@ -282,11 +284,11 @@ std::string HDFS::real_dir(const std::string& dir) {
   } else if (starts_with(dir, "/")) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
+  }else if(dir.compare(path) == 0){
+    return dir;
   } else {
     // relative path
-    uri getPath(current_dir() + "/" + dir);
-    PRINT_ERROR("real_dir else statement path_uri " + getPath.path().substr(1));
-    return getPath.path().substr(1);
+    return current_dir() + "/" + dir;
   }
 }
   
