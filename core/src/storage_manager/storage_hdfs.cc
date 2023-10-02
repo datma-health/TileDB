@@ -247,6 +247,7 @@ int HDFS::set_working_dir(const std::string& dir) {
 }
 
 static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind) {
+  PRINT_ERROR("hdfs is path" + path + " kind is " + kind);
   if (!hdfsExists(hdfs_handle, path)) {
     hdfsFileInfo *file_info = hdfsGetPathInfo(hdfs_handle, path);
     if (file_info) {
