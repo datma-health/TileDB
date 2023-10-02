@@ -275,9 +275,6 @@ bool HDFS::is_file(const std::string& file) {
 }
 
 std::string HDFS::real_dir(const std::string& dir) {
-  uri getPath(current_dir() + "/" + dir);
-  std::string path = getPath.path().substr(1);
-  PRINT_ERROR("real_dir path val " + path + " dir val is " + dir);
   if (dir.empty()) {
     return current_dir();
   } else if (dir.find("://") != std::string::npos) {
@@ -286,8 +283,6 @@ std::string HDFS::real_dir(const std::string& dir) {
   } else if (starts_with(dir, "/")) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
-  }else if(dir.compare(path) == 0){
-    return dir;
   } else {
     // relative path
     return current_dir() + "/" + dir;
@@ -328,9 +323,7 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'D') {
-        uri path_uri(file_info[i].mName);
-        path_list.push_back(path_uri.path().substr(1));
-        PRINT_ERROR("unslashed hdfs is : "+path_uri.path());
+        path_list.push_back(file_info[i].mName);
       }
     }
   }
