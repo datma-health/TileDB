@@ -247,7 +247,7 @@ int HDFS::set_working_dir(const std::string& dir) {
 }
 
 static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind) {
-  PRINT_ERROR("hdfs is path" + std::string(path) + " kind is " + kind);
+  PRINT_ERROR("hdfs is path " + std::string(path) + " kind is " + kind);
   if (!hdfsExists(hdfs_handle, path)) {
     hdfsFileInfo *file_info = hdfsGetPathInfo(hdfs_handle, path);
     if (file_info) {
@@ -277,6 +277,7 @@ bool HDFS::is_file(const std::string& file) {
 std::string HDFS::real_dir(const std::string& dir) {
   uri getPath(current_dir() + "/" + dir);
   std::string path = getPath.path().substr(1);
+  PRINT_ERROR("real_dir path val " + path + " dir val is " + dir);
   if (dir.empty()) {
     return current_dir();
   } else if (dir.find("://") != std::string::npos) {
