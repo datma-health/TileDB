@@ -154,6 +154,7 @@ static std::vector<std::string> list_workspaces(StorageFS *fs, const char *paren
   std::vector<std::string> workspace_dirs;
   std::vector<std::string> all_dirs = ::get_dirs(fs, parent_dir);
   for(auto const& dir: all_dirs) {
+    PRINT_ERROR("list_workspaces dir: " + dir);
     if(is_workspace(fs, dir)) {
       workspace_dirs.push_back(dir);
     } else if (fs->is_dir(dir) && !is_group(fs, dir) && !is_array(fs, dir) && !is_metadata(fs, dir)) {

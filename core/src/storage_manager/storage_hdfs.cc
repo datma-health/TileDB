@@ -343,7 +343,7 @@ std::vector<std::string> HDFS::get_files(const std::string& dir) {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'F') {
         uri path_uri(file_info[i].mName);
-        path_list.push_back(path_uri.path().substr(1));
+        path_list.push_back(path_uri.path());
       }
     }
   }
