@@ -274,7 +274,19 @@ bool HDFS::is_file(const std::string& file) {
 }
 
 std::string HDFS::real_dir(const std::string& dir) {
-  return StorageCloudFS::get_path(dir);
+  if (dir.empty()) {
+    return current_dir();
+  } else if (dir.find("://") != std::string::npos) {
+    // absolute path
+    return dir;
+  } else if (starts_with(dir, "/")) {
+    // seems to be an absolute path but without protocol/host information.
+    return dir.substr(1);
+  } else {
+    // relative path
+    PRINT_ERROR("real_dir else statement " + current_dir() + "/" + dir);
+    return dir;
+  }
 }
   
 int HDFS::create_dir(const std::string& dir) {
