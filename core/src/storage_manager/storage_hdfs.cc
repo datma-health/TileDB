@@ -250,7 +250,7 @@ static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind)
   PRINT_ERROR("is file in hdfs");
   if (!hdfsExists(hdfs_handle, path)) {
     hdfsFileInfo *file_info = hdfsGetPathInfo(hdfs_handle, path);
-    PRINT_ERROR("path is: " + path + " kind is " + kind + " file info kind is " + file_info->mKind);
+    PRINT_ERROR("path is: " + std::string(path) + " kind is " + std::string(kind) + " file info kind is " + std::string(file_info->mKind));
     if (file_info) {
       bool status = false;
       if ((char)(file_info->mKind) == kind) {
