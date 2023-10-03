@@ -267,8 +267,8 @@ bool HDFS::is_dir(const std::string& dir) {
   std::string slash("/");
   if(dir.find("://") == std::string::npos){
     if(dir.back() != '/')
-      return is_path(hdfs_handle_, (current_dir() + slash + dir + slash).c_str(), 'D');
-    return is_path(hdfs_handle_, (current_dir() +slash + dir).c_str(), 'D');
+      return is_path(hdfs_handle_, (current_dir() + (starts_with(dir,slash)?"":slash)+ dir + slash).c_str(), 'D');
+    return is_path(hdfs_handle_, (current_dir() +(starts_with(dir,slash)?"":slash) + dir).c_str(), 'D');
   }
 
   if (dir.back() != '/') {
@@ -280,7 +280,7 @@ bool HDFS::is_dir(const std::string& dir) {
 bool HDFS::is_file(const std::string& file) {
   PRINT_ERROR("in is file " + file);
     if(file.find("://") == std::string::npos){
-      return is_path(hdfs_handle_, (current_dir() +"/" + file).c_str(), 'F');
+      return is_path(hdfs_handle_, (current_dir() + (starts_with(file,"/") ? "":"/") + file).c_str(), 'F');
   }
   return is_path(hdfs_handle_, file.c_str(), 'F');
 }
