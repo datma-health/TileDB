@@ -264,6 +264,12 @@ static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind)
 
 bool HDFS::is_dir(const std::string& dir) {
   std::string slash("/");
+  if(dir.find("://") == std::string::npos){
+    if(dir.back() != '/')
+      return is_path(hdfs_handle_, (current_dir() + slash + dir + slash).c_str(), 'D');
+    return is_path(hdfs_handle_, (current_dir() +slash + dir).c_str(), 'D');
+  }
+
   if (dir.back() != '/') {
     return is_path(hdfs_handle_, (dir + slash).c_str(), 'D');
   }
@@ -271,21 +277,27 @@ bool HDFS::is_dir(const std::string& dir) {
 }
 
 bool HDFS::is_file(const std::string& file) {
+    if(file.find("://") == std::string::npos){
+      return is_path(hdfs_handle_, (current_dir() +"/" + file).c_str(), 'F');
+  }
   return is_path(hdfs_handle_, file.c_str(), 'F');
 }
 
 std::string HDFS::real_dir(const std::string& dir) {
   if (dir.empty()) {
+    PRINT_ERROR("top of real_Dir current dir is " + current_dir());
     return current_dir();
   } else if (dir.find("://") != std::string::npos) {
     // absolute path
-    return dir;
+    uri path_uri(dir);
+    return path_uri.path().substr(1);
   } else if (starts_with(dir, "/")) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
   } else {
     // relative path
-    return current_dir() + "/" + dir;
+    uri path_uri(current_dir() + "/" + dir);
+    return path_uri.path().substr(1);
   }
 }
   
@@ -323,7 +335,8 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'D') {
-        path_list.push_back(file_info[i].mName);
+        uri path_uri(file_info[i].mName);
+        path_list.push_back(path_uri.path());
       }
     }
   }
