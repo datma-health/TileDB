@@ -276,6 +276,7 @@ bool HDFS::is_file(const std::string& file) {
 
 std::string HDFS::real_dir(const std::string& dir) {
   if (dir.empty()) {
+    PRINT_ERROR("top of real_Dir current dir is " + current_dir());
     return current_dir();
   } else if (dir.find("://") != std::string::npos) {
     // absolute path
