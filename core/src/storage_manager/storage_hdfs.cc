@@ -292,12 +292,14 @@ std::string HDFS::real_dir(const std::string& dir) {
   } else if (dir.find("://") != std::string::npos) {
     // absolute path
     return dir;
-  } else if (starts_with(dir, "/")) {
+  }
+  std::string path =  current_dir() + "/" + dir;
+  if (starts_with(dir, "/") || uri(path).path().compare(dir.substr(1)) == 0) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
   } else {
     // relative path
-    return current_dir() + "/" + dir;
+    return path;
   }
 }
   
