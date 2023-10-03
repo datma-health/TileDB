@@ -243,6 +243,8 @@ int StorageManager::ls_workspaces_c(const char* parent_dir, int& workspace_num) 
 int StorageManager::group_create(const std::string& group) const {
   // Check if the group is inside a workspace or another group
   std::string parent_dir = ::parent_dir(fs_, group);
+  PRINT_ERROR("group create " + parent_dir);
+  PRINT_ERROR("group create group var " + group);
   if(!is_workspace(fs_, parent_dir) && !is_group(fs_, parent_dir)) {
     std::string errmsg = 
         "The group must be contained in a workspace "
