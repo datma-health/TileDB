@@ -272,6 +272,10 @@ bool HDFS::is_dir(const std::string& dir) {
       path = path.substr(found + 1);
     else
       path = path.substr(1);
+  }else{
+    std::size_t found = path.find('/');
+    if(found != std::string::npos)
+      path = path.substr(found + 1);
   }
   if(dir.find("://") == std::string::npos){
     if(dir.back() != '/')
@@ -293,7 +297,11 @@ bool HDFS::is_file(const std::string& file) {
     if(found != std::string::npos)
       path = path.substr(found + 1);
     else
-      path = path.substr(1);
+      path = path.substr(1);//? 
+  }else{
+    std::size_t found = path.find('/');
+    if(found != std::string::npos)
+      path = path.substr(found + 1);
   }
   PRINT_ERROR("in is file " + file);
     if(file.find("://") == std::string::npos){
