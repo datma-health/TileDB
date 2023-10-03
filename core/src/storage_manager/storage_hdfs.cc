@@ -312,15 +312,15 @@ std::string HDFS::real_dir(const std::string& dir) {
   }
   PRINT_ERROR("dir is from real_dir " + dir);
   PRINT_ERROR("current_dir is from real_dir " + current_dir());
-  std::string path(current_dir());
-  if(starts_with(path, "/"))
-    path = path + dir;
-  else
-    path = path + "/" + dir;
-  if (starts_with(dir, "/") || uri(path).path().compare(dir) == 0) {
+  if (starts_with(dir, "/")) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
-  } else {
+  }
+  std::string path = current_dir() + "/" + dir;
+  uri path_uri(path);
+  if(path_uri.path().substr(1).compare(dir) == 0){
+    return dir;
+  } else{
     // relative path
     return path;
   }
@@ -361,7 +361,7 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'D') {
         uri path_uri(file_info[i].mName);
-        path_list.push_back(path_uri.path());
+        path_list.push_back(path_uri.path().substr(1));
       }
     }
   }
@@ -380,7 +380,7 @@ std::vector<std::string> HDFS::get_files(const std::string& dir) {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'F') {
         uri path_uri(file_info[i].mName);
-        path_list.push_back(path_uri.path());
+        path_list.push_back(path_uri.path().substr(1));
       }
     }
   }
