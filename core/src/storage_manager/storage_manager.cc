@@ -1091,7 +1091,7 @@ int StorageManager::ls(
 
   std::vector<std::string> all_dirs = ::get_dirs(fs_, parent_dir);
   for(auto const& dir: all_dirs) {
-    std::string noSlash = dir[0] == '/' dir.substring(1) : dir;
+    std::string noSlash = dir[0] == '/' ? dir.substr(1) : dir;
     if(is_workspace(fs_, noSlash)) {
       dir_type = TILEDB_WORKSPACE;
     } else if(is_group(fs_, noSlash)) {
