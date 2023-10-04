@@ -326,9 +326,13 @@ std::string HDFS::real_dir(const std::string& dir) {
   }
   std::string skip_overlap(dir);
   std::size_t found = skip_overlap.find('/');
-    if(found != std::string::npos)
+  std::size_t found2 = current_dir().find_last_of('/');
+    if(found != std::string::npos && found2 != std::string::npos && 
+    skip_overlap.substr(0,found).compare(current_dir().substr(found2 + 1,current_dir().length()-found2 - 1))){
       skip_overlap = skip_overlap.substr(found + 1);
+    }
   std::string path = current_dir() + "/" + skip_overlap;
+    
   uri path_uri(path);
   if(path_uri.path().substr(1).compare(dir) == 0){
     return dir;
