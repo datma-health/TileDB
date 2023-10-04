@@ -1091,20 +1091,21 @@ int StorageManager::ls(
 
   std::vector<std::string> all_dirs = ::get_dirs(fs_, parent_dir);
   for(auto const& dir: all_dirs) {
-    if(is_workspace(fs_, dir)) {
+    std::string noSlash = dir[0] == '/' dir.substring(1) : dir;
+    if(is_workspace(fs_, noSlash)) {
       dir_type = TILEDB_WORKSPACE;
-    } else if(is_group(fs_, dir)) {
+    } else if(is_group(fs_, noSlash)) {
       dir_type = TILEDB_GROUP;
-    } else if(is_metadata(fs_, dir)) {
+    } else if(is_metadata(fs_, noSlash)) {
       dir_type = TILEDB_METADATA;
-    } else if(is_array(fs_, dir)){
+    } else if(is_array(fs_, noSlash)){
       dir_type = TILEDB_ARRAY;
     } else {
       dir_type = -1;
     }
     if (dir_type >= 0) {
       if (dir_i < dir_num) {
-	strncpy(dirs[dir_i], relative_dir(dir, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
+	strncpy(dirs[dir_i], relative_dir(noSlash, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
 	dir_types[dir_i++] = dir_type;
       } else {
 	std::string errmsg = 
