@@ -156,7 +156,7 @@ static std::vector<std::string> list_workspaces(StorageFS *fs, const char *paren
   for(auto const& dir: all_dirs) {
     PRINT_ERROR("list_workspaces dir: " + dir);
     if(is_workspace(fs, dir)) {
-      workspace_dirs.push_back(dir);
+      workspace_dirs.push_back(dir[0] =='/' ? dir.substr(1):dir);
     } else if (fs->is_dir(dir) && !is_group(fs, dir) && !is_array(fs, dir) && !is_metadata(fs, dir)) {
       std::vector<std::string> list = list_workspaces(fs, dir.c_str());
       workspace_dirs.insert(std::end(workspace_dirs), std::begin(list), std::end(list));
