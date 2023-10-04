@@ -322,7 +322,7 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'D') {
-        path_list.push_back(file_info[i].mName);
+        path_list.push_back(std::string(file_info[i].mName));
       }
     }
   }
@@ -340,7 +340,7 @@ std::vector<std::string> HDFS::get_files(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'F') {
-        uri path_uri(file_info[i].mName);
+        uri path_uri(std::string(file_info[i].mName));
         path_list.push_back(path_uri.path());
       }
     }
