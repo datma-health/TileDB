@@ -324,7 +324,18 @@ std::string HDFS::real_dir(const std::string& dir) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
   }
-  return dir;
+  std::string skip_overlap(dir);
+  std::size_t found = skip_overlap.find('/');
+    if(found != std::string::npos)
+      skip_overlap = skip_overlap.substr(found + 1);
+  std::string path = current_dir() + "/" + skip_overlap;
+  uri path_uri(path);
+  if(path_uri.path().substr(1).compare(dir) == 0){
+    return dir;
+  } else{
+    // relative path
+    return path;
+  }
 }
   
 int HDFS::create_dir(const std::string& dir) {
