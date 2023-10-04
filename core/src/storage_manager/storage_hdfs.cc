@@ -324,15 +324,7 @@ std::string HDFS::real_dir(const std::string& dir) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
   }
-  std::string skip_overlap(dir);
-  std::size_t found = skip_overlap.find('/');
-  std::size_t found2 = current_dir().find_last_of('/');
-    if(found != std::string::npos && found2 != std::string::npos && 
-    skip_overlap.substr(0,found).compare(current_dir().substr(found2 + 1,current_dir().length()-found2 - 1))){
-      skip_overlap = skip_overlap.substr(found + 1);
-    }
-  std::string path = current_dir() + "/" + skip_overlap;
-    
+  std::string path = current_dir() + "/" + dir;
   uri path_uri(path);
   if(path_uri.path().substr(1).compare(dir) == 0){
     return dir;
@@ -376,7 +368,7 @@ std::vector<std::string> HDFS::get_dirs(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'D') {
-        uri path_uri(file_info[i].mName);
+        uri path_uri(std::string(file_info[i].mName));
         path_list.push_back(path_uri.path().substr(1));
       }
     }
@@ -395,7 +387,7 @@ std::vector<std::string> HDFS::get_files(const std::string& dir) {
   } else {
     for (int i=0; i<num_entries; i++) {
       if (file_info[i].mKind == 'F') {
-        uri path_uri(file_info[i].mName);
+        uri path_uri(std::string(file_info[i].mName));
         path_list.push_back(path_uri.path().substr(1));
       }
     }
