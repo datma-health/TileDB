@@ -31,10 +31,6 @@ check_results_from_examples() {
       echo "check_results_from_examples for $TEST.log DONE"
       exit 0
     else
-      echo "content of the file available is"
-      cat $TEST.log
-      echo "content of the expected results is"
-      cat $GITHUB_WORKSPACE/examples/expected_results
       echo "$TEST.log from run_examples.sh is different from expected results"
       exit 1
     fi

@@ -279,13 +279,11 @@ int delete_dir(const std::string& dirpath)
 }
 
 bool is_file(const std::string& filepath) {
-  PRINT_ERROR("is file tiledb utils");
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(filepath))) {
     FINALIZE;
     return false;
   }
-  PRINT_ERROR("is file tiledb utils after setup");
   bool check = is_file(tiledb_ctx, filepath);
   finalize(tiledb_ctx);
   return check;

@@ -154,9 +154,8 @@ static std::vector<std::string> list_workspaces(StorageFS *fs, const char *paren
   std::vector<std::string> workspace_dirs;
   std::vector<std::string> all_dirs = ::get_dirs(fs, parent_dir);
   for(auto const& dir: all_dirs) {
-    PRINT_ERROR("list_workspaces dir: " + dir);
     if(is_workspace(fs, dir)) {
-      workspace_dirs.push_back(dir[0] =='/' ? dir.substr(1):dir);
+      workspace_dirs.push_back(dir[0] == '/' ? dir.substr(1):dir);
     } else if (fs->is_dir(dir) && !is_group(fs, dir) && !is_array(fs, dir) && !is_metadata(fs, dir)) {
       std::vector<std::string> list = list_workspaces(fs, dir.c_str());
       workspace_dirs.insert(std::end(workspace_dirs), std::begin(list), std::end(list));
@@ -243,8 +242,6 @@ int StorageManager::ls_workspaces_c(const char* parent_dir, int& workspace_num) 
 int StorageManager::group_create(const std::string& group) const {
   // Check if the group is inside a workspace or another group
   std::string parent_dir = ::parent_dir(fs_, group);
-  PRINT_ERROR("group create " + parent_dir);
-  PRINT_ERROR("group create group var " + group);
   if(!is_workspace(fs_, parent_dir) && !is_group(fs_, parent_dir)) {
     std::string errmsg = 
         "The group must be contained in a workspace "
@@ -2048,13 +2045,10 @@ void StorageManager::sort_fragment_names(
   for(int i=0; i<fragment_num; ++i) {
     // Strip fragment name
     std::string& fragment_name = fragment_names[i];
-    PRINT_ERROR("fragment name is: "+fragment_name);
     std::string parent_fragment_name = parent_dir(fs_, fragment_name);
     int add = parent_fragment_name[0] != fragment_name[0] ? 1 : 0;
     std::string stripped_fragment_name = 
         fragment_name.substr(parent_fragment_name.size() + 1 + add);
-    PRINT_ERROR("parent fragment name is: "+parent_fragment_name);
-    PRINT_ERROR("stripped fragment name is: "+stripped_fragment_name);
     assert(starts_with(stripped_fragment_name, "__"));
     stripped_fragment_name_size = stripped_fragment_name.size();
 

@@ -247,7 +247,6 @@ int HDFS::set_working_dir(const std::string& dir) {
 }
 
 static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind) {
-  PRINT_ERROR("hdfs is path " + std::string(path) + " kind is " + kind);
   if (!hdfsExists(hdfs_handle, path)) {
     hdfsFileInfo *file_info = hdfsGetPathInfo(hdfs_handle, path);
     if (file_info) {
@@ -263,7 +262,6 @@ static bool is_path(const hdfsFS hdfs_handle, const char *path, const char kind)
 }
 
 bool HDFS::is_dir(const std::string& dir) {
-  PRINT_ERROR("in is dir " + dir);
   std::string slash("/");
   std::string path(dir);
   if(starts_with(path,slash)){
@@ -303,7 +301,6 @@ bool HDFS::is_file(const std::string& file) {
     if(found != std::string::npos)
       path = path.substr(found + 1);
   }
-  PRINT_ERROR("in is file " + file);
     if(file.find("://") == std::string::npos){
       return is_path(hdfs_handle_, (current_dir() + slash + path).c_str(), 'F');
   }
@@ -312,18 +309,15 @@ bool HDFS::is_file(const std::string& file) {
 
 std::string HDFS::real_dir(const std::string& dir) {
   if (dir.empty()) {
-    PRINT_ERROR("top of real_Dir current dir is " + current_dir());
     return current_dir();
   } else if (dir.find("://") != std::string::npos) {
     // absolute path
     return dir;
   }
-  PRINT_ERROR("dir is from real_dir " + dir);
-  PRINT_ERROR("current_dir is from real_dir " + current_dir());
   if (starts_with(dir, "/")) {
     // seems to be an absolute path but without protocol/host information.
     return dir.substr(1);
-  }else{
+  } else {
     // relative path
     return current_dir() + "/" + dir;
   }

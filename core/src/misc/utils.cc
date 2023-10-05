@@ -405,9 +405,8 @@ std::vector<std::string> get_fragment_dirs(StorageFS *fs, const std::string& dir
   std::vector<std::string> dirs = get_dirs(fs, dir);
   std::vector<std::string> fragment_dirs;
   for (auto const& dir: dirs) { 
-    PRINT_ERROR("dir from get fragment dirs " + dir);
     if (is_fragment(fs, dir)) {
-        fragment_dirs.push_back(dir);
+      fragment_dirs.push_back(dir);
     }
   }
   return fragment_dirs;
