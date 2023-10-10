@@ -323,8 +323,11 @@ std::vector<std::string> get_files(const std::string& dirpath) {
   return files;
 }
 
-std::set<std::string> get_files_uri(const std::string& dirpath){
-  std::set<std::string> samples;
+std::vector<std::string> get_files_uri(const std::string& dirpath){
+  std::vector<std::string> sample_files = TileDBUtils::get_files(dirpath);
+  if(sample_files.empty())
+    return sample_files;
+  std::vector<std::string> samples;
   std::string suffix;
   auto pos = dirpath.find('?');
   if (pos != std::string::npos) {
@@ -339,12 +342,11 @@ std::set<std::string> get_files_uri(const std::string& dirpath){
     prefix = std::regex_replace(uri, uri_pattern, "$1");
   }
 
-  std::vector<std::string> sample_files = TileDBUtils::get_files(dirpath);
   for (auto sample_file: sample_files) {
     std::regex pattern("^.*(.vcf.gz$|.bcf.gz$)");
     if (std::regex_search(sample_file, pattern)) { 
       sample_file = prefix+sample_file+suffix;
-      samples.insert(sample_file);
+      samples.emplace_back(sample_file);
     }
   }
   return samples;

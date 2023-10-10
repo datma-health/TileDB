@@ -39,7 +39,6 @@
 #include "tiledb.h"
 #include <string>
 #include <vector>
-#include <set>
 
 namespace TileDBUtils {
 
@@ -76,7 +75,7 @@ std::vector<std::string> get_dirs(const std::string& dirpath);
 
 std::vector<std::string> get_files(const std::string& dirpath);
 
-std::set<std::string> get_files_uri(const std::string& dirpath);
+std::vector<std::string> get_files_uri(const std::string& dirpath);
 
 ssize_t file_size(const std::string& filepath);
 
