@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <trace.h>
-
+#include <regex>
 namespace TileDBUtils {
 
 static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,
@@ -321,6 +321,34 @@ std::vector<std::string> get_files(const std::string& dirpath) {
   finalize(tiledb_ctx);
   return files;
 }
+
+std::set<std::string> get_files_uri(const std::string& dirpath){
+  std::set<std::string> samples;
+  std::string suffix;
+  auto pos = dirpath.find('?');
+  if (pos != std::string::npos) {
+    suffix = dirpath.substr(pos);
+  } else {
+    pos = dirpath.length();
+  }
+  std::regex uri_pattern("^(.*//.*?/)(.*$)", std::regex_constants::ECMAScript);
+  std::string prefix;
+  std::string uri = dirpath.substr(0, pos);
+  if (std::regex_search(uri, uri_pattern)) {
+    prefix = std::regex_replace(uri, uri_pattern, "$1");
+  }
+
+  std::vector<std::string> sample_files = TileDBUtils::get_files(dirpath);
+  for (auto sample_file: sample_files) {
+    std::regex pattern("^.*(.vcf.gz$|.bcf.gz$)");
+    if (std::regex_search(sample_file, pattern)) { 
+      sample_file = prefix+sample_file+suffix;
+      samples.insert(sample_file);
+    }
+  }
+  return samples;
+}
+
 
 static int check_file(TileDB_CTX *tiledb_ctx, std::string filename) {
   if (is_dir(tiledb_ctx, filename)) {
