@@ -155,7 +155,7 @@ static std::vector<std::string> list_workspaces(StorageFS *fs, const char *paren
   std::vector<std::string> all_dirs = ::get_dirs(fs, parent_dir);
   for(auto const& dir: all_dirs) {
     if(is_workspace(fs, dir)) {
-      workspace_dirs.push_back(dir);
+      workspace_dirs.push_back(dir[0] == '/' ? dir.substr(1):dir);
     } else if (fs->is_dir(dir) && !is_group(fs, dir) && !is_array(fs, dir) && !is_metadata(fs, dir)) {
       std::vector<std::string> list = list_workspaces(fs, dir.c_str());
       workspace_dirs.insert(std::end(workspace_dirs), std::begin(list), std::end(list));
@@ -1088,20 +1088,21 @@ int StorageManager::ls(
 
   std::vector<std::string> all_dirs = ::get_dirs(fs_, parent_dir);
   for(auto const& dir: all_dirs) {
-    if(is_workspace(fs_, dir)) {
+    std::string checkSlash = dir[0] == '/' ? dir.substr(1) : dir;
+    if(is_workspace(fs_, checkSlash)) {
       dir_type = TILEDB_WORKSPACE;
-    } else if(is_group(fs_, dir)) {
+    } else if(is_group(fs_, checkSlash)) {
       dir_type = TILEDB_GROUP;
-    } else if(is_metadata(fs_, dir)) {
+    } else if(is_metadata(fs_, checkSlash)) {
       dir_type = TILEDB_METADATA;
-    } else if(is_array(fs_, dir)){
+    } else if(is_array(fs_, checkSlash)){
       dir_type = TILEDB_ARRAY;
     } else {
       dir_type = -1;
     }
     if (dir_type >= 0) {
       if (dir_i < dir_num) {
-	strncpy(dirs[dir_i], relative_dir(dir, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
+	strncpy(dirs[dir_i], relative_dir(checkSlash, parent_dir).c_str(), TILEDB_NAME_MAX_LEN);
 	dir_types[dir_i++] = dir_type;
       } else {
 	std::string errmsg = 
@@ -2045,8 +2046,9 @@ void StorageManager::sort_fragment_names(
     // Strip fragment name
     std::string& fragment_name = fragment_names[i];
     std::string parent_fragment_name = parent_dir(fs_, fragment_name);
+    int add = parent_fragment_name[0] != fragment_name[0] ? 1 : 0;
     std::string stripped_fragment_name = 
-        fragment_name.substr(parent_fragment_name.size() + 1);
+        fragment_name.substr(parent_fragment_name.size() + 1 + add);
     assert(starts_with(stripped_fragment_name, "__"));
     stripped_fragment_name_size = stripped_fragment_name.size();
 
