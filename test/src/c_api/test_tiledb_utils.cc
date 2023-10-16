@@ -46,7 +46,7 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
   std::string workspace_path = TileDBUtils::append_path(get_temp_dir(), workspace);
   TileDB_CTX *tiledb_ctx;
   REQUIRE(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path, false) == 0); // OK
-  std::string only_path = TileDBUtils::get_path(workspace_path);
+  std::string only_path = TileDBUtils::get_workspace_path(workspace_path);
   CHECK(!set_working_dir(tiledb_ctx, only_path));
   std::string cwd = current_working_dir(tiledb_ctx);// path
   CHECK(cwd.size() > 0);
@@ -69,7 +69,7 @@ TEST_CASE_METHOD(TempDir, "Test initialize_workspace", "[initialize_workspace]")
 
   // Try paths with trailing slashes
   workspace_path = append(workspace_path,"1/");
-  only_path = TileDBUtils::get_path(workspace_path);
+  only_path = TileDBUtils::get_workspace_path(workspace_path);
   CHECK(TileDBUtils::initialize_workspace(&tiledb_ctx, workspace_path) == 0); // OK
   CHECK(TileDBUtils::is_dir(workspace_path));
   CHECK(TileDBUtils::is_file(append(workspace_path,TILEDB_WORKSPACE_FILENAME)));
