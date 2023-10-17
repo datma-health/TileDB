@@ -69,11 +69,7 @@ extern "C" {
 
 /**@{*/
 /** C Library export. */
-#if (defined __GNUC__ && __GNUC__ >= 4) || defined __INTEL_COMPILER
-#  define TILEDB_EXPORT __attribute__((visibility("default")))
-#else
-#  define TILEDB_EXPORT
-#endif
+#define TILEDB_EXPORT __attribute__((visibility("default")))
 /**@}*/
 
 

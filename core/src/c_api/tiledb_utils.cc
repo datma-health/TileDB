@@ -70,20 +70,21 @@ bool is_cloud_path(const std::string& path) {
   return path.find("://") != std::string::npos;
 }
 
-std::string get_path(const std::string &workspace) {
-  std::size_t check_cloud = workspace.find("://");
+std::string get_path(const std::string &path) {
+  std::size_t check_cloud = path.find("://");
   if (check_cloud != std::string::npos &&
-      workspace.substr(0, check_cloud).compare("hdfs") != 0)
-    return uri(workspace).path();
-  return workspace;
+      path.substr(0, check_cloud).compare("hdfs") != 0)
+    return uri(path).path();
+  return path;
 }
 
-std::string append_path(std::string dir, std::string path) {
+std::string append_path(const std::string& dir, const std::string& path) {
   std::size_t query_pos = dir.find('?');
-  if (query_pos == std::string::npos) return StorageFS::slashify(dir) + path;
-
-  return StorageFS::slashify(dir.substr(0, query_pos)) + path +
-         dir.substr(query_pos);
+  if (query_pos == std::string::npos) {
+    return StorageFS::slashify(dir) + path;
+  } else {
+    return StorageFS::slashify(dir.substr(0, query_pos)) + path + dir.substr(query_pos);
+  }
 }
 
 /**

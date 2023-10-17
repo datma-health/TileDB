@@ -234,7 +234,10 @@ AzureBlob::AzureBlob(const std::string& home) {
     num_threads_ = std::string(num_threads)=="0"?1:std::stoi(num_threads);
     if (!num_threads_) num_threads_ = 1;
   }
+
+#ifdef DEBUG
   std::cerr << "*** Using threads=" << num_threads_ << " with azure SDK client" << std::endl;
+#endif
 
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
