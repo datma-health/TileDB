@@ -70,12 +70,12 @@ bool is_cloud_path(const std::string& path) {
   return path.find("://") != std::string::npos;
 }
 
-std::string get_workspace_path(const std::string &workspace) {
-  std::size_t check_cloud = workspace.find("://");
+std::string get_path(const std::string &path) {
+  std::size_t check_cloud = path.find("://");
   if (check_cloud != std::string::npos &&
-      workspace.substr(0, check_cloud).compare("hdfs") != 0)
-    return uri(workspace).path();
-  return workspace;
+      path.substr(0, check_cloud).compare("hdfs") != 0)
+    return uri(path).path();
+  return path;
 }
 
 std::string append_path(const std::string& dir, const std::string& path) {
@@ -103,7 +103,7 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
   *ptiledb_ctx = NULL;
   int rc;
   rc = setup(ptiledb_ctx, workspace, enable_shared_posixfs_optimizations);
-  std::string workspace_path = get_workspace_path(workspace);
+  std::string workspace_path = get_path(workspace);
   if (rc) {
     return NOT_CREATED;
   }
@@ -152,7 +152,7 @@ bool workspace_exists(const std::string& workspace)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_workspace(tiledb_ctx, get_workspace_path(workspace));
+  exists = !rc && is_workspace(tiledb_ctx, get_path(workspace));
   FINALIZE;
   return exists;
 }
@@ -162,7 +162,7 @@ bool array_exists(const std::string& workspace, const std::string& array_name)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(get_workspace_path(workspace), array_name));
+  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(get_path(workspace), array_name));
   FINALIZE;
   return exists;
 }

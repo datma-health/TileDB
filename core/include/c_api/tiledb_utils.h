@@ -44,7 +44,7 @@ namespace TileDBUtils {
 
 bool is_cloud_path(const std::string& path);
 
-std::string get_workspace_path(const std::string &workspace);
+std::string get_path(const std::string &path);
 
 std::string append_path(const std::string& dir, const std::string& path);
 
