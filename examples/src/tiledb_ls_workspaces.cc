@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
   // Clean up
   for(int i=0; i<workspace_num; ++i)
     free(workspaces[i]);
-  delete workspaces;
+  delete[] workspaces;
   free(home);
 
   // Finalize context

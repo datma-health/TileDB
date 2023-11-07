@@ -115,8 +115,12 @@ class TempDir {
       assert(tmp_dir != NULL);
       tmp_dirname_ = mkdtemp(const_cast<char *>((append_slash(tmp_dir)+dirname_pattern).c_str()));
     } else {
+      // Suppress warnings for using mktemp as this is only used in tests
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         tmp_dirname_ = TileDBUtils::append_path(
             g_test_dir, mktemp(const_cast<char *>(dirname_pattern.c_str())));
+#pragma GCC diagnostic pop
       if (!TileDBUtils::is_dir(g_test_dir)) {
         REQUIRE(TileDBUtils::create_dir(g_test_dir) == 0);
         delete_test_dir_in_destructor_ = g_test_dir;

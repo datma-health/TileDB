@@ -38,17 +38,16 @@
 #include <string>
 #include <unordered_map>
 
-#ifdef USE_HDFS
-
-#include "hdfs.h"
-
-hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir);
-
-#endif /* USE_HDFS */
-
 #include "storage_fs.h"
 
+/* avoid warnings of the type "include/absl/meta/type_traits.h:293:36: warning: builtin __has_trivial_destructor
+   is deprecated; use __is_trivially_destructible instead [-Wdeprecated-builtins]
+   : std::integral_constant<bool, __has_trivial_destructor(T) for now */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-builtins"
 #include "google/cloud/storage/client.h"
+#pragma GCC diagnostic pop
+
 #include <iostream>
 
 namespace gcs = google::cloud::storage;

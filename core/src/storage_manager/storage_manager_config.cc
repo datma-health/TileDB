@@ -93,8 +93,7 @@ int StorageManagerConfig::init(
 #endif
     int read_method,
     int write_method,
-    const bool enable_shared_posixfs_optimizations,
-    const bool use_gcs_hdfs_connector) {
+    const bool enable_shared_posixfs_optimizations) {
   // Initialize home
   if (home !=  NULL && strstr(home, "://")) {
      if (fs_ != NULL) {
@@ -121,7 +120,7 @@ int StorageManagerConfig::init(
 	 tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
 	 return TILEDB_SMC_ERR;
        }
-     } else if (is_gcs_path(home_) && !is_env_set("TILEDB_USE_GCS_HDFS_CONNECTOR") && !use_gcs_hdfs_connector) {
+     } else if (is_gcs_path(home_)) {
        try {
           fs_ = new GCS(home_);
        } catch(std::system_error& ex) {
