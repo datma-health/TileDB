@@ -61,8 +61,9 @@ using namespace Catch::clara;
 #  error Could not figure out CATCH2_MAJOR_VERSION
 #endif
 
-
 #include "tiledb_utils.h"
+
+#include "regex"
 
 #define CHECK_RC(rc, expected) CHECK(rc == expected)
 
@@ -115,12 +116,10 @@ class TempDir {
       assert(tmp_dir != NULL);
       tmp_dirname_ = mkdtemp(const_cast<char *>((append_slash(tmp_dir)+dirname_pattern).c_str()));
     } else {
-      // Suppress warnings for using mktemp as this is only used in tests
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-        tmp_dirname_ = TileDBUtils::append_path(
-            g_test_dir, mktemp(const_cast<char *>(dirname_pattern.c_str())));
-#pragma GCC diagnostic pop
+      std::string temp;
+      for (auto i=0; i<6; i++) temp = temp+char(rand()%26+'a');
+      tmp_dirname_ = TileDBUtils::append_path(
+          g_test_dir, std::regex_replace(dirname_pattern, std::regex("XXXXXX"), temp));
       if (!TileDBUtils::is_dir(g_test_dir)) {
         REQUIRE(TileDBUtils::create_dir(g_test_dir) == 0);
         delete_test_dir_in_destructor_ = g_test_dir;
