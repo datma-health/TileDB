@@ -38,7 +38,6 @@
 #ifdef USE_HDFS
 
 #include "storage_fs.h"
-#include "storage_gcs.h"
 
 #include "hdfs.h"
 #include "tiledb_constants.h"

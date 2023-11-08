@@ -43,10 +43,14 @@
 /* avoid warnings of the type "include/absl/meta/type_traits.h:293:36: warning: builtin __has_trivial_destructor
    is deprecated; use __is_trivially_destructible instead [-Wdeprecated-builtins]
    : std::integral_constant<bool, __has_trivial_destructor(T) for now */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-builtins"
+#ifdef __clang__
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wdeprecated-builtins"
+#endif
 #include "google/cloud/storage/client.h"
-#pragma GCC diagnostic pop
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif
 
 #include <iostream>
 
