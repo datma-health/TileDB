@@ -92,8 +92,6 @@ void maximize_rlimits() {
 }
 
 hdfsFS hdfs_connect(uri path_uri, const std::string& name_node) {
-  hdfsFS hdfs_handle = NULL;
-
   struct hdfsBuilder *builder = hdfsNewBuilder();
   if (!builder) {
     PRINT_ERROR("Error getting hdfs builder");
@@ -110,13 +108,7 @@ hdfsFS hdfs_connect(uri path_uri, const std::string& name_node) {
     hdfsBuilderSetNameNodePort(builder, path_uri.nport());
   }
   
-  if (path_uri.protocol().compare("gs") == 0) {
-    hdfs_handle = gcs_connect(builder, path_uri.path());
-  } else {
-    hdfs_handle = hdfsBuilderConnect(builder);
-  }
-
-  return hdfs_handle;
+  return hdfsBuilderConnect(builder);
 }
 
 HDFS::HDFS(const std::string& home) {

@@ -82,10 +82,7 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
   tiledb_utils_tests "gs://$GS_BUCKET/$TEST" &&
     $CMAKE_BUILD_DIR/test/test_gcs_storage --test-dir "gs://$GS_BUCKET/$TEST" &&
     $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "gs://$GS_BUCKET/$TEST" &&
-    $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$TEST" &&
-    echo "Running GCS_HDFS_CONNECTOR tests..." &&
-    time TILEDB_USE_GCS_HDFS_CONNECTOR=1 $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/hdfs_$TEST" &&
-    echo "Running GCS_HDFS_CONNECTOR tests DONE"
+    $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$TEST"
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   export AZURE_CONTAINER_NAME="build"
