@@ -326,8 +326,7 @@ class BenchmarkConfig: public TempDir {
 // TileDB  Benchmark Utils
 void create_workspace(BenchmarkConfig* config) {
   TileDB_CTX* tiledb_ctx;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = config->get_temp_dir().c_str();
   REQUIRE(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == TILEDB_OK);
   REQUIRE(tiledb_workspace_create(tiledb_ctx, config->workspace_.c_str()) == TILEDB_OK);
@@ -337,8 +336,7 @@ void create_workspace(BenchmarkConfig* config) {
 
 void delete_arrays(BenchmarkConfig* config) {
   TileDB_CTX* tiledb_ctx;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = config->get_temp_dir().c_str();
   REQUIRE(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == TILEDB_OK);
   for(auto dir : get_dirs(tiledb_ctx, config->workspace_)) {
@@ -372,8 +370,7 @@ void create_arrays(BenchmarkConfig* config, int i) {
                                   config->attribute_data_types_.data()) == TILEDB_OK);
 
   TileDB_CTX* tiledb_ctx;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = config->get_temp_dir().c_str();
   REQUIRE(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == TILEDB_OK);
   REQUIRE(tiledb_array_create(tiledb_ctx, &array_schema) == TILEDB_OK);
@@ -383,8 +380,7 @@ void create_arrays(BenchmarkConfig* config, int i) {
 
 void write_arrays(BenchmarkConfig* config, int i) {
   TileDB_CTX* tiledb_ctx;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = config->get_temp_dir().c_str();
   tiledb_config.write_method_ = config->io_write_mode_;
   REQUIRE(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == TILEDB_OK);
@@ -406,8 +402,7 @@ void write_arrays(BenchmarkConfig* config, int i) {
 
 void read_arrays(BenchmarkConfig* config, int i) {
   TileDB_CTX* tiledb_ctx;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = config->get_temp_dir().c_str();
   tiledb_config.read_method_ = config->io_read_mode_;
   REQUIRE(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == TILEDB_OK);
@@ -555,8 +550,7 @@ void print_array_schema(TileDB_CTX* tiledb_ctx, const std::string& array) {
 
 void print_fragment_sizes(BenchmarkConfig* config, bool human_readable_sizes) {
   TileDB_CTX* tiledb_ctx;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = config->get_temp_dir().c_str();
   REQUIRE(tiledb_ctx_init(&tiledb_ctx, &tiledb_config) == TILEDB_OK);
 

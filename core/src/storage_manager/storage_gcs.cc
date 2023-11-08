@@ -214,8 +214,9 @@ bool GCS::path_exists(const std::string& path) {
 }
 
 int GCS::create_path(const std::string& path) {
+  const std::string EMPTY = "";
   StatusOr<gcs::ObjectMetadata> object_metadata =
-      client_->InsertObject(bucket_name_, get_path(path), "");
+      client_->InsertObject(bucket_name_, get_path(path), std::move(EMPTY));
   if (!object_metadata) {
     GCS_ERROR1("Error inserting object into bucket", object_metadata.status(), path);
     return TILEDB_FS_ERR;
@@ -261,7 +262,7 @@ int GCS::delete_dir(const std::string& dir) {
     GCS_ERROR("Cannot delete non-existent dir", dir);
     return TILEDB_FS_ERR;
   }
-  gcs::DeleteByPrefix(*client_, bucket_name_, slashify(get_path(dir)));
+  gcs::DeleteByPrefix(*client_, bucket_name_, std::move(slashify(get_path(dir))));
   return TILEDB_FS_OK;
 }
 

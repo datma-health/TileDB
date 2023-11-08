@@ -42,6 +42,7 @@
 #include <aws/s3/model/CompletedPart.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/HeadBucketRequest.h>
 #include <aws/s3/model/HeadObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/model/ListObjectsV2Request.h>
@@ -92,25 +93,17 @@ S3::S3(const std::string& home) {
   if (!ca_certs_location.empty()) {
     client_config.caFile = ca_certs_location.c_str();
   }
+#if(0) // Used with valgrind. Probably need to make this configurable
+  client_config.requestTimeoutMs=30000;
+  client_config.connectTimeoutMs=30000;
+#endif
   client_ = std::make_shared<Aws::S3::S3Client>(client_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, useVirtualAddressing);
 
-  bool bucket_exists = false;
-  Aws::S3::Model::ListBucketsOutcome outcome = client_->ListBuckets();
-  if (outcome.IsSuccess()) {
-    Aws::Vector<Aws::S3::Model::Bucket> buckets = outcome.GetResult().GetBuckets();
-    for (Aws::S3::Model::Bucket& bucket : buckets) {
-      if (bucket.GetName().compare(path_uri.bucket()) == 0) {
-	bucket_exists = true;
-	break;
-      }
-    }
-  } else {
-    throw std::system_error(EIO, std::generic_category(),
-			    std::string("S3 FS error while trying to locate bucket for ")+
-			    home+"\n"+ outcome.GetError().GetMessage());
-  }
-
-  if (!bucket_exists) {
+  Aws::S3::Model::HeadBucketRequest head_request;
+  head_request.WithBucket(path_uri.bucket());
+  auto outcome = client_->HeadBucket(head_request);
+  if (!outcome.IsSuccess()) {
+    S3_ERROR1("Failed to locate bucket", outcome, home);
     throw std::system_error(EIO, std::generic_category(), "S3 FS only supports already existing buckets. Create bucket from either the aws CLI or the aws storage portal before restarting operation");
   }
 
@@ -340,6 +333,17 @@ ssize_t S3::file_size(const std::string& filename) {
   return TILEDB_FS_ERR;
 }
 
+class PreallocatedIOStream : public Aws::IOStream {
+ public:
+  PreallocatedIOStream(unsigned char* buffer, size_t length)
+      : Aws::IOStream(
+            Aws::New<Aws::Utils::Stream::PreallocatedStreamBuf>(CLASS_TAG, buffer, length)) {
+  }
+  ~PreallocatedIOStream() {
+    Aws::Delete(rdbuf());
+  }
+};
+
 int S3::read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length) {
   if (length == 0) {
     return TILEDB_FS_OK; // Nothing to read
@@ -349,11 +353,11 @@ int S3::read_from_file(const std::string& filename, off_t offset, void *buffer, 
   request.SetBucket(bucket_name_);
   request.SetKey(to_aws_string(get_path(filename)));
   request.SetRange(to_aws_string("bytes=" + std::to_string(offset) + "-" + std::to_string(offset+length-1)));
+
   request.SetResponseStreamFactory([buffer, length]() {
-      unsigned char* buf = reinterpret_cast<unsigned char*>(const_cast<void*>(buffer));
-      auto stream_buffer = Aws::New<Aws::Utils::Stream::PreallocatedStreamBuf>(CLASS_TAG, buf, length);
-      return Aws::New<Aws::IOStream>(CLASS_TAG, stream_buffer);
-    });
+    unsigned char* buf = reinterpret_cast<unsigned char*>(const_cast<void*>(buffer));
+    return Aws::New<PreallocatedIOStream>(CLASS_TAG, buf, length);
+  });
 
   auto outcome = client_->GetObject(request);
   if (!outcome.IsSuccess()) {
@@ -427,8 +431,7 @@ int S3::write_to_file(const std::string& filename, const void *buffer, size_t bu
   request.SetUploadId(to_aws_string(upload_id));
 
   unsigned char* buf = reinterpret_cast<unsigned char*>(const_cast<void*>(buffer));
-  auto stream_buffer = Aws::New<Aws::Utils::Stream::PreallocatedStreamBuf>(CLASS_TAG, buf, buffer_size);
-  request.SetBody(Aws::MakeShared<Aws::IOStream>(CLASS_TAG, stream_buffer));
+  request.SetBody(Aws::MakeShared<PreallocatedIOStream>(CLASS_TAG, buf, buffer_size));
   request.SetContentLength(buffer_size);
 
   auto outcome = client_->UploadPartCallable(request);

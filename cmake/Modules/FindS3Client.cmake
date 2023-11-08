@@ -3,7 +3,7 @@
 #
 # The MIT License
 #
-# Copyright (c) 2022 Omics Data Automation, Inc.
+# Copyright (c) 2022-2023 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -65,8 +65,6 @@ elseif(NOT AWSSDK_FOUND)
     URL "https://github.com/awslabs/aws-c-common/archive/v0.6.9.tar.gz"
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=OFF
-    -DENABLE_TESTING=OFF
-    -DENABLE_UNITY_BUILD=ON
     -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR})
@@ -75,8 +73,6 @@ elseif(NOT AWSSDK_FOUND)
     URL "https://github.com/awslabs/aws-checksums/archive/v0.1.12.tar.gz"
     CMAKE_ARGS 
     -DBUILD_SHARED_LIBS=OFF
-    -DENABLE_TESTING=OFF
-    -DENABLE_UNITY_BUILD=ON
     -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
@@ -86,17 +82,24 @@ elseif(NOT AWSSDK_FOUND)
     URL "https://github.com/awslabs/aws-c-event-stream/archive/v0.1.5.tar.gz"
     CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
     -DBUILD_SHARED_LIBS=OFF
-    -DENABLE_TESTING=OFF
-    -DENABLE_UNITY_BUILD=ON
     -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
     DEPENDS aws-checksums-build)
 
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized -Wno-deprecated-declarations")
+  endif()
+
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
-    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk-build.patch
+    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h 
+                  ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl &&
+                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
+                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch &&
+		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/eventstreamdecoder.patch &&
+		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/aws_ossl.patch
     CMAKE_ARGS
     -DBUILD_SHARED_LIBS=OFF
     -DENABLE_TESTING=OFF
@@ -108,7 +111,9 @@ elseif(NOT AWSSDK_FOUND)
     -DCMAKE_BUILD_TYPE=Release
     -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
-    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR})
+    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS})
+    
 
   add_dependencies(awssdk-build aws-c-common-build)
   add_dependencies(awssdk-build aws-c-event-stream-build)

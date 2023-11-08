@@ -1,10 +1,9 @@
 #
-# SetCXX2011Flag.cmake
-#
+# cmake/Modules/SetCatch2Version.cmake
 #
 # The MIT License
 #
-# Copyright (c) 2017 MIT and Intel Corporation
+# Copyright (c) 2022 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,17 +23,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-# Sets compiler support for C++ 2011.
+# Find Catch2 installation and setup Catch2 version to allow
+# test/include/Catch2/catch.h to support both major versions, 2 and 3 for now.
 #
 
-include(CheckCXXCompilerFlag)
+find_package(Catch2 REQUIRED)
 
-# Set support for C++ 2011
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
-CHECK_CXX_COMPILER_FLAG(-std=gnu++11 CXX_2011_FOUND)
-if(NOT CXX_2011_FOUND)
-  message(FATAL_ERROR "Your compiler does not support C++ 2011.") 
+set(CATCH2_HEADER "catch2/catch.hpp")
+find_path(CATCH2_VER2_INCLUDE_FILE ${CATCH2_HEADER})
+if(CATCH2_VER2_INCLUDE_FILE)
+  set(CATCH2_MAJOR_VERSION 2)
 else()
-  message(STATUS "Compiler supports C++ 2011.") 
+  set(CATCH2_HEADER "catch2/catch_all.hpp")
+  find_path(CATCH2_VER3_INCLUDE_FILE ${CATCH2_HEADER})
+  if(CATCH2_VER3_INCLUDE_FILE)
+    set(CATCH2_MAJOR_VERSION 3)
+  else()
+    message(FATAL "Could not figure out Catch2 versions. Try using CMAKE_PREFIX_PATH to point to a Catch2 installation")
+  endif()
 endif()
 
+message(STATUS "Found Catch2: ${CATCH2_INCLUDE_FILE}/${CATCH2_HEADER} Version=${CATCH2_MAJOR_VERSION}")
+add_definitions(-DCATCH2_MAJOR_VERSION=${CATCH2_MAJOR_VERSION})

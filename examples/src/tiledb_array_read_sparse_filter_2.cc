@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -80,9 +81,13 @@ int main(int argc, char *argv[]) {
 
     // Print cell values
     int64_t result_num = buffer_sizes[0] / sizeof(int);
-    for(int i=0; i<result_num; ++i) { 
-      if(buffer_a1[i] != TILEDB_EMPTY_INT32) // Check for deletion
-        printf("%3d\n", buffer_a1[i]);
+    int64_t positions[1];
+    for(int i=0; i<result_num; ++i) {
+      positions[0] = i;
+      if (tiledb_array_evaluate_cell(tiledb_array, buffers, buffer_sizes, positions)) {
+        if(buffer_a1[i] != TILEDB_EMPTY_INT32) // Check for deletion
+          printf("%3d\n", buffer_a1[i]);
+      }
     }
   } while(tiledb_array_overflow(tiledb_array, 0) == 1);
  

@@ -66,7 +66,6 @@ elseif(NOT GCSSDK_FOUND)
     CMAKE_ARGS
         -DJSON_BuildTests=OFF
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        -DCMAKE_CXX_STANDARD=11
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
         -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
@@ -76,11 +75,12 @@ elseif(NOT GCSSDK_FOUND)
   ExternalProject_Add(abseil-build
     PREFIX ${GCSSDK_PREFIX}
     URL "https://github.com/abseil/abseil-cpp/archive/20200923.3.zip"
+    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/absl.patch
     CMAKE_ARGS
         -DBUILD_SHARED_LIBS=OFF
         -DABSL_RUN_TESTS=OFF
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        -DCMAKE_CXX_STANDARD=11
+        -DCMAKE_CXX_STANDARD=17
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
         -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
@@ -88,7 +88,7 @@ elseif(NOT GCSSDK_FOUND)
 
   ExternalProject_Add(crc32-build
     PREFIX ${GCSSDK_PREFIX}
-    URL "https://github.com/google/crc32c/archive/1.1.0.tar.gz"
+    URL "https://github.com/google/crc32c/archive/1.1.2.tar.gz"
     CMAKE_ARGS
         -DBUILD_SHARED_LIBS=OFF
         -DCRC32C_BUILD_TESTS=OFF
@@ -104,6 +104,9 @@ elseif(NOT GCSSDK_FOUND)
   ExternalProject_Add(gcssdk-build
     PREFIX ${GCSSDK_PREFIX}
     URL ${GCSSDK_URL}
+    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h 
+                     ${GCSSDK_PREFIX}/src/gcssdk-build/google/cloud/storage &&
+                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcs_ossl.patch
     BUILD_IN_SOURCE 1
     CMAKE_ARGS
         -DBUILD_SHARED_LIBS=OFF
@@ -111,7 +114,9 @@ elseif(NOT GCSSDK_FOUND)
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DGOOGLE_CLOUD_CPP_ENABLE=storage
         -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_STANDARD=17
         -DCMAKE_CXX_VISIBILITY_PRESET=hidden
+        -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
         -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
         -DCMAKE_PREFIX_PATH=${GCSSDK_PREFIX}
         -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}

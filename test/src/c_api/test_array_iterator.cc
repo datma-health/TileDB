@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -234,7 +235,7 @@ TEST_CASE_METHOD(ArrayIteratorFixture, "Test sparse array iterator with filter w
   finalize_array_iterator();
 }
 
-TEST_CASE_METHOD(ArrayIteratorFixture, "Test sparse array iterator with filteri with empty value", "[sparse_array_iterator_with_filter_with_empty_value]") {
+TEST_CASE_METHOD(ArrayIteratorFixture, "Test sparse array iterator with filter with empty value", "[sparse_array_iterator_with_filter_with_empty_value]") {
   create_sparse_array("test_sparse_array_it_filter_with_empty_value");
   update_array_with_empty_attributes();  
   setup_array_iterator("ATTR_INT32 > 3");

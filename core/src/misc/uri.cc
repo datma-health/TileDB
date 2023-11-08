@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2018 University of California, Los Angeles and Intel Corporation
  * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,9 +39,8 @@
 #include <functional>
 #include <system_error>
 #include <stdlib.h>
-
 #include "uri.h"
-
+#include <cstring>
 // Constructor
 uri::uri(const std::string& uri_s) {
   parse(uri_s);
@@ -67,11 +67,31 @@ std::string uri::path() {
   return path_;
 }
 
-std::string uri::query() {
+std::unordered_map<std::string, std::string> uri::query() {
   return query_;
 }
 
 // Private Methods
+std::string uri::urlDecode(const std::string& uri_s) {
+  std::string result;
+  result.reserve(uri_s.size());
+
+  for (std::size_t i = 0; i < uri_s.size(); ++i) {
+    auto ch = uri_s[i];
+
+    if (ch == '%' && (i + 2) < uri_s.size()) {
+      auto hex = uri_s.substr(i + 1, 2);
+      auto dec = static_cast<char>(std::strtol(hex.c_str(), nullptr, 16));
+      result.push_back(dec);
+      i += 2;
+    } else {
+      result.push_back(ch);
+    }
+  }
+
+  return result;
+}
+
 void uri::parse(const std::string& uri_s)
 {
   if (uri_s.empty()) {
@@ -121,24 +141,42 @@ void uri::parse(const std::string& uri_s)
       nport_ = (uint16_t)port_val;
     }
   }
-
   std::string::const_iterator query_iter = find(path_iter, end_iter, '?');
   path_.assign(path_iter, query_iter);
-
   if (query_iter != end_iter) {
     ++query_iter;
-    query_.assign(query_iter, end_iter);
+    std::string queryTemp(urlDecode(std::string(query_iter, end_iter)));
+    char* save_ptr;
+    for (char* token = strtok_r(queryTemp.data(), "&", &save_ptr);
+         token != NULL; token = strtok_r(NULL, "&", &save_ptr)) {
+      char* search = strchr(token, '=');
+      if (search == NULL || (std::size_t)(search - token) == 0) {
+        throw std::system_error(EINVAL, std::generic_category(),
+                                "Query is in incorrect format");
+      }
+      std::string key(
+          std::string(token).substr(0, (std::size_t)(search - token)));
+      query_[key] = std::string(++search);
+    }
   }
 }
 
 azure_uri::azure_uri(const std::string& uri_s) : uri(uri_s) {
-  std::size_t begin = this->host().find('@');
-  std::size_t end = this->host().find('.');
-  if (begin != std::string::npos && end != std::string::npos) {
-    account_ = this->host().substr(begin+1, end-begin-1);
-  }
-  if (begin != std::string::npos) {
-    container_ = this->host().substr(0, begin);
+  if (this->protocol().compare("azb") == 0) {
+    account_ = this->query()["account"];
+    container_ = this->host();
+    endpoint_ = this->query()["endpoint"];
+  } else {
+    std::size_t begin = this->host().find('@');
+    std::size_t end = this->host().find('.');
+    if (begin != std::string::npos && end != std::string::npos) {
+      account_ = this->host().substr(begin + 1, end - begin - 1);
+      endpoint_ = this->host().substr(begin + 1,
+                                      this->host().find('/', end) - begin - 1);
+    }
+    if (begin != std::string::npos) {
+      container_ = this->host().substr(0, begin);
+    }
   }
 }
 
@@ -149,6 +187,8 @@ std::string azure_uri::account() {
 std::string azure_uri::container() {
   return container_;
 }
+
+std::string azure_uri::endpoint() { return endpoint_; }
 
 s3_uri::s3_uri(const std::string& uri_s) : uri(uri_s) {
   bucket_ = this->host();

@@ -7,6 +7,7 @@
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2019 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -166,19 +167,23 @@ int ArrayIterator::init(
     }
   }
 
+  int rc = TILEDB_AIT_OK;
+
   // Set up filter expression
   if (filter_expression != NULL && strlen(filter_expression) > 0) {
-    std::vector<std::string> attributes_vec;
-    for (std::vector<int>::const_iterator it = attribute_ids.begin(); it != attribute_ids.end(); it++) {
-      attributes_vec.push_back(array_schema->attribute(*it));
+    expression_ = new Expression(filter_expression);
+    if (expression_->init(attribute_ids, array_schema) == TILEDB_EXPR_ERR) {
+      tiledb_ait_errmsg = tiledb_expr_errmsg;
+      delete expression_;
+      expression_ = NULL;
+      rc = TILEDB_AIT_ERR;
     }
-    expression_ = new Expression(filter_expression, attributes_vec, array_schema);
   }
 
-  reset_subarray(0);
+  rc |= reset_subarray(0);
 
   // Return
-  return TILEDB_AIT_OK;
+  return rc;
 }
 
 int ArrayIterator::reset_subarray(const void* subarray) {
@@ -233,6 +238,7 @@ int ArrayIterator::next() {
   }
 
   // Advance iterator
+  int evaluated_cell = true;
   do {
     std::vector<int> needs_new_read;
     const std::vector<int> attribute_ids = array_->attribute_ids();
@@ -325,7 +331,15 @@ int ArrayIterator::next() {
         }
       }
     }
-  } while(expression_ && !expression_->evaluate_cell(buffers_, buffer_sizes_, pos_));
+
+    if (expression_) {
+      evaluated_cell = expression_->evaluate_cell(buffers_, buffer_sizes_, pos_);
+      if (evaluated_cell == TILEDB_EXPR_ERR) {
+        tiledb_ait_errmsg = tiledb_expr_errmsg;
+        return TILEDB_AIT_ERR;
+      }
+    }
+  } while(!evaluated_cell);
 
   // Success
   return TILEDB_AIT_OK;

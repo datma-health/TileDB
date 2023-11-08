@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2018-2019, 2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -102,6 +103,10 @@ bool array_write_mode(int mode) {
          mode == TILEDB_ARRAY_WRITE_SORTED_COL || 
          mode == TILEDB_ARRAY_WRITE_SORTED_ROW || 
          mode == TILEDB_ARRAY_WRITE_UNSORTED;
+}
+
+bool array_consolidate_mode(int mode) {
+  return mode == TILEDB_ARRAY_CONSOLIDATE;
 }
 
 bool both_slashes(char a, char b) {
@@ -240,7 +245,7 @@ bool is_azure_path(const std::string& pathURL) {
 }
 
 bool is_azure_blob_storage_path(const std::string& pathURL) {
-  if (!pathURL.empty() && starts_with(pathURL, "az:")) {
+  if (!pathURL.empty() && (starts_with(pathURL, "az:") || starts_with(pathURL, "azb:"))) {
     return true;
   } else {
     return false;
@@ -862,11 +867,15 @@ std::string parent_dir(StorageFS *fs, const std::string& dir) {
   if(real_dir[pos] == '/')
     --pos;
 
+  std::size_t query_index = real_dir.find("?");
+  pos = query_index == std::string::npos ? pos : query_index;
   // Scan backwords until you find the next '/'
   while(pos > 0 && real_dir[pos] != '/')
     --pos;
-
-  return real_dir.substr(0, pos); 
+  if(query_index == std::string::npos)
+    return real_dir.substr(0, pos);
+  else
+    return (real_dir.substr(0,pos)).append("/" + real_dir.substr(query_index));
 }
 
 int read_from_file(StorageFS *fs,

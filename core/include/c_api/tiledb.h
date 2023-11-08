@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,11 +69,7 @@ extern "C" {
 
 /**@{*/
 /** C Library export. */
-#if (defined __GNUC__ && __GNUC__ >= 4) || defined __INTEL_COMPILER
-#  define TILEDB_EXPORT __attribute__((visibility("default")))
-#else
-#  define TILEDB_EXPORT
-#endif
+#define TILEDB_EXPORT __attribute__((visibility("default")))
 /**@}*/
 
 
@@ -608,6 +605,30 @@ TILEDB_EXPORT int tiledb_array_skip_and_read(
     size_t* buffer_sizes,
     size_t* skip_counts);
 
+ /**
+   * Evaluates the cell based on the filter expression applied to the tiledb array.
+   * @param tiledb_array The TileDB array
+   * @param buffers An array of buffers, one for each attribute. These must be
+   *     provided in the same order as the attributes specified in
+   *     init() or reset_attributes(). The case of variable-sized attributes is
+   *     special. Instead of providing a single buffer for such an attribute,
+   *     **two** must be provided: the second will hold the variable-sized cell
+   *     values, whereas the first holds the start offsets of each cell in the
+   *     second buffer.
+   * @param buffer_sizes The sizes (in bytes) allocated by the user for the
+   *     input buffers (there is a one-to-one correspondence).
+   * @param positions The position of the cell in the buffer to be evaluated.
+   *     There should be one position for each of the input buffers.
+   * @return true(1) or false(0) for successful evaluation and TILEDB_ERR(-1) otherwise.
+   *     The onus is on the client to check if there was an error during
+   *     evaluation when TILEB_ERR is returned.
+   */
+TILEDB_EXPORT int tiledb_array_evaluate_cell(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes,
+    int64_t* positions);
+
 /**
  * Checks if a read operation for a particular attribute resulted in a
  * buffer overflow.
@@ -634,11 +655,16 @@ TILEDB_EXPORT int tiledb_array_overflow(
  * 
  * @param tiledb_ctx The TileDB context.
  * @param array The name of the TileDB array to be consolidated.
+ * @param buffer_size (Optional) The size of buffers for reading/writing attributes during consolidation. Default is 10M.
+ * @param batch size (Optional) When specified, consolidation will occur batch-wise with a smaller batch_size set of
+ *     fragments getting consolidating together. Default is all fragments.
  * @return TILEDB_OK on success, and TILEDB_ERR on error.
  */
 TILEDB_EXPORT int tiledb_array_consolidate(
     const TileDB_CTX* tiledb_ctx,
-    const char* array);
+    const char* array,
+    size_t buffer_size = TILEDB_CONSOLIDATION_BUFFER_SIZE,
+    int batch_size = -1);
 
 /** 
  * Finalizes a TileDB array, properly freeing its memory space. 

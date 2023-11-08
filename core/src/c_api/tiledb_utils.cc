@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
  * @copyright Copyright (c) 2019-2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,8 +53,7 @@ static int setup(TileDB_CTX **ptiledb_ctx, const std::string& home,
                  const bool enable_shared_posixfs_optimizations=false)
 {
   int rc;
-  TileDB_Config tiledb_config;
-  memset(&tiledb_config, 0, sizeof(TileDB_Config));
+  TileDB_Config tiledb_config = {};
   tiledb_config.home_ = strdup(home.c_str());
   tiledb_config.enable_shared_posixfs_optimizations_ = enable_shared_posixfs_optimizations;
   rc = tiledb_ctx_init(ptiledb_ctx, &tiledb_config);
@@ -68,6 +68,23 @@ static int finalize(TileDB_CTX *tiledb_ctx)
 
 bool is_cloud_path(const std::string& path) {
   return path.find("://") != std::string::npos;
+}
+
+std::string get_path(const std::string &path) {
+  std::size_t check_cloud = path.find("://");
+  if (check_cloud != std::string::npos &&
+      path.substr(0, check_cloud).compare("hdfs") != 0)
+    return uri(path).path();
+  return path;
+}
+
+std::string append_path(const std::string& dir, const std::string& path) {
+  std::size_t query_pos = dir.find('?');
+  if (query_pos == std::string::npos) {
+    return StorageFS::slashify(dir) + path;
+  } else {
+    return StorageFS::slashify(dir.substr(0, query_pos)) + path + dir.substr(query_pos);
+  }
 }
 
 /**
@@ -86,17 +103,18 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
   *ptiledb_ctx = NULL;
   int rc;
   rc = setup(ptiledb_ctx, workspace, enable_shared_posixfs_optimizations);
+  std::string workspace_path = get_path(workspace);
   if (rc) {
     return NOT_CREATED;
   }
 
-  if (is_file(*ptiledb_ctx, workspace)) {
+  if (is_file(*ptiledb_ctx, workspace_path)) {
     return NOT_DIR;
   }
 
-  if (is_workspace(*ptiledb_ctx, workspace)) {
+  if (is_workspace(*ptiledb_ctx, workspace_path)) {
     if (replace) {
-      if (is_dir(*ptiledb_ctx, workspace) && delete_dir(*ptiledb_ctx, workspace) ) {
+      if (is_dir(*ptiledb_ctx, workspace_path) && delete_dir(*ptiledb_ctx, workspace_path) ) {
         return NOT_CREATED;
       }
     } else {
@@ -104,7 +122,7 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
     }
   }
 
-  rc = tiledb_workspace_create(*ptiledb_ctx, workspace.c_str());
+  rc = tiledb_workspace_create(*ptiledb_ctx, workspace_path.c_str());
   if (rc != TILEDB_OK) {
     rc = NOT_CREATED;
   } else {
@@ -134,7 +152,7 @@ bool workspace_exists(const std::string& workspace)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_workspace(tiledb_ctx, workspace);
+  exists = !rc && is_workspace(tiledb_ctx, get_path(workspace));
   FINALIZE;
   return exists;
 }
@@ -144,7 +162,7 @@ bool array_exists(const std::string& workspace, const std::string& array_name)
   bool exists = false;
   TileDB_CTX *tiledb_ctx;
   int rc = setup(&tiledb_ctx, workspace);
-  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(workspace, array_name));
+  exists = !rc && is_array(tiledb_ctx, StorageFS::append_paths(get_path(workspace), array_name));
   FINALIZE;
   return exists;
 }
@@ -242,7 +260,7 @@ int create_dir(const std::string& dirpath)
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(dirpath))) {
     FINALIZE;
-    return false;
+    return TILEDB_ERR;
   }
   int rc = create_dir(tiledb_ctx, dirpath);
   finalize(tiledb_ctx);
@@ -254,7 +272,7 @@ int delete_dir(const std::string& dirpath)
   TileDB_CTX *tiledb_ctx;
   if (setup(&tiledb_ctx, parent_dir(dirpath))) {
     FINALIZE;
-    return false;
+    return TILEDB_ERR;
   }
   int rc = delete_dir(tiledb_ctx, dirpath);
   finalize(tiledb_ctx);
@@ -325,10 +343,20 @@ static int check_file_for_read(TileDB_CTX *tiledb_ctx, std::string filename) {
 }
 
 
-#include <openssl/md5.h>
+#include "tiledb_openssl_shim.h"
 void print_md5_hash(unsigned char* buffer, size_t length) {
   unsigned char md[MD5_DIGEST_LENGTH];
-  MD5(buffer, length, md);
+
+  if(OpenSSL_version_num() < 0x30000000L) {
+    MD5(buffer, length, md);
+  } else {
+    EVP_MD_CTX* mdctx;
+    mdctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+    EVP_DigestUpdate(mdctx, buffer, length);
+    EVP_DigestFinal_ex(mdctx, md, NULL);
+    EVP_MD_CTX_free(mdctx);
+  }
   for(auto i=0; i <MD5_DIGEST_LENGTH; i++) {
     fprintf(stderr, "%02x",md[i]);
   }
@@ -352,7 +380,7 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
   int rc = read_file(tiledb_ctx, filename, 0, *buffer, size);
   if (!rc) {
     *length = size;
-#ifdef DEBUG
+#if 0
     // Calculate md5 hash for buffer
     std::cerr << "MD5 for buffer after reading : ";
     print_md5_hash((unsigned char *)(*buffer), size);

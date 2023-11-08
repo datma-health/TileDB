@@ -36,6 +36,7 @@
 
 #include "storage_fs.h"
 
+#include "adls_client.h"
 #include "base64.h"
 #include "blob/blob_client.h"
 #include "storage_account.h"
@@ -79,6 +80,8 @@ class AzureBlob : public StorageCloudFS {
   std::string account_name_;
   std::string container_name_;
   std::string working_dir_;
+
+  std::shared_ptr<azure::storage_adls::adls_client> adls_client_ = nullptr;
 
   std::mutex write_map_mtx_;
   std::unordered_map<std::string, std::vector<put_block_list_request_base::block_item>> write_map_;
@@ -131,7 +134,9 @@ class AzureBlob : public StorageCloudFS {
     }
   };
 
-  size_t max_stream_size = 32;
+  size_t max_stream_size_ = 1024;
+
+  int num_threads_ = 1; // use TILEDB_NUM_THREADS if needed
 
   std::string get_path(const std::string& path);
 
@@ -173,7 +178,7 @@ class AzureBlob : public StorageCloudFS {
   std::future<storage_outcome<void>> upload_block_blob(const std::string &blob, uint64_t block_size, int num_blocks,
                                                        std::vector<std::string> block_list,
                                                        const char* buffer, uint64_t bufferlen,
-                                                       uint parallelism=1);
+                                                       int parallelism=1);
 
   void update_expected_filesizes_map(const std::string& path, size_t size) {
     auto search = filesizes_map_.find(path);

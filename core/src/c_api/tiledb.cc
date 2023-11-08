@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corp.
  * @copyright Copyright (c) 2018-2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -545,6 +546,7 @@ int tiledb_array_apply_filter(
   // Apply filter
   if (tiledb_array->array_->apply_filter(filter_expression) != TILEDB_AR_OK) {
     strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
+    return TILEDB_ERR;
   }
 
   // Success
@@ -786,6 +788,27 @@ int tiledb_array_skip_and_read(
   return TILEDB_OK;
 }
 
+int tiledb_array_evaluate_cell(
+    const TileDB_Array* tiledb_array,
+    void** buffers,
+    size_t* buffer_sizes,
+    int64_t* positions) {
+
+  // Sanity check
+  if(!sanity_check(tiledb_array))
+    return TILEDB_ERR;
+
+  // Evaluate cell
+  int rc;
+  if((rc = tiledb_array->array_->evaluate_cell(buffers, buffer_sizes, positions)) == TILEDB_AR_ERR) {
+    strcpy(tiledb_errmsg, tiledb_ar_errmsg.c_str());
+    return TILEDB_ERR;
+  }
+
+  // true/false depending on the evaluation
+  return rc;
+}
+
 int tiledb_array_overflow(
     const TileDB_Array* tiledb_array,
     int attribute_id) {
@@ -799,7 +822,9 @@ int tiledb_array_overflow(
 
 int tiledb_array_consolidate(
     const TileDB_CTX* tiledb_ctx,
-    const char* array) {
+    const char* array,
+    size_t buffer_size,
+    int batch_size) {
   // Check array name length
   if(array == NULL || strlen(array) > TILEDB_NAME_MAX_LEN) {
     std::string errmsg = "Invalid array name length";
@@ -809,7 +834,7 @@ int tiledb_array_consolidate(
   }
 
   // Consolidate
-  if(tiledb_ctx->storage_manager_->array_consolidate(array) != TILEDB_SM_OK) {
+  if(tiledb_ctx->storage_manager_->array_consolidate(array, buffer_size, batch_size) != TILEDB_SM_OK) {
     strcpy(tiledb_errmsg, tiledb_sm_errmsg.c_str());
     return TILEDB_ERR;
   }

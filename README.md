@@ -12,4 +12,4 @@ This alternate implementation is based on the original fork from [Intel-HLS](htt
 Check out [TileDB tutorials](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials) -
  * [TileDB Mechanics](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials#tiledb-mechanics)
  * [TileDB C API](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials#tiledb-c-api)
- * [TileDB Examples](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials#tiledb-examples)
+ * [TileDB Examples](https://github.com/OmicsDataAutomation/TileDB/wiki/TileDB-Tutorials#examples)

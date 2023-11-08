@@ -34,6 +34,7 @@
 #ifndef URI_HH_
 #define URI_HH_    
 #include <string>
+#include <unordered_map>
 
 struct uri {
   uri(const std::string& uri_s);
@@ -44,10 +45,11 @@ struct uri {
   std::string port();
   int16_t nport();
   std::string path();
-  std::string query();
+  std::unordered_map<std::string, std::string> query();
 
  private:
   void parse(const std::string& uri_s);
+  std::string urlDecode(const std::string& uri_s);
 
  private:
   std::string protocol_;
@@ -55,17 +57,19 @@ struct uri {
   std::string port_;
   int16_t nport_ = 0;
   std::string path_;
-  std::string query_;
+  std::unordered_map<std::string, std::string> query_;
 };
 
 struct azure_uri : uri {
   azure_uri(const std::string& uri_s);
   std::string account();
   std::string container();
+  std::string endpoint();
 
  private:
   std::string account_;
   std::string container_;
+  std::string endpoint_;
 };
 
 struct s3_uri : uri {

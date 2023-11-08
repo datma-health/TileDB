@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
- * @copyright Copyright (c) 2018-2020 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2018-2020, 2022 Omics Data Automation, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,274 @@
 #include <sys/time.h>
 #include <sstream>
 
+
+template <class T>
+class ArrayTestFixture1D : TempDir {
+
+ public:
+  const std::string WORKSPACE = get_temp_dir() + "/array_test_fixture_ws_1D/";
+  std::string array_name_;
+  TileDB_ArraySchema array_schema_;
+  TileDB_CTX* tiledb_ctx_;
+
+  std::shared_ptr<std::vector<T>> buffer_;
+  size_t num_elements_ = 10;
+  
+  std::shared_ptr<std::vector<int32_t>> buffer_coords_;
+  size_t buffer_coords_size_;
+
+  std::vector<void *> buffers_;
+  std::vector<size_t> buffer_sizes_;
+  
+  ArrayTestFixture1D() {
+    CHECK_RC(tiledb_ctx_init(&tiledb_ctx_, NULL), TILEDB_OK);
+    CHECK_RC(tiledb_workspace_create(tiledb_ctx_, WORKSPACE.c_str()), TILEDB_OK);
+  }
+
+  ~ArrayTestFixture1D() {
+    // Finalize TileDB context
+    int rc = tiledb_ctx_finalize(tiledb_ctx_);
+    CHECK_RC(rc, TILEDB_OK);
+  }
+
+  // Create a buffer to store values of given Type
+  // Returns a buffer and size to calling client
+  void create_buffer(size_t size, T** buffer, size_t* bytes) {
+    buffer_ = std::make_shared<std::vector<T>>(size);
+
+    // Set some arbitrary values
+    for(auto i = 0u; i < size; ++i) {
+      buffer_.get()->data()[i] = (T)i;
+    }
+    
+    *bytes = (buffer_.get()->size())*sizeof(T);
+    *buffer = &buffer_.get()->data()[0];
+  }
+
+  void clear_buffer() {
+    for(auto i = 0u; i < buffer_.get()->size(); i++) {
+      buffer_.get()->data()[i] = (T)0;
+    }
+    for(auto i = 0u; i < buffer_coords_.get()->size(); i++) {
+      buffer_coords_.get()->data()[i] = 0;
+    }
+  }
+  
+  void validate_buffer() {
+    for(auto i = 0u; i < buffer_coords_.get()->size(); i++) {
+      CHECK(buffer_.get()->data()[i] == (T)(buffer_coords_.get()->data()[i]));
+    }
+  }
+  
+  int create_array(const int32_t tile_extent, const int32_t domain_lo, const int32_t domain_hi,
+                   const int cell_order, const int tile_order) {
+    // Error code
+    int rc;
+
+    int attribute_type = TILEDB_CHAR;
+    if (typeid(T) == typeid(uint8_t)) {
+      attribute_type = TILEDB_UINT8;
+    } else if (typeid(T) == typeid(uint16_t)) {
+      attribute_type = TILEDB_UINT16;
+    } else if (typeid(T) == typeid(uint32_t)) {
+      attribute_type = TILEDB_UINT32;
+    } else if (typeid(T) == typeid(uint64_t)) {
+      attribute_type = TILEDB_UINT64;
+    } else if (typeid(T) == typeid(int8_t)) {
+      attribute_type = TILEDB_INT8;
+    } else if (typeid(T) == typeid(int16_t)) {
+      attribute_type = TILEDB_INT16;
+    } else if (typeid(T) == typeid(int) || typeid(T) == typeid(int32_t)) {
+      attribute_type = TILEDB_INT32;
+    } else if (typeid(T) == typeid(int64_t)) {
+      attribute_type = TILEDB_INT64;
+    } else if (typeid(T) == typeid(float)) {
+      attribute_type = TILEDB_FLOAT32;
+    } else if (typeid(T) == typeid(double)) {
+      attribute_type = TILEDB_FLOAT64;
+    }
+
+    // Setup array
+    const int attribute_num = 1;
+    const char* attributes[] = { "MY_ATTRIBUTE" };
+    const char* dimensions[] = { "X"};
+    int32_t domain[] = { domain_lo, domain_hi };
+    int32_t tile_extents[] = { tile_extent };
+    const int types[] = { attribute_type, TILEDB_INT32 };
+    int compression[] = { TILEDB_NO_COMPRESSION, TILEDB_NO_COMPRESSION};
+    int compression_level[] = { 0, 0 };
+    
+    // Set the array schema
+    rc = tiledb_array_set_schema(
+        &array_schema_,
+        array_name_.c_str(),
+        attributes,
+        attribute_num,
+        0,
+        cell_order,
+        NULL,
+        compression,
+        compression_level,
+        NULL, // Offsets compression
+        NULL, // Offsets compression level
+        0, // Sparse
+        dimensions,
+        1,
+        domain,
+        2*sizeof(int32_t),
+        tile_extents,
+        sizeof(int32_t),
+        tile_order,
+        types);
+    CHECK_RC(rc, TILEDB_OK);
+    
+    // Create the array
+    rc = tiledb_array_create(tiledb_ctx_, &array_schema_);
+    CHECK_RC(rc, TILEDB_OK);
+
+    // Free array schema
+    rc = tiledb_array_free_schema(&array_schema_);
+    CHECK_RC(rc, TILEDB_OK);
+
+    buffer_coords_ = std::make_shared<std::vector<int32_t>>(num_elements_);
+    for(auto i = 0u; i < num_elements_; ++i) {
+      buffer_coords_.get()->data()[i] = (int32_t)i;
+    }
+    size_t buffer_coords_size = num_elements_ * sizeof(int32_t);
+
+    T *buffer = nullptr;
+    size_t buffer_bytes = 0;
+    create_buffer(num_elements_, &buffer, &buffer_bytes);
+    CHECK(buffer != nullptr);
+  
+    buffers_.push_back(buffer);
+    buffer_sizes_.push_back(buffer_bytes);
+    
+    buffers_.push_back(&buffer_coords_.get()->data()[0]);
+    buffer_sizes_.push_back(buffer_coords_size);
+    
+    return TILEDB_OK;
+  }
+
+  int write_array() {
+    // Intialize array
+    TileDB_Array* tiledb_array;
+    int rc = tiledb_array_init(
+        tiledb_ctx_,
+        &tiledb_array,
+        array_name_.c_str(),
+        TILEDB_ARRAY_WRITE,
+        NULL,
+        NULL,
+        0);   
+    CHECK_RC(rc, TILEDB_OK);
+    
+    // Write array
+    rc = tiledb_array_write(tiledb_array, const_cast<const void **>(buffers_.data()), buffer_sizes_.data());
+    CHECK_RC(rc, TILEDB_OK);
+   
+    // Finalize the array
+    rc = tiledb_array_finalize(tiledb_array);
+    CHECK_RC(rc, TILEDB_OK);
+
+    return TILEDB_OK;
+  }
+
+  int read_array() {
+    clear_buffer();
+    
+    // Initialize array
+    TileDB_Array* tiledb_array;
+    int rc = tiledb_array_init(
+        tiledb_ctx_,
+        &tiledb_array,
+        array_name_.c_str(),
+        TILEDB_ARRAY_READ,
+        NULL,
+        NULL,
+        0);   
+    CHECK_RC(rc, TILEDB_OK);
+
+    // Read array
+    rc = tiledb_array_read(tiledb_array, buffers_.data(), buffer_sizes_.data());
+    CHECK_RC(rc, TILEDB_OK);
+
+    CHECK(buffer_sizes_.data()[0] == num_elements_*sizeof(T));
+    CHECK(buffer_sizes_.data()[1] == num_elements_*sizeof(int32_t));
+
+    // Check no overflow
+    // CHECK_RC(tiledb_array_overflow(tiledb_array, 0), TILEDB_OK);
+    
+    // Finalize the array
+    rc = tiledb_array_finalize(tiledb_array);
+    CHECK_RC(rc, TILEDB_OK);
+
+    validate_buffer();
+    return TILEDB_OK;
+  }
+
+  int consolidate_array(size_t segment_size=0, int batch_size=0) {
+    // Consolidate array
+    int rc;
+    if (batch_size) {
+      rc = tiledb_array_consolidate(tiledb_ctx_, array_name_.c_str(), segment_size, batch_size);
+    } else if (segment_size) {
+      rc = tiledb_array_consolidate(tiledb_ctx_, array_name_.c_str(), segment_size);
+    } else {
+      rc = tiledb_array_consolidate(tiledb_ctx_, array_name_.c_str());
+    }
+    CHECK_RC(rc, TILEDB_OK);
+    
+    return TILEDB_OK;
+  }
+
+  void set_array_name(const char *name) {
+    array_name_ = WORKSPACE + name;
+  }
+};
+
+#define AF ArrayTestFixture1D<TestType>
+ 
+TEMPLATE_TEST_CASE_METHOD(ArrayTestFixture1D, "Test Sparse 1D Array", "[test_sparse_1D_array]", 
+                          char,  uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t, float, double) {
+  SECTION("row_major") {
+    AF::set_array_name("sparse_test_1D_row");
+    CHECK_RC(AF::create_array(5, 0, 99, TILEDB_ROW_MAJOR/*cell_order*/, TILEDB_ROW_MAJOR/*tile_order*/), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::consolidate_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::consolidate_array(200, 2), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+  }
+  SECTION("col_major") {
+    AF::set_array_name("sparse_test_1D_col");
+    CHECK_RC(AF::create_array(10, 0, 990, TILEDB_COL_MAJOR, TILEDB_COL_MAJOR), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+    CHECK_RC(AF::consolidate_array(200, 1), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+  }
+  SECTION("col_mixed") {
+    AF::set_array_name("sparse_test_1D_mixed");
+    CHECK_RC(AF::create_array(100, 0, 990, TILEDB_ROW_MAJOR, TILEDB_COL_MAJOR), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+  }
+  SECTION("col_mixed_1") {
+    AF::set_array_name("sparse_test_1D_mixed_1");
+    CHECK_RC(AF::create_array(200, 0, 990, TILEDB_ROW_MAJOR, TILEDB_COL_MAJOR), TILEDB_OK);
+    CHECK_RC(AF::write_array(), TILEDB_OK);
+    CHECK_RC(AF::read_array(), TILEDB_OK);
+  }
+}
+
 SparseArrayTestFixture::SparseArrayTestFixture() {
   // Error code
   int rc;
@@ -72,239 +340,6 @@ SparseArrayTestFixture::~SparseArrayTestFixture() {
 /* ****************************** */
 /*          PUBLIC METHODS        */
 /* ****************************** */
-
-template <typename T> 
-void* create_buffer(int32_t size, T** buffer, size_t* bytes) {
-  T *typed_buffer= *buffer;
-  typed_buffer = new T[size];
-  *bytes = (size)*sizeof(T);
-  for(int32_t i = 0; i < size; ++i)
-    typed_buffer[i] = (T)i;
-  return reinterpret_cast<void *>(typed_buffer);
-}
-
-template <typename T>
-void clear_buffer(int32_t size, T* buffer) {
-  for(int32_t i = 0; i < size; ++i)
-    buffer[i] = (T)0;
-}
-
-template <typename T>
-void validate_and_cleanup_buffer(int32_t size, T* buffer) {
-  for(int32_t i = 0; i < size; ++i)
-    CHECK(buffer[i] == (T)i);
-  delete buffer;
-}
-
-int SparseArrayTestFixture::create_sparse_array_1D(
-    const int attribute_type,
-    const int32_t tile_extent,
-    const int32_t domain_lo,
-    const int32_t domain_hi,
-    const int cell_order,
-    const int tile_order) {
-  // Error code
-  int rc;
-
-  // Setup array
-  const int attribute_num = 1;
-  const char* attributes[] = { "MY_ATTRIBUTE" };
-  const char* dimensions[] = { "X"};
-  int32_t domain[] = { domain_lo, domain_hi };
-  int32_t tile_extents[] = { tile_extent };
-  const int types[] = { attribute_type, TILEDB_INT32 };
-  int compression[] = { TILEDB_NO_COMPRESSION, TILEDB_NO_COMPRESSION};
-  int compression_level[] = { 0, 0 };
-
-  // Set the array schema
-  rc = tiledb_array_set_schema(
-      &array_schema_,
-           array_name_.c_str(),
-           attributes,
-           attribute_num,
-           0,
-           cell_order,
-           NULL,
-           compression,
-           compression_level,
-           NULL, // Offsets compression
-           NULL, // Offsets compression level
-           0, // Sparse
-           dimensions,
-           1,
-           domain,
-           2*sizeof(int32_t),
-           tile_extents,
-           sizeof(int32_t),
-           tile_order,
-           types);
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  // Create the array
-  rc = tiledb_array_create(tiledb_ctx_, &array_schema_);
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  // Free array schema
-  rc = tiledb_array_free_schema(&array_schema_);
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  int32_t domain_size = domain_hi-domain_lo+1;
-  size_t nbytes = domain_size/10;
-
-  int32_t* buffer_coords = new int32_t[nbytes];
-  for (int32_t i = 0; i < domain_size/10; ++i) {
-    buffer_coords[i] = i;
-  }
-  size_t buffer_coords_size = nbytes * sizeof(int32_t);
-  create_buffer(nbytes, &buffer_coords, &nbytes);
-  
-  void *buffer = nullptr;
-  if (attribute_type == TILEDB_CHAR) {
-    char *typed_buffer = reinterpret_cast<char *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_INT8) {
-    int8_t *typed_buffer = reinterpret_cast<int8_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_INT16) {
-    int16_t *typed_buffer = reinterpret_cast<int16_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_INT32) {
-    int32_t *typed_buffer = reinterpret_cast<int32_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_INT64) {
-    int64_t *typed_buffer = reinterpret_cast<int64_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_UINT8) {
-    uint8_t *typed_buffer = reinterpret_cast<uint8_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_UINT16) {
-    uint16_t *typed_buffer = reinterpret_cast<uint16_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_UINT32) {
-    uint32_t *typed_buffer = reinterpret_cast<uint32_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_UINT64) {
-    uint64_t *typed_buffer = reinterpret_cast<uint64_t *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_FLOAT32) {
-    float *typed_buffer = reinterpret_cast<float *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  } else if (attribute_type == TILEDB_FLOAT64) {
-    double *typed_buffer = reinterpret_cast<double *>(buffer);
-    buffer = create_buffer(nbytes, &typed_buffer, &nbytes);
-  }
-
-  CHECK(buffer != nullptr);
-  
-  std::vector<void *> buffers;
-  std::vector<size_t> buffer_sizes;
-  buffers.push_back(buffer);
-  buffer_sizes.push_back(nbytes);
-
-  buffers.push_back(buffer_coords);
-  buffer_sizes.push_back(buffer_coords_size);
-
-  return 0;
-  
-  // Intialize array
-  TileDB_Array* tiledb_array;
-  rc = tiledb_array_init(
-           tiledb_ctx_,
-           &tiledb_array,
-           array_name_.c_str(),
-           TILEDB_ARRAY_WRITE,
-           NULL,
-           NULL,
-           0);   
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  // Write array
-  rc = tiledb_array_write(tiledb_array, const_cast<const void **>(buffers.data()), buffer_sizes.data());
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  // Finalize the array
-  rc = tiledb_array_finalize(tiledb_array);
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  // Clear buffer
-  if (attribute_type == TILEDB_CHAR) { 
-    clear_buffer(domain_size, reinterpret_cast<char *>(buffer));
-  } else if (attribute_type == TILEDB_INT8) {
-    clear_buffer(domain_size, reinterpret_cast<int8_t *>(buffer));
-  } else if (attribute_type == TILEDB_INT16) {
-    clear_buffer(domain_size, reinterpret_cast<int16_t *>(buffer));
-  } else if (attribute_type == TILEDB_INT32) {
-    clear_buffer(domain_size, reinterpret_cast<int32_t *>(buffer));
-  } else if (attribute_type == TILEDB_INT64) {
-    clear_buffer(domain_size, reinterpret_cast<int64_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT8) {
-    clear_buffer(domain_size, reinterpret_cast<uint8_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT16) {
-    clear_buffer(domain_size, reinterpret_cast<uint16_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT32) {
-    clear_buffer(domain_size, reinterpret_cast<uint32_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT64) {
-    clear_buffer(domain_size, reinterpret_cast<uint64_t *>(buffer));
-  } else if (attribute_type == TILEDB_FLOAT32) {
-    clear_buffer(domain_size, reinterpret_cast<float *>(buffer));
-  } else if (attribute_type == TILEDB_FLOAT64) {
-    clear_buffer(domain_size, reinterpret_cast<double *>(buffer));
-  }
-
-  // Read array
-  rc = tiledb_array_init(
-           tiledb_ctx_,
-           &tiledb_array,
-           array_name_.c_str(),
-           TILEDB_ARRAY_READ,
-           NULL,
-           NULL,
-           0);   
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  rc = tiledb_array_read(tiledb_array, buffers.data(), buffer_sizes.data());
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  // Finalize the array
-  rc = tiledb_array_finalize(tiledb_array);
-  if(rc != TILEDB_OK)
-    return TILEDB_ERR;
-
-  // Check buffer
-  if (attribute_type == TILEDB_CHAR) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<char *>(buffer));
-  } else if (attribute_type == TILEDB_INT8) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<int8_t *>(buffer));
-  } else if (attribute_type == TILEDB_INT16) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<int16_t *>(buffer));
-  } else if (attribute_type == TILEDB_INT32) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<int32_t *>(buffer));
-  } else if (attribute_type == TILEDB_INT64) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<int64_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT8) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<uint8_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT16) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<uint16_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT32) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<uint32_t *>(buffer));
-  } else if (attribute_type == TILEDB_UINT64) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<uint64_t *>(buffer)); 
-  } else if (attribute_type == TILEDB_FLOAT32) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<float *>(buffer));
-  } else if (attribute_type == TILEDB_FLOAT64) {
-    validate_and_cleanup_buffer(domain_size, reinterpret_cast<double *>(buffer));
-  } 
-  
-  return TILEDB_OK;
-}
 
 int SparseArrayTestFixture::create_sparse_array_2D(
     const int64_t tile_extent_0,
@@ -382,7 +417,8 @@ int* SparseArrayTestFixture::read_sparse_array_2D(
     const int64_t domain_0_hi,
     const int64_t domain_1_lo,
     const int64_t domain_1_hi,
-    const int read_mode) {
+    const int read_mode,
+    const ssize_t expected_num_cells) {
   // Error code
   int rc;
 
@@ -425,6 +461,13 @@ int* SparseArrayTestFixture::read_sparse_array_2D(
   if(rc != TILEDB_OK) {
     tiledb_array_finalize(tiledb_array);
     return NULL;
+  }
+
+  // Check buffer sizes
+  if (expected_num_cells >= 0) {
+    CHECK(buffer_sizes[0] == (size_t)expected_num_cells*sizeof(int));
+  } else {
+    CHECK(buffer_sizes[0] == (size_t)cell_num*sizeof(int));
   }
 
   // Finalize the array
@@ -494,54 +537,6 @@ int SparseArrayTestFixture::write_sparse_array_unsorted_2D(
   // Success
   return TILEDB_OK;
 } 
-
-TEST_CASE_METHOD(SparseArrayTestFixture, "Test sparse write with attribute types", "[test_sparse_1D_array]") {
-  int rc;
-
-  set_array_name("sparse_test_char_100x100");
-  rc = create_sparse_array_1D(TILEDB_CHAR, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-  
-  set_array_name("sparse_test_int8_100x100");
-  rc = create_sparse_array_1D(TILEDB_INT8, 20, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_int16_100x100");
-  rc = create_sparse_array_1D(TILEDB_INT16, 30, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_int32_100x100");
-  rc = create_sparse_array_1D(TILEDB_INT32, 40, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_int64_100x100");
-  rc = create_sparse_array_1D(TILEDB_INT64, 50, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_uint8_100x100");
-  rc = create_sparse_array_1D(TILEDB_UINT8, 60, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_uint16_100x100");
-  rc = create_sparse_array_1D(TILEDB_UINT16, 70, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_uint32_100x100");
-  rc = create_sparse_array_1D(TILEDB_UINT32, 80, 0, 99, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_uint64_100x100");
-  rc = create_sparse_array_1D(TILEDB_UINT64, 10, 0, 99, TILEDB_ROW_MAJOR, TILEDB_COL_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_float32_100x100");
-  rc = create_sparse_array_1D(TILEDB_FLOAT32, 10, 0, 99, TILEDB_COL_MAJOR, TILEDB_ROW_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-
-  set_array_name("sparse_test_float64_100x100");
-  rc = create_sparse_array_1D(TILEDB_FLOAT64, 10, 0, 99, TILEDB_COL_MAJOR, TILEDB_COL_MAJOR);
-  CHECK_RC(rc, TILEDB_OK);
-}
 
 /**
  * Test is to randomly read subregions of the array and
@@ -697,7 +692,9 @@ class SparseArrayEnvTestFixture : SparseArrayTestFixture {
   }
 
   int read_array() {
-    CHECK(read_sparse_array_2D(4, 0, 4, 0, TILEDB_ARRAY_READ) != NULL);
+    int *contents = read_sparse_array_2D(0, 4, 0, 4, TILEDB_ARRAY_READ);
+    CHECK(contents != NULL);
+    delete [] contents;
     return 0;
   }
 
@@ -735,4 +732,79 @@ TEST_CASE_METHOD(SparseArrayEnvTestFixture, "Test reading/writing with env set",
   // TILEDB_DISABLE_FILE_LOCK=1
   set_disable_file_locking();
   read_array();
+}
+
+class SparseArrayIntersectingTileTestFixture : SparseArrayTestFixture {
+ public:
+
+  // Write an array with intersecting tiles
+  int write_array() {
+    // Set array name
+    set_array_name("sparse_test_intersecting_tile");
+    CHECK_RC(create_sparse_array_2D(4, 4, 0, 100, 0, 100, 3/*tile capacity*/, false, TILEDB_ROW_MAJOR, TILEDB_ROW_MAJOR), TILEDB_OK);
+
+    // Initialize the array
+    TileDB_Array* tiledb_array;
+    int rc = tiledb_array_init(
+        tiledb_ctx_,
+        &tiledb_array,
+        array_name_.c_str(),
+        TILEDB_ARRAY_WRITE,
+        NULL,
+        NULL,
+        0);
+    if(rc != TILEDB_OK) return TILEDB_ERR;
+
+    // Prepare buffers
+    int buffer_a1[] = {
+      0, 1, 2, 3,
+      0, 1, 2, 3,
+      0, 1, 2, 3,
+      0, 1, 2, 3 };
+    int64_t buffer_coords[] = {
+      23, 1, 23, 2, 23, 3, 23, 4,
+      30, 1, 30, 2, 30, 3, 30, 4,
+      45, 1, 45, 2, 45, 3, 45, 4,
+      97, 1, 97, 2, 97, 3, 97, 4 };
+
+    // Write to array
+    const void* buffers[] = { buffer_a1, buffer_coords };
+    size_t buffer_sizes[2];
+    buffer_sizes[0] = sizeof(buffer_a1);
+    buffer_sizes[1] = sizeof(buffer_coords);
+    rc = tiledb_array_write(tiledb_array, buffers, buffer_sizes);
+    if(rc != TILEDB_OK) return TILEDB_ERR;
+
+    // Finalize the array
+    rc = tiledb_array_finalize(tiledb_array);
+    if(rc != TILEDB_OK) return TILEDB_ERR;
+
+    return TILEDB_OK;
+  }
+
+  int read_array() {
+    int *array = read_sparse_array_2D(23, 100, 0, 100, TILEDB_ARRAY_READ, 16);
+    CHECK(array != NULL);
+    for (int i=0; i<4; i++) {
+      for (int j=0; j<4; j++) {
+        CHECK(*(array+i*4+j) == j);
+      }
+    }
+    delete [] array;
+
+    array = read_sparse_array_2D(0, 100, 2, 2, TILEDB_ARRAY_READ, 4);
+    CHECK(array != NULL);
+    for (int i=0; i<4; i++) {
+      CHECK(*(array+i) == 1);
+    }
+    delete [] array;
+
+    return TILEDB_OK;
+  }
+};
+
+
+TEST_CASE_METHOD(SparseArrayIntersectingTileTestFixture, "Test case with intersecting tiles", "[test_sparse_array_intersecting_tiles]") {
+  CHECK_RC(write_array(), TILEDB_OK);
+  CHECK_RC(read_array(), TILEDB_OK);
 }

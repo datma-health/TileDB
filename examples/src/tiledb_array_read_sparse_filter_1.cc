@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2019, 2022 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -77,19 +78,23 @@ int main(int argc, char *argv[]) {
   };
 
   // Read from array
-  tiledb_array_read(tiledb_array, buffers, buffer_sizes); 
+  tiledb_array_read(tiledb_array, buffers, buffer_sizes);
 
   // Print cell values
   int64_t result_num = buffer_sizes[0] / sizeof(int);
   printf("coords\t a1\t   a2\t     (a3.first, a3.second)\n");
   printf("--------------------------------------------------\n");
-  for(int i=0; i<result_num; ++i) { 
-    printf("(%" PRId64 ", %" PRId64 ")", buffer_coords[2*i], buffer_coords[2*i+1]);
-    printf("\t %3d", buffer_a1[i]);
-    size_t var_size = (i != result_num-1) ? buffer_a2[i+1] - buffer_a2[i] 
-                                          : buffer_sizes[2] - buffer_a2[i];
-    printf("\t %4.*s", int(var_size), &buffer_var_a2[buffer_a2[i]]);
-    printf("\t\t (%5.1f, %5.1f)\n", buffer_a3[2*i], buffer_a3[2*i+1]);
+  int64_t positions[10];
+  for(int i=0; i<result_num; ++i) {
+    for (int j=0; j<10; j++) positions[j] = i;
+    if (tiledb_array_evaluate_cell(tiledb_array, buffers, buffer_sizes, positions)) {
+      printf("(%" PRId64 ", %" PRId64 ")", buffer_coords[2*i], buffer_coords[2*i+1]);
+      printf("\t %3d", buffer_a1[i]);
+      size_t var_size = (i != result_num-1) ? buffer_a2[i+1] - buffer_a2[i] 
+          : buffer_sizes[2] - buffer_a2[i];
+      printf("\t %4.*s", int(var_size), &buffer_var_a2[buffer_a2[i]]);
+      printf("\t\t (%5.1f, %5.1f)\n", buffer_a3[2*i], buffer_a3[2*i+1]);
+    }
   }
 
   // Finalize the array

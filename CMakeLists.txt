@@ -5,7 +5,7 @@
 # The MIT License
 #
 # Copyright (c) 2016 MIT and Intel Corporation
-# Copyright (c) 2018-2021 Omics Data Automation, Inc.
+# Copyright (c) 2018-2022 Omics Data Automation, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,9 @@
 # THE SOFTWARE.
 #
 
-project(TileDB)
 cmake_minimum_required(VERSION 3.6)
+
+project(TileDB)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 # Update git submodules
@@ -45,11 +46,13 @@ set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to mo
 set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 
-set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install" CACHE PATH "Path to aws sdk")
-set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/1.8.114.zip" CACHE STRING "URL to aws-sdk-cpp github release")
+set(AWSSDK_VERSION "1.8.x" CACHE STRING "Version to aws sdk")
+set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install/${AWSSDK_VERSION}" CACHE PATH "Path to aws sdk")
+set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/${AWSSDK_VERSION}.zip" CACHE STRING "URL to aws-sdk-cpp github release")
 
-set(GCSSDK_ROOT_DIR "$ENV{HOME}/gcssdk-install" CACHE PATH "Path to gcs sdk")
-set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/v1.24.0.zip" CACHE STRING "URL to google-cloud-cpp github release")
+set(GCSSDK_VERSION "v1.24.0" CACHE STRING "Version to gcs sdk")
+set(GCSSDK_ROOT_DIR "$ENV{HOME}/gcssdk-install/${GCSSDK_VERSION}" CACHE PATH "Path to gcs sdk")
+set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/${GCSSDK_VERSION}.zip" CACHE STRING "URL to google-cloud-cpp github release")
 
 # Set the following to true downstream when TileDB is added as a subdirectory 
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
@@ -68,15 +71,29 @@ if(APPLE)
 else()
   set(USE_OPENMP True CACHE BOOL "Enables OpenMP")
 endif()
-set(TILEDB_VERBOSE True CACHE BOOL "Prints TileDB errors with verbosity")
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+  set(TILEDB_VERBOSE False CACHE BOOL "Prints TileDB errors with verbosity")
+else()
+  set(TILEDB_VERBOSE True CACHE BOOL "Prints TileDB errors with verbosity")
+endif()
+
 set(TILEDB_TRACE False CACHE BOOL "Trace TileDB C API")
 set(USE_PARALLEL_SORT False CACHE BOOL "Enables parallel sorting.")
 set(USE_HDFS True CACHE BOOL "Enables HDFS support")
 set(COMPRESSION_LEVEL_GZIP "" CACHE STRING "Compression level for GZIP.")
 set(COMPRESSION_LEVEL_ZSTD "" CACHE STRING "Compression level for Zstandard.")
 set(COMPRESSION_LEVEL_BLOSC "" CACHE STRING "Compression level for Blosc.")
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+
+set(DO_MEMORY_PROFILING False CACHE BOOL "Collect memory consumption in parts of TileDB - high overhead")
+
+# The DOWNLOAD_EXTRACT_TIMESTAMP option to the ExternalProject_Add() command is used to explicitly specify
+# how timestamps should be handled. The default behavior is to set the timestamps of extracted contents to
+# the time of extraction.
+# https://cmake.org/cmake/help/latest/policy/CMP0135.html#policy:CMP0135
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
 endif()
 
 # Find required library dependencies
@@ -116,9 +133,9 @@ include_directories(${CURL_INCLUDE_DIR})
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CURL_LIBRARIES})
 
 # Build Azure cpp lite client added as a dependency
-include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include)
+include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include ${AZURE_FSCLIENT_SOURCE_DIR}/adls/include)
 add_subdirectory(${AZURE_FSCLIENT_SOURCE_DIR})
-set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite)
+set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-lite azure-storage-adls)
 
 # Build AWS S3 client static libraries
 find_package(S3Client REQUIRED)
@@ -169,8 +186,10 @@ if(APPLE)
   set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} "-framework CoreFoundation")
 endif()
 
-# Set C++ 2011 flag
-include(SetCXX2011Flag)
+# Set C++17 as required standard for all C++ targets.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
@@ -229,6 +248,10 @@ endif()
 if(COMPRESSION_LEVEL_BLOSC)
   add_definitions(-DTILEDB_COMPRESSION_LEVEL_BLOSC=${COMPRESSION_LEVEL_BLOSC})
   message(STATUS "Set Blosc compression level to ${COMPRESSION_LEVEL_BLOSC}.")
+endif()
+if(DO_MEMORY_PROFILING)
+    message(STATUS "Enabling memory consumption profiling during consolidation")
+    add_definitions(-DDO_MEMORY_PROFILING=1)
 endif()
 
 # Build TileDB library

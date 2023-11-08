@@ -3,7 +3,7 @@
 	url = https://github.com/beltoforion/muparserx.git
 [submodule "deps/HDFSWrapper"]
 	path = deps/HDFSWrapper
-	url = https://github.com/omicsdataautomation/HDFSWrapper.git
+	url = https://github.com/datma-health/HDFSWrapper.git
 [submodule "deps/azure-storage-cpplite"]
 	path = deps/azure-storage-cpplite
-	url = https://github.com/nalinigans/azure-storage-cpplite.git
+	url = https://github.com/datma-health/azure-storage-cpplite.git

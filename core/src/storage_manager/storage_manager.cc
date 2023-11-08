@@ -137,7 +137,7 @@ int StorageManager::workspace_create(const std::string& workspace) {
   }
 
   // Create workspace directory
-  if(fs_->create_dir(workspace) != TILEDB_UT_OK) {  
+  if(create_dir(fs_, workspace) != TILEDB_UT_OK) {
     tiledb_sm_errmsg = tiledb_ut_errmsg;
     return TILEDB_SM_ERR;
   }
@@ -272,13 +272,13 @@ int StorageManager::group_create(const std::string& group) const {
 /*             ARRAY              */
 /* ****************************** */
 
-int StorageManager::array_consolidate(const char* array_dir) {
+int StorageManager::array_consolidate(const char* array_dir, size_t buffer_size, int batch_size) {
   // Create an array object
   Array* array;
   if(array_init(
       array,
       array_dir,
-      TILEDB_ARRAY_READ,
+      TILEDB_ARRAY_CONSOLIDATE,
       NULL,
       NULL,
       0) != TILEDB_SM_OK) 
@@ -288,7 +288,7 @@ int StorageManager::array_consolidate(const char* array_dir) {
   Fragment* new_fragment;
   std::vector<std::string> old_fragment_names;
   int rc_array_consolidate = 
-      array->consolidate(new_fragment, old_fragment_names);
+      array->consolidate(new_fragment, old_fragment_names, buffer_size, batch_size);
   
   // Close the array
   int rc_array_close = array_close(array->get_array_path_used());
@@ -525,34 +525,37 @@ int StorageManager::array_init(
 
   // Open the array
   OpenArray* open_array = NULL;
-  if(array_read_mode(mode)) {
+  if(array_read_mode(mode) || array_consolidate_mode(mode)) {
     if(array_open(full_array_path, open_array, mode) != TILEDB_SM_OK)
       return TILEDB_SM_ERR;
   }
 
-  // Create the clone Array object
-  Array* array_clone = new Array();
-  int rc_clone = array_clone->init(
-                     array_schema,
-                     full_array_path,
-                     open_array->fragment_names_,
-                     open_array->book_keeping_,
-                     mode,
-                     attributes, 
-                     attribute_num, 
-                     subarray,
-                     config_);
+  Array* array_clone = NULL;
+  if (!array_consolidate_mode(mode)) {
+    // Create the clone Array object. No need to clone for consolidation
+    array_clone = new Array();
+    int rc_clone = array_clone->init(
+        array_schema,
+        full_array_path,
+        open_array->fragment_names_,
+        open_array->book_keeping_,
+        mode,
+        attributes,
+        attribute_num,
+        subarray,
+        config_);
 
-  // Handle error
-  if(rc_clone != TILEDB_AR_OK) {
-    delete array_schema;
-    delete array_clone;
-    array = NULL;
-    if(array_read_mode(mode)) 
-      array_close(full_array_path);
-    tiledb_sm_errmsg = tiledb_ar_errmsg;
-    return TILEDB_SM_ERR;
-  } 
+    // Handle error
+    if(rc_clone != TILEDB_AR_OK) {
+      delete array_schema;
+      delete array_clone;
+      array = NULL;
+      if(array_read_mode(mode))
+        array_close(full_array_path);
+      tiledb_sm_errmsg = tiledb_ar_errmsg;
+      return TILEDB_SM_ERR;
+    }
+  }
 
   // Create actual array
   array = new Array();
@@ -904,9 +907,9 @@ int StorageManager::metadata_load_schema(
   // Load array schema
   if (read_from_file(fs_, filename, 0, buffer, buffer_size) == TILEDB_UT_ERR) {
     free(buffer);
-    std::string errmsg = "Cannot load metadata schema; File reading error";
+    std::string errmsg = "Cannot load metadata schema; File reading error\n" + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
-    tiledb_sm_errmsg = TILEDB_UT_ERRMSG + errmsg;
+    tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
   } 
 
@@ -1465,18 +1468,21 @@ int StorageManager::array_open(
              open_array->array_schema_) != TILEDB_SM_OK)
         return TILEDB_SM_ERR;
     }
+  }
 
-    // Load the book-keeping for each fragment
+  if (!array_consolidate_mode(mode)) {
+    // Load the book-keeping for each fragment. For consolidate mode, each fragment will be opened
+    // separately
     if(array_load_book_keeping(
-           open_array->array_schema_, 
-           open_array->fragment_names_, 
+           open_array->array_schema_,
+           open_array->fragment_names_,
            open_array->book_keeping_,
            mode) != TILEDB_SM_OK) {
       delete open_array->array_schema_;
       open_array->array_schema_ = NULL;
       open_array->mutex_unlock();
       return TILEDB_SM_ERR;
-    } 
+    }
   }
 
   // Unlock the mutex of the array
@@ -1689,7 +1695,7 @@ int StorageManager::create_group_file(const std::string& group) const {
   // Create file
   std::string filename = fs_->append_paths(group, TILEDB_GROUP_FILENAME);
   if(create_file(fs_, filename,  O_WRONLY | O_CREAT | O_SYNC, S_IRWXU) == TILEDB_FS_ERR) {
-    std::string errmsg = std::string("Failed to create group file");
+    std::string errmsg = std::string("Failed to create group file\n") + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
     tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
@@ -1703,7 +1709,7 @@ int StorageManager::create_workspace_file(const std::string& workspace) const {
   // Create file
   std::string filename = fs_->append_paths(workspace, TILEDB_WORKSPACE_FILENAME);
   if(create_file(fs_, filename,  O_WRONLY | O_CREAT | O_SYNC, S_IRWXU) == TILEDB_UT_ERR) {
-    std::string errmsg = std::string("Failed to create workspace file; ");
+    std::string errmsg = std::string("Failed to create workspace file\n") + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
     tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;
@@ -1827,8 +1833,7 @@ int StorageManager::group_move(
   // Rename
   if(move_path(fs_, old_group_real, new_group_real)) {
     std::string errmsg = 
-        std::string("Cannot move group; ") + 
-        strerror(errno);
+        std::string("Cannot move group\n") + tiledb_ut_errmsg;
     PRINT_ERROR(errmsg);
     tiledb_sm_errmsg = TILEDB_SM_ERRMSG + errmsg;
     return TILEDB_SM_ERR;

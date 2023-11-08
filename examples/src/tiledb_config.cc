@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,13 +36,12 @@
 
 int main() {
   /* Create a TileDB configuration. */
-  TileDB_Config tiledb_config;
+  TileDB_Config tiledb_config = {};
   /* 
    * IMPORTANT: You need to zero out the members of the config structure if you
    * are setting only a subset of them, so that the rest can take default 
    * values.
    */
-  memset(&tiledb_config, 0, sizeof(struct TileDB_Config));
   tiledb_config.home_ = "."; // TileDB home will be the current directory
   tiledb_config.read_method_ = TILEDB_IO_READ; // OS read instead of mmap
 
