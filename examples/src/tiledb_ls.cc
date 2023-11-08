@@ -86,8 +86,8 @@ int main(int argc, char** argv) {
   // Clean up
   for(int i=0; i<dir_num; ++i)
     free(dirs[i]);
-  delete dirs;
-  delete dir_types;
+  delete[] dirs;
+  delete[] dir_types;
   free(home);
 
   // Finalize context

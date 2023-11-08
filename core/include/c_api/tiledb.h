@@ -123,11 +123,6 @@ typedef struct TileDB_Config {
    * These can be overridden with env TILEDB_DISABLE_FILE_LOCKING and TILEDB_KEEP_FILE_HANDLES_OPEN.
    */
   bool enable_shared_posixfs_optimizations_;
-  /**
-   * gs://<bucket>/<path> Cloud URIs are serviced through the GCS SDK Client, but if necessary
-   * can be overridden to use the HDFS Google Cloud Connector.
-   */
-  bool use_gcs_hdfs_connector_;
 
   TileDB_Config() {
     memset(this, 0, sizeof(struct TileDB_Config));

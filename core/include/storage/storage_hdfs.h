@@ -1,9 +1,12 @@
 /**
- * @ storage_gcs.h
+ * @file storage_hdfs.h
  *
  * @section LICENSE
  *
  * The MIT License
+ *
+ * @copyright Copyright (c) 2018 University of California, Los Angeles and Intel Corporation
+ * @copyright Copyright (c) 2021 Omics Data Automation Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,56 +28,41 @@
  * 
  * @section DESCRIPTION
  *
- * GCS derived from StorageFS for Google Cloud Services
+ * HDFS derived from StorageFS for HDFS
  *
  */
 
-#ifndef __STORAGE_GCS_H__
-#define  __STORAGE_GCS_H__
-
-#include "tiledb_constants.h"
-
-#include <mutex>
-#include <string>
-#include <unordered_map>
+#ifndef __STORAGE_HDFS_H__
+#define  __STORAGE_HDFS_H__
 
 #ifdef USE_HDFS
 
-#include "hdfs.h"
-
-hdfsFS gcs_connect(struct hdfsBuilder *builder, const std::string& working_dir);
-
-#endif /* USE_HDFS */
-
 #include "storage_fs.h"
 
-#include "google/cloud/storage/client.h"
-#include <iostream>
+#include "hdfs.h"
+#include "tiledb_constants.h"
 
-namespace gcs = google::cloud::storage;
-using ::google::cloud::StatusOr;
+#include <mutex>
+#include <unordered_map>
 
-class GCS : public StorageCloudFS {
-
+class HDFS : public StorageFS {
  public:
-  GCS(const std::string& home);
-  ~GCS();
-
-  std::string get_path(const std::string& path) {
-    return StorageCloudFS::get_path(path);
-  }
+  HDFS(const std::string& home);
+  ~HDFS();
 
   std::string current_dir();
   int set_working_dir(const std::string& dir);
-
+  
+  bool is_dir(const std::string& dir);
+  bool is_file(const std::string& file);
   std::string real_dir(const std::string& dir);
-
+               
   int create_dir(const std::string& dir);
   int delete_dir(const std::string& dir);
 
   std::vector<std::string> get_dirs(const std::string& dir);
   std::vector<std::string> get_files(const std::string& dir);
-
+  
   int create_file(const std::string& filename, int flags, mode_t mode);
   int delete_file(const std::string& filename);
 
@@ -82,24 +70,22 @@ class GCS : public StorageCloudFS {
 
   int read_from_file(const std::string& filename, off_t offset, void *buffer, size_t length);
   int write_to_file(const std::string& filename, const void *buffer, size_t buffer_size);
+  
+  int move_path(const std::string& old_path, const std::string& new_path);
+    
+  int sync_path(const std::string& path);
 
- protected:
-  std::string bucket_name_;
-  StatusOr<gcs::Client> client_;
+  int close_file(const std::string& filename);
 
-  std::mutex write_map_mtx_;
-  typedef struct multipart_upload_info_t {
-   public:
-    size_t part_number_ = 0;
-    size_t last_uploaded_size_ = 0;
-  } multipart_upload_info_t;
-  std::unordered_map<std::string, multipart_upload_info_t> write_map_;
+  bool locking_support();
 
-  bool path_exists(const std::string& path);
-  int create_path(const std::string& path);
-  int delete_path(const std::string& path);
-  int commit_file(const std::string& filename);
+  protected:
+  hdfsFS hdfs_handle_ = NULL;
+  std::mutex read_map_mtx_, write_map_mtx_;
+  std::unordered_map<std::string, hdfsFile> read_map_, write_map_;
+  std::unordered_map<std::string, int> read_count_;
 };
 
-#endif /* __STORAGE_GCS_H__ */
+#endif /* USE_HDFS */
 
+#endif /* __STORAGE_HDFS_H__ */
