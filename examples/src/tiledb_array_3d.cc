@@ -7,6 +7,7 @@
  * 
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2021 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2023 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,6 +51,12 @@ int main(int argc, char *argv[]) {
 
   // Prepare parameters for array schema
   const char* array_name = "my_workspace/sparse_arrays/my_3d_array";
+
+  // Delete the array if it exists
+  if (is_dir(tiledb_ctx, array_name)) {
+    CHECK_RC(tiledb_delete(tiledb_ctx, array_name));
+  }
+
   const char* attributes[] = { "a1", "a2" };        // Two attributes
   const char* dimensions[] = { "d1", "d2", "d3" };  // Three dimensions
   int64_t domain[] = 
@@ -63,28 +70,20 @@ int main(int argc, char *argv[]) {
       1,                          // a1
       TILEDB_VAR_NUM              // a2 
   };
-  /*const int compression[] = 
+  const int compression[] =
   { 
         TILEDB_GZIP
         +TILEDB_BIT_SHUFFLE,      // a1
-#ifdef ENABLE_BLOSC
-	TILEDB_BLOSC,             // a2
-#else
         TILEDB_GZIP,              // a2
-#endif
         TILEDB_GZIP
         +TILEDB_DELTA_ENCODE      // coordinates
-  };*/
-  std::vector<int> compression_vec(4, TILEDB_NO_COMPRESSION);
-  const int* compression = compression_vec.data();
-
-  /*const int offsets_compression[] =
+  };
+  const int offsets_compression[] =
   {
         0,                        // a1 - DON'T CARE
         TILEDB_GZIP
         +TILEDB_DELTA_ENCODE,     // a2
-  };*/
-  const int* offsets_compression = compression_vec.data();
+  };
 
   int64_t tile_extents[] = 
   { 
@@ -160,7 +159,6 @@ int main(int argc, char *argv[]) {
   size_t buffer_a2[] = { 0, 5, 11, 16 };
   const char buffer_var_a2[] = "firstsecondthirdfourth";
   int64_t buffer_coords[] = { 0, 0, 0,  0, 0, 1,  0, 2, 3,  2, 1, 1 };
-  //int64_t buffer_coords[] = { 0, 0, 1,  2, 1, 1,  0, 2, 3,  0, 0, 0 };
   const void* buffers[] =
       { buffer_a1, buffer_a2, buffer_var_a2, buffer_coords };
   size_t buffer_sizes[] =

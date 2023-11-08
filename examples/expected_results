@@ -333,3 +333,12 @@ Reading cells...
 106
 107
 Example 41: Done running ./tiledb_array_read_sparse_2
+Example 42: Running ./tiledb_array_3d...
+4 results
+coords	 a1	   a2
+-----------------------
+0, 0, 0	   0	 first
+0, 0, 1	   1	 second
+0, 2, 3	   2	 third
+2, 1, 1	   3	 fourth
+Example 42: Done running ./tiledb_array_3d
