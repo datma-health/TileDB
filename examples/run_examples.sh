@@ -121,4 +121,5 @@ run_example ./tiledb_array_read_dense_1 $1 38
 run_example ./tiledb_array_read_sparse_1 $1 39
 run_example ./tiledb_array_read_dense_2 $1 40
 run_example ./tiledb_array_read_sparse_2 $1 41
-
+sleep 5
+run_example ./tiledb_array_3d $1 42
