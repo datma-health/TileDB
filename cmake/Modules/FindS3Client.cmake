@@ -61,30 +61,38 @@ elseif(NOT AWSSDK_FOUND)
   message(STATUS "Adding AWS SDK as an external project")
   include(ExternalProject)
 
-  ExternalProject_Add(aws-c-common-build
-    URL "https://github.com/awslabs/aws-c-common/archive/v0.6.9.tar.gz"
-    CMAKE_ARGS
+  set(AWSSDK_COMMON_CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE=Release
     -DBUILD_SHARED_LIBS=OFF
     -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR})
 
+  # Workaround for issues with semicolon separated substrings to ExternalProject_Add
+  # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262
+  if(CMAKE_OSX_ARCHITECTURES)
+    if(CMAKE_OSX_ARCHITECTURES MATCHES "x86_64" AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+      message(status "***** we are here")
+      list(APPEND AWSSDK_COMMON_CMAKE_ARGS
+        -DCMAKE_OSX_ARCHITECTURES=arm64$<SEMICOLON>x86_64)
+    else()
+      list(APPEND AWSSDK_COMMON_CMAKE_ARGS
+        -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES})
+    endif()
+  endif()
+
+  ExternalProject_Add(aws-c-common-build
+    URL "https://github.com/awslabs/aws-c-common/archive/v0.6.9.tar.gz"
+    CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS})
+
   ExternalProject_Add(aws-checksums-build
     URL "https://github.com/awslabs/aws-checksums/archive/v0.1.12.tar.gz"
-    CMAKE_ARGS 
-    -DBUILD_SHARED_LIBS=OFF
-    -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
-    -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
-    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
+    CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
     DEPENDS aws-c-common-build)
   
   ExternalProject_Add(aws-c-event-stream-build
     URL "https://github.com/awslabs/aws-c-event-stream/archive/v0.1.5.tar.gz"
     CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS=OFF
-    -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
-    -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
-    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
     DEPENDS aws-checksums-build)
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -100,18 +108,13 @@ elseif(NOT AWSSDK_FOUND)
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch &&
 		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/eventstreamdecoder.patch &&
 		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/aws_ossl.patch
-    CMAKE_ARGS
-    -DBUILD_SHARED_LIBS=OFF
+    CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
     -DENABLE_TESTING=OFF
     -DENABLE_UNITY_BUILD=ON
     -DCUSTOM_MEMORY_MANAGEMENT=OFF
     -DBUILD_DEPS=OFF
     -DBUILD_ONLY=config\\$<SEMICOLON>s3\\$<SEMICOLON>transfer\\$<SEMICOLON>identity-management\\$<SEMICOLON>sts
     -DMINIMIZE_SIZE=ON
-    -DCMAKE_BUILD_TYPE=Release
-    -DCMAKE_INSTALL_PREFIX=${AWSSDK_PREFIX}
-    -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
-    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS})
     
 

@@ -59,47 +59,51 @@ elseif(NOT GCSSDK_FOUND)
   message(STATUS "Adding GCS SDK as an external project")
   include(ExternalProject)
 
+  set(GCSSDK_COMMON_CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE=Release
+    -DBUILD_SHARED_LIBS=OFF
+    -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
+    -DCMAKE_PREFIX_PATH=${GCSSDK_PREFIX}
+    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+
+  # Workaround for issues with semicolon separated substrings to ExternalProject_Add
+  # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262
+  if(CMAKE_OSX_ARCHITECTURES)
+    if(CMAKE_OSX_ARCHITECTURES MATCHES "x86_64" AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+      message(status "***** we are here 2")
+      list(APPEND GCSSDK_COMMON_CMAKE_ARGS
+        "-DCMAKE_OSX_ARCHITECTURES=arm64$<SEMICOLON>x86_64")
+    else()
+      list(APPEND GCSSDK_COMMON_CMAKE_ARGS
+        -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES})
+    endif()
+  endif()
+
   # gcssdk has nlohmann json as its dependency
   ExternalProject_Add(nlohmann-build
     PREFIX ${GCSSDK_PREFIX}
     URL "https://github.com/nlohmann/json/archive/v3.9.1.zip"
-    CMAKE_ARGS
-        -DJSON_BuildTests=OFF
-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
-        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
-    )
+    CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
+    -DJSON_BuildTests=OFF)
 
   # gcssdk has abseil as its dependency, so build that first
   ExternalProject_Add(abseil-build
     PREFIX ${GCSSDK_PREFIX}
-    URL "https://github.com/abseil/abseil-cpp/archive/20200923.3.zip"
-    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/absl.patch
-    CMAKE_ARGS
-        -DBUILD_SHARED_LIBS=OFF
-        -DABSL_RUN_TESTS=OFF
-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        -DCMAKE_CXX_STANDARD=17
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
-        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
-        )
+    URL "https://github.com/abseil/abseil-cpp/archive/20230802.1.zip"
+#    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/absl.patch
+    CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
+        -DABSL_PROPAGATE_CXX_STD=ON
+        -DCMAKE_CXX_STANDARD=17)
 
   ExternalProject_Add(crc32-build
     PREFIX ${GCSSDK_PREFIX}
     URL "https://github.com/google/crc32c/archive/1.1.2.tar.gz"
-    CMAKE_ARGS
-        -DBUILD_SHARED_LIBS=OFF
+    CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
         -DCRC32C_BUILD_TESTS=OFF
         -DCRC32C_BUILD_BENCHMARKS=OFF
         -DCRC32C_USE_GLOG=OFF
-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        -DCMAKE_CXX_STANDARD=11
-        -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
-        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
-        )
+        -DCMAKE_CXX_STANDARD=11)
 
   ExternalProject_Add(gcssdk-build
     PREFIX ${GCSSDK_PREFIX}
@@ -108,19 +112,12 @@ elseif(NOT GCSSDK_FOUND)
                      ${GCSSDK_PREFIX}/src/gcssdk-build/google/cloud/storage &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcs_ossl.patch
     BUILD_IN_SOURCE 1
-    CMAKE_ARGS
-        -DBUILD_SHARED_LIBS=OFF
+    CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
         -DBUILD_TESTING=OFF
-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DGOOGLE_CLOUD_CPP_ENABLE=storage
-        -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_CXX_STANDARD=17
         -DCMAKE_CXX_VISIBILITY_PRESET=hidden
-        -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
-        -DCMAKE_INSTALL_PREFIX=${GCSSDK_PREFIX}
-        -DCMAKE_PREFIX_PATH=${GCSSDK_PREFIX}
-        -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
-        )
+        -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations")
 
   add_dependencies(gcssdk-build nlohmann-build)
   add_dependencies(gcssdk-build abseil-build)
