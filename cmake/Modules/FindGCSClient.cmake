@@ -71,7 +71,6 @@ elseif(NOT GCSSDK_FOUND)
   # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262
   if(CMAKE_OSX_ARCHITECTURES)
     if(CMAKE_OSX_ARCHITECTURES MATCHES "x86_64" AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
-      message(status "***** we are here 2")
       list(APPEND GCSSDK_COMMON_CMAKE_ARGS
         "-DCMAKE_OSX_ARCHITECTURES=arm64$<SEMICOLON>x86_64")
     else()
