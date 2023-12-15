@@ -85,10 +85,12 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
     $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$TEST"
 
 elif [[ $INSTALL_TYPE == azure ]]; then
-  export AZURE_CONTAINER_NAME="build"
+  gpg --quiet --batch --yes --decrypt --passphrase="$AZ_SH" --output $GITHUB_WORKSPACE/.github/scripts/az.tar $GITHUB_WORKSPACE/.github/scripts/az.tar.gpg
+  tar xf $GITHUB_WORKSPACE/.github/scripts/az.tar
+  export AZURE_CONTAINER_NAME="genomicsdb-builds"
   CHECK_RESULTS=(-1 -1)
-  run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred.sh 0 "blob.core.windows.net" & pids[0]=$!
-  TEST=github_test_${RANDOM}_adls run_azure_tests $GITHUB_WORKSPACE/.github/resources/azure/azure_cred_adls.sh 1 "dfs.core.windows.net" & pids[1]=$!
+  run_azure_tests $GITHUB_WORKSPACE/.github/scripts/az.sh 0 "blob.core.windows.net" & pids[0]=$!
+  TEST=github_test_${RANDOM}_adls run_azure_tests $GITHUB_WORKSPACE/.github/scripts/az_adls.sh 1 "dfs.core.windows.net" & pids[1]=$!
   wait ${pids[0]}
   CHECK_RESULTS[0]=$?
   wait ${pids[1]}
