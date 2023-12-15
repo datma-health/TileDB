@@ -86,7 +86,7 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
 
 elif [[ $INSTALL_TYPE == azure ]]; then
   gpg --quiet --batch --yes --decrypt --passphrase="$AZ_TAR" --output $GITHUB_WORKSPACE/.github/scripts/az.tar $GITHUB_WORKSPACE/.github/scripts/az.tar.gpg
-  tar xf $GITHUB_WORKSPACE/.github/scripts/az.tar
+  tar xf $GITHUB_WORKSPACE/.github/scripts/az.tar -C $GITHUB_WORKSPACE/.github/scripts
   export AZURE_CONTAINER_NAME="genomicsdb-builds"
   CHECK_RESULTS=(-1 -1)
   run_azure_tests $GITHUB_WORKSPACE/.github/scripts/az.sh 0 "blob.core.windows.net" & pids[0]=$!
