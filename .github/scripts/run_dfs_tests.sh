@@ -85,7 +85,7 @@ elif [[ $INSTALL_TYPE == gcs ]]; then
     $GITHUB_WORKSPACE/examples/run_examples.sh "gs://$GS_BUCKET/$TEST"
 
 elif [[ $INSTALL_TYPE == azure ]]; then
-  gpg --quiet --batch --yes --decrypt --passphrase="$AZ_SH" --output $GITHUB_WORKSPACE/.github/scripts/az.tar $GITHUB_WORKSPACE/.github/scripts/az.tar.gpg
+  gpg --quiet --batch --yes --decrypt --passphrase="$AZ_TAR" --output $GITHUB_WORKSPACE/.github/scripts/az.tar $GITHUB_WORKSPACE/.github/scripts/az.tar.gpg
   tar xf $GITHUB_WORKSPACE/.github/scripts/az.tar
   export AZURE_CONTAINER_NAME="genomicsdb-builds"
   CHECK_RESULTS=(-1 -1)
