@@ -191,6 +191,7 @@ jobs:
         INSTALL_DIR: ${{runner.workspace}}
         INSTALL_TYPE: ${{matrix.type}}
         R_TAR: ${{secrets.R_NEW_TAR}}
+        AZ_TAR: ${{secrets.AZ_TAR}}
         AZURITE_TAR: ${{secrets.AZURITE_TAR}}
         AWS_TAR: ${{secrets.AWS_TAR}}
 
