@@ -67,7 +67,8 @@ using namespace azure::storage_lite;
 static std::string run_command(const std::string& command) {
   std::string output;
   std::array<char, 2048> buffer;
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.data(), "r"), pclose);
+  std::string cmd = command + " 2> /dev/null";
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.data(), "r"), pclose);
   if (pipe) {
     while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
       output += buffer.data();
