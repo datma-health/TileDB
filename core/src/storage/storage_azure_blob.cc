@@ -191,16 +191,17 @@ AzureBlob::AzureBlob(const std::string& home) {
   }
 
   std::string azure_account = path_uri.account();
-  if (azure_account.empty() && path_uri.protocol().compare("azb") == 0) {
+  if (azure_account.empty()) {
     char* az_storage_account_env = getenv("AZURE_STORAGE_ACCOUNT");
     if (az_storage_account_env) azure_account = az_storage_account_env;
   }
 
-  if (azure_account.size() == 0 || path_uri.container().size() == 0) {
-    throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI does not seem to have either an account or a container");
+  if (path_uri.container().size() == 0) {
+    throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI does not seem to have a container specified");
   }
 
-  // Algorithm to get azure storage credentials. Try AZURE_STORAGE_ACCOUNT_KEY first, followed by AZURE_STORAGE_SAS_TOKEN and last
+  // See https://learn.microsoft.com/en-us/azure/storage/blobs/authorize-data-operations-cli#set-environment-variables-for-authorization-parameters
+  // Algorithm to get azure storage credentials. Try env AZURE_STORAGE_ACCOUNT_KEY first, followed by AZURE_STORAGE_SAS_TOKEN and last
   // try getting an access token directly from CLI
   std::shared_ptr<storage_credential> cred = nullptr;
   std::string azure_account_key = get_account_key(azure_account);
@@ -304,7 +305,7 @@ std::string AzureBlob::real_dir(const std::string& dir) {
   if (dir.find("://") != std::string::npos) {
     azure_uri path_uri(dir);
     std::string account = path_uri.account();
-    if (account.empty() && path_uri.protocol().compare("azb") == 0) {
+    if (account.empty()) {
       char* az_storage_account_env = getenv("AZURE_STORAGE_ACCOUNT");
       if (az_storage_account_env) account = az_storage_account_env;
     }

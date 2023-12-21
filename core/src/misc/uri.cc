@@ -176,6 +176,8 @@ azure_uri::azure_uri(const std::string& uri_s) : uri(uri_s) {
     }
     if (begin != std::string::npos) {
       container_ = this->host().substr(0, begin);
+    } else {
+      container_ = this->host();
     }
   }
 }
