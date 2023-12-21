@@ -196,6 +196,10 @@ AzureBlob::AzureBlob(const std::string& home) {
     if (az_storage_account_env) azure_account = az_storage_account_env;
   }
 
+  if (azure_account.size() == 0) {
+    throw std::system_error(EINVAL, std::generic_category(), "Azure Blob URI does not seem to have an account specified nor does it have AZURE_ACCOUNT_NAME env set");
+  }
+
   if (path_uri.container().size() == 0) {
     throw std::system_error(EPROTO, std::generic_category(), "Azure Blob URI does not seem to have a container specified");
   }

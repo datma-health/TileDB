@@ -73,18 +73,17 @@ class AzureBlobTestFixture {
 
 TEST_CASE("Test AzureBlob constructor", "[constr]") {
   CHECK_THROWS(new AzureBlob("wasbs://my_container/path"));
+  CHECK_THROWS(new AzureBlob("az:///path"));
   CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
   CHECK_THROWS(new AzureBlob("az://my_container@blob.core.windows.net/path"));
   char *key = getenv("AZURE_STORAGE_KEY");
   if (key) {
     key = strdup(key);
     unsetenv("AZURE_STORAGE_KEY");
-  }
-  std::string sas_token = "AZURE_STORAGE_SAS_TOKEN=non-existent-token";
-  CHECK(putenv(const_cast<char *>(sas_token.c_str())) == 0);
-  CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
-  unsetenv("AZURE_STORAGE_SAS_TOKEN");
-  if (key) {
+    std::string sas_token = "AZURE_STORAGE_SAS_TOKEN=non-existent-token";
+    CHECK(putenv(const_cast<char *>(sas_token.c_str())) == 0);
+    CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
+    unsetenv("AZURE_STORAGE_SAS_TOKEN");
     setenv("AZURE_STORAGE_KEY", key, true);
     free(key);
   }
