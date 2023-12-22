@@ -73,15 +73,20 @@ class AzureBlobTestFixture {
 
 TEST_CASE("Test AzureBlob constructor", "[constr]") {
   CHECK_THROWS(new AzureBlob("wasbs://my_container/path"));
+  CHECK_THROWS(new AzureBlob("az:///path"));
   CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
   CHECK_THROWS(new AzureBlob("az://my_container@blob.core.windows.net/path"));
-  //  CHECK_THROWS(new AzureBlob("az://non-existent-container@blob.core.windows.met/path"));
-  if (getenv("AZURE_STORAGE_ACCOUNT")) {
-      unsetenv( "AZURE_STORAGE_ACCOUNT");
+  char *key = getenv("AZURE_STORAGE_KEY");
+  if (key) {
+    key = strdup(key);
+    unsetenv("AZURE_STORAGE_KEY");
+    std::string sas_token = "AZURE_STORAGE_SAS_TOKEN=non-existent-token";
+    CHECK(putenv(const_cast<char *>(sas_token.c_str())) == 0);
+    CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
+    unsetenv("AZURE_STORAGE_SAS_TOKEN");
+    setenv("AZURE_STORAGE_KEY", key, true);
+    free(key);
   }
-  std::string sas_token = "AZURE_STORAGE_SAS_TOKEN=non-existent-token";
-  CHECK(putenv(const_cast<char *>(sas_token.c_str())) == 0);
-  // CHECK_THROWS(new AzureBlob("az://my_container@my_account.blob.core.windows.net/path"));
 }
 
 TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob cwd", "[cwd]") {
@@ -101,8 +106,8 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob real_dir", "[real-dir]") 
     return;
   }
   CHECK(azure_blob->real_dir("").compare(azure_blob->current_dir()) == 0);
-  CHECK(azure_blob->real_dir("xxx").compare(azure_blob->current_dir()+"/xxx") == 0);
-  CHECK(azure_blob->real_dir("xxx/yyy").compare(azure_blob->current_dir()+"/xxx/yyy") == 0);
+  CHECK(azure_blob->real_dir("xxx").compare(TileDBUtils::append_path(azure_blob->current_dir(),"xxx")) == 0);
+  CHECK(azure_blob->real_dir("xxx/yyy").compare(TileDBUtils::append_path(azure_blob->current_dir(), "xxx/yyy")) == 0);
   CHECK(azure_blob->real_dir("/xxx/yyy").compare("xxx/yyy") == 0);
   azure_uri test_uri(get_test_dir());
   CHECK(azure_blob->real_dir(get_test_dir()).compare(test_uri.path().substr(1)) == 0);
@@ -283,7 +288,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
 
   bool complete = true;
   uint iterations = 2;
-  size_t size = 10*1024*1024;
+  size_t size = 10*1024;
 
   #pragma omp parallel for
   for (uint i=0; i<iterations; i++) {

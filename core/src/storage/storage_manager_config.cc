@@ -86,6 +86,8 @@ StorageManagerConfig::~StorageManagerConfig() {
 /*             MUTATORS           */
 /* ****************************** */
 
+#define CONCAT_ERRMSG(x, y, z) x+"\n"+y+"\n"+TILEDB_FS_ERRMSG+z
+
 int StorageManagerConfig::init(
     const char* home,
 #ifdef HAVE_MPI
@@ -106,41 +108,42 @@ int StorageManagerConfig::init(
        try {
          fs_ = new AzureBlob(home_);
        } catch(std::system_error& ex) {
-         errmsg = "Azure Storage Blob initialization failed for home=" + home_ + "; " + tiledb_fs_errmsg + "; " + ex.what();
+         errmsg = CONCAT_ERRMSG("Azure Storage Blob initialization failed for home=" + home_, tiledb_fs_errmsg, ex.what());
+         printf("%s\n", errmsg.c_str());
          PRINT_ERROR(errmsg);
-	 tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
-	 return TILEDB_SMC_ERR;
+         tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
+         return TILEDB_SMC_ERR;
        }
      } else if (is_s3_storage_path(home_)) {
        try {
           fs_ = new S3(home_);
        } catch(std::system_error& ex) {
-         errmsg = "S3 Storage initialization failed for home=" + home_ + "; " + tiledb_fs_errmsg + "; " + ex.what();
+         errmsg = CONCAT_ERRMSG("S3 Storage initialization failed for home=" + home_, tiledb_fs_errmsg, ex.what());
          PRINT_ERROR(ex.what());
-	 tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
-	 return TILEDB_SMC_ERR;
+         tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
+         return TILEDB_SMC_ERR;
        }
      } else if (is_gcs_path(home_)) {
        try {
           fs_ = new GCS(home_);
        } catch(std::system_error& ex) {
-         errmsg =  "GCS Storage initialization failed for home=" + home_ + "; " + tiledb_fs_errmsg + "; " + ex.what();
+         errmsg =  CONCAT_ERRMSG("GCS Storage initialization failed for home=" + home_, tiledb_fs_errmsg, ex.what());
          PRINT_ERROR(ex.what());
-	 tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
-	 return TILEDB_SMC_ERR;
+         tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
+         return TILEDB_SMC_ERR;
        }
      } else if (is_supported_cloud_path(home_)) {
        try {
 #ifdef USE_HDFS
-	 fs_ = new HDFS(home_);
+         fs_ = new HDFS(home_);
 #else
-	 throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TileDB built with HDFS support disabled.");
+         throw std::system_error(EPROTONOSUPPORT, std::generic_category(), "TileDB built with HDFS support disabled.");
 #endif
        } catch(std::system_error& ex) {
-         errmsg =  "HDFS initialization failed for home=" + home_ + "; " + tiledb_fs_errmsg + "; " + ex.what();
-	 PRINT_ERROR(ex.what());
-	 tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
-	 return TILEDB_SMC_ERR;
+         errmsg = CONCAT_ERRMSG("HDFS initialization failed for home=" + home_, tiledb_fs_errmsg, ex.what());
+         PRINT_ERROR(ex.what());
+         tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
+         return TILEDB_SMC_ERR;
        }
      } else {
        tiledb_smc_errmsg = "No TileDB support for home=" + home_;
