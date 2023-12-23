@@ -123,3 +123,7 @@ run_example ./tiledb_array_read_dense_2 $1 40
 run_example ./tiledb_array_read_sparse_2 $1 41
 sleep 5
 run_example ./tiledb_array_3d $1 42
+sleep 5
+if [[ ! -z $1 ]]; then
+  ./tiledb_delete $1 -f
+fi

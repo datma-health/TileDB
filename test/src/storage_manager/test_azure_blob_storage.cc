@@ -282,7 +282,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
   if (azure_blob == nullptr) {
     return;
   }
- 
+
   std::string test_dir("parallel");
   REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
 
@@ -297,11 +297,11 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     for (auto j=0; j<2; j++) {
       void *buffer = malloc(size);
       if (buffer) {
-	memset(buffer, 'X', size);
-	CHECK_RC(azure_blob->write_to_file(filename, buffer, size), TILEDB_FS_OK);
-	free(buffer);
+        memset(buffer, 'X', size);
+        CHECK_RC(azure_blob->write_to_file(filename, buffer, size), TILEDB_FS_OK);
+        free(buffer);
       } else {
-	complete = false;
+        complete = false;
       }
     }
   }
@@ -318,6 +318,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     }
   }
 
+  // Eventual consistency
+  sleep(2);
   CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
 }
-
