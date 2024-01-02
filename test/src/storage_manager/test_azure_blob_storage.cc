@@ -262,6 +262,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
     REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
     CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", buffer, size), TILEDB_FS_OK);
     CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
+    sleep(2);
     CHECK(azure_blob->is_file(test_dir+"/foo"));
     CHECK((size_t)azure_blob->file_size(test_dir+"/foo") == size);
 
@@ -269,13 +270,11 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
     if (buffer1) {
       memset(buffer1, 0, size);
       CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer1, size), TILEDB_FS_OK);
-
       CHECK(memcmp(buffer, buffer1, size) == 0);
-
-      free(buffer1);
     }
-    free(buffer);
+    free(buffer1);
   }
+  free(buffer);
 }
 
 TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[parallel]") {
