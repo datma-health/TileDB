@@ -312,6 +312,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     #pragma omp parallel for
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"/foo"+std::to_string(i);
+      sleep(2);
       CHECK_RC(azure_blob->close_file(filename), TILEDB_FS_OK);
       CHECK(azure_blob->is_file(filename));
       CHECK((size_t)azure_blob->file_size(filename) == size*2);

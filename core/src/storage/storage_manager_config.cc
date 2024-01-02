@@ -86,7 +86,7 @@ StorageManagerConfig::~StorageManagerConfig() {
 /*             MUTATORS           */
 /* ****************************** */
 
-#define CONCAT_ERRMSG(x, y, z) x+"\n"+y+"\n"+TILEDB_FS_ERRMSG+z
+#define CONCAT_ERRMSG(x, y, z) x+y+"\n"+TILEDB_FS_ERRMSG+z
 
 int StorageManagerConfig::init(
     const char* home,
