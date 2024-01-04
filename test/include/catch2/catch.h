@@ -117,6 +117,8 @@ class TempDir {
       tmp_dirname_ = mkdtemp(const_cast<char *>((append_slash(tmp_dir)+dirname_pattern).c_str()));
     } else {
       std::string temp;
+      // initialize random seed
+      srand(time(NULL));
       for (auto i=0; i<6; i++) temp = temp+char(rand()%26+'a');
       tmp_dirname_ = TileDBUtils::append_path(
           g_test_dir, std::regex_replace(dirname_pattern, std::regex("XXXXXX"), temp));

@@ -262,6 +262,7 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
     REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
     CHECK_RC(azure_blob->write_to_file(test_dir+"/foo", buffer, size), TILEDB_FS_OK);
     CHECK_RC(azure_blob->close_file(test_dir+"/foo"), TILEDB_FS_OK);
+    sleep(2);
     CHECK(azure_blob->is_file(test_dir+"/foo"));
     CHECK((size_t)azure_blob->file_size(test_dir+"/foo") == size);
 
@@ -269,20 +270,18 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob large read/write file", "
     if (buffer1) {
       memset(buffer1, 0, size);
       CHECK_RC(azure_blob->read_from_file(test_dir+"/foo", 0, buffer1, size), TILEDB_FS_OK);
-
       CHECK(memcmp(buffer, buffer1, size) == 0);
-
-      free(buffer1);
     }
-    free(buffer);
+    free(buffer1);
   }
+  free(buffer);
 }
 
 TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[parallel]") {
   if (azure_blob == nullptr) {
     return;
   }
- 
+
   std::string test_dir("parallel");
   REQUIRE(azure_blob->create_dir(test_dir) == TILEDB_FS_OK);
 
@@ -297,11 +296,11 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     for (auto j=0; j<2; j++) {
       void *buffer = malloc(size);
       if (buffer) {
-	memset(buffer, 'X', size);
-	CHECK_RC(azure_blob->write_to_file(filename, buffer, size), TILEDB_FS_OK);
-	free(buffer);
+        memset(buffer, 'X', size);
+        CHECK_RC(azure_blob->write_to_file(filename, buffer, size), TILEDB_FS_OK);
+        free(buffer);
       } else {
-	complete = false;
+        complete = false;
       }
     }
   }
@@ -312,12 +311,14 @@ TEST_CASE_METHOD(AzureBlobTestFixture, "Test AzureBlob parallel operations", "[p
     #pragma omp parallel for
     for (uint i=0; i<iterations; i++) {
       std::string filename = test_dir+"/foo"+std::to_string(i);
+      sleep(2);
       CHECK_RC(azure_blob->close_file(filename), TILEDB_FS_OK);
       CHECK(azure_blob->is_file(filename));
       CHECK((size_t)azure_blob->file_size(filename) == size*2);
     }
   }
 
+  // wait to allow for eventual consistency
+  sleep(2);
   CHECK_RC(azure_blob->delete_dir(test_dir), TILEDB_FS_OK);
 }
-

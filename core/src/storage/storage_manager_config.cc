@@ -86,7 +86,7 @@ StorageManagerConfig::~StorageManagerConfig() {
 /*             MUTATORS           */
 /* ****************************** */
 
-#define CONCAT_ERRMSG(x, y, z) x+"\n"+y+"\n"+TILEDB_FS_ERRMSG+z
+#define CONCAT_ERRMSG(x, y, z) x+y+"\n"+TILEDB_FS_ERRMSG+z
 
 int StorageManagerConfig::init(
     const char* home,
@@ -109,7 +109,6 @@ int StorageManagerConfig::init(
          fs_ = new AzureBlob(home_);
        } catch(std::system_error& ex) {
          errmsg = CONCAT_ERRMSG("Azure Storage Blob initialization failed for home=" + home_, tiledb_fs_errmsg, ex.what());
-         printf("%s\n", errmsg.c_str());
          PRINT_ERROR(errmsg);
          tiledb_smc_errmsg = TILEDB_SMC_ERRMSG + errmsg;
          return TILEDB_SMC_ERR;

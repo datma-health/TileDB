@@ -48,8 +48,8 @@ run_azure_tests() {
     tiledb_utils_tests "azb://$AZURE_CONTAINER_NAME/$TEST?endpoint=$AZURE_STORAGE_ACCOUNT.$3" &&
     echo "az schema storage test" &&
     $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
-    $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME/$TEST" ~[read-write-large] &&
-    $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT" ~[read-write-large] &&
+    $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME/$TEST" ~[read-write-large] ~[parallel] &&
+    $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "azb://$AZURE_CONTAINER_NAME/$TEST?account=$AZURE_STORAGE_ACCOUNT" ~[read-write-large] ~[parallel] &&
     echo "az schema storage buffer test" &&
     $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema examples" &&
