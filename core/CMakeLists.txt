@@ -65,7 +65,7 @@ target_link_options(tiledb_static PUBLIC ${TILEDB_LINK_OPTIONS})
 target_link_options(tiledb_shared PUBLIC ${TILEDB_LINK_OPTIONS})
 endif()
 
-target_link_libraries(tiledb_static muparserx azure-storage-adls ${AWSSDK_LINK_LIBRARIES} ${GCSSDK_LINK_LIBRARIES})
+target_link_libraries(tiledb_static ${TILEDB_LIB_DEPENDENCIES})
 target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 
 # Install libraries
