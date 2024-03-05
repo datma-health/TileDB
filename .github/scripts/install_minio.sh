@@ -23,8 +23,8 @@ source $HOME/aws_env.sh
 
 # same certificates as used for azurite
 mkdir -p ${HOME}/.minio/certs
-gpg --quiet --batch --yes --decrypt --passphrase=$AZURITE_TAR --output ${HOME}/.minio/azurite.tar $GITHUB_WORKSPACE/.github/scripts/azurite.tar.gpg
-tar xvf ${HOME}/.minio/azurite.tar -C ${HOME}/.minio/certs
+mv cert.pem ${HOME}/.minio/certs/cert.pem
+mv key.pem ${HOME}/.minio/certs/key1.pem
 cp ${HOME}/.minio/certs/cert.pem ${HOME}/.minio/certs/public.crt
 cp ${HOME}/.minio/certs/key1.pem ${HOME}/.minio/certs/private.key
 sudo cp ${HOME}/.minio/certs/public.crt /usr/local/share/ca-certificates/ca-certificates.crt

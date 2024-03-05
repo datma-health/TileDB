@@ -178,8 +178,10 @@ jobs:
       working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
         if [[ ${{matrix.type}} == "azurite" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/mkcert.sh
           source $GITHUB_WORKSPACE/.github/scripts/install_azurite.sh
         elif [[ ${{matrix.type}} == "minio" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/mkcert.sh
           source $GITHUB_WORKSPACE/.github/scripts/install_minio.sh
         elif [[ ${{matrix.type}} == "aws" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_aws.sh
