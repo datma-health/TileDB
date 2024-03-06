@@ -50,13 +50,14 @@
  std::string ComputeCrc32cChecksum(std::string const& payload) {
 --- gcssdk-build-orig/google/cloud/storage/internal/hash_validator_impl.h	2021-02-02 08:32:25.000000000 +0530
 +++ gcssdk-build/google/cloud/storage/internal/hash_validator_impl.h	2023-03-16 23:21:07.685891559 +0530
-@@ -16,8 +16,8 @@
+@@ -16,8 +16,9 @@
  #define GOOGLE_CLOUD_CPP_GOOGLE_CLOUD_STORAGE_INTERNAL_HASH_VALIDATOR_IMPL_H
  
  #include "google/cloud/storage/internal/hash_validator.h"
 +#include "google/cloud/storage/tiledb_openssl_shim.h"
  #include "google/cloud/storage/version.h"
 -#include <openssl/md5.h>
++#include <cstdint>
  
  namespace google {
  namespace cloud {

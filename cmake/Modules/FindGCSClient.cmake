@@ -109,7 +109,8 @@ elseif(NOT GCSSDK_FOUND)
     URL ${GCSSDK_URL}
     PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h 
                      ${GCSSDK_PREFIX}/src/gcssdk-build/google/cloud/storage &&
-                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcs_ossl.patch
+                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcs_ossl.patch &&
+                  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcc13.patch
     BUILD_IN_SOURCE 1
     CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
         -DBUILD_TESTING=OFF

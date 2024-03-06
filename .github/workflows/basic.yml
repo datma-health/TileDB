@@ -51,7 +51,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         # All supported types
-        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws, minio]
+        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
         include:
           - os: macos-11
             type: basic
@@ -178,8 +178,10 @@ jobs:
       working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
         if [[ ${{matrix.type}} == "azurite" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/mkcert.sh
           source $GITHUB_WORKSPACE/.github/scripts/install_azurite.sh
         elif [[ ${{matrix.type}} == "minio" ]]; then
+          source $GITHUB_WORKSPACE/.github/scripts/mkcert.sh
           source $GITHUB_WORKSPACE/.github/scripts/install_minio.sh
         elif [[ ${{matrix.type}} == "aws" ]]; then
           source $GITHUB_WORKSPACE/.github/scripts/install_aws.sh
