@@ -30,7 +30,7 @@ cp ${HOME}/.minio/certs/key1.pem ${HOME}/.minio/certs/private.key
 sudo cp ${HOME}/.minio/certs/public.crt /usr/local/share/ca-certificates/ca-certificates.crt
 sudo update-ca-certificates
 rootCA=$(mkcert -CAROOT)
-mkdir -p ${HOME}/certs/CA
+mkdir -p ${HOME}/.minio/certs/CA
 cp ${rootCA}/*pem ${HOME}/certs/CA/
 
 # Start minio
