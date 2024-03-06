@@ -31,7 +31,7 @@ sudo cp ${HOME}/.minio/certs/public.crt /usr/local/share/ca-certificates/ca-cert
 sudo update-ca-certificates
 rootCA=$(mkcert -CAROOT)
 mkdir -p ${HOME}/.minio/certs/CA
-cp ${rootCA}/*pem ${HOME}/certs/CA/
+cp ${rootCA}/*pem ${HOME}/.minio/certs/CA/
 
 # Start minio
 mkdir -p /tmp/minio/data
