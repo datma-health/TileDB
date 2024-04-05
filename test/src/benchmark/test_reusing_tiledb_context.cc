@@ -34,7 +34,7 @@
 #include "tiledb.h"
 
 char *workspace = getenv("GENOMICSDB_DEMO_WS");
-std::string array = std::string(workspace) + "/allcontigs$1$3095677412";
+std::string array = workspace?std::string(workspace):std::string("") + "/allcontigs$1$3095677412";
 const char* attributes[] = { "REF", TILEDB_COORDS };
 
 char *num_iterations_env = getenv("NUM_ITERATIONS");
