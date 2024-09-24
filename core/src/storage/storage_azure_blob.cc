@@ -61,6 +61,12 @@
 #endif
 
 #define AZ_BLOB_ERROR(MSG, PATH) SYSTEM_ERROR(TILEDB_FS_ERRMSG, "Azure: "+MSG, PATH, tiledb_fs_errmsg)
+#define AZ_AUTH_ERROR(MSG) \
+  do { \
+    std::string errmsg = std::string("Azure Auth: ") + "(" + __func__ + ") " + MSG; \
+    PRINT_ERROR(errmsg);                                                \
+    TILEDB_FS_ERRMSG = errmsg;                                                \
+  } while(false)
 
 using namespace azure::storage_lite;
 
@@ -83,6 +89,7 @@ static std::string get_account_key(const std::string& account_name) {
   if (!az_storage_ac_name || (az_storage_ac_name && account_name.compare(az_storage_ac_name) == 0)) {
     char *key = getenv("AZURE_STORAGE_KEY");
     if (key) {
+      AZ_AUTH_ERROR("Using env variables AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_KEY");
       return key;
     }
   }
@@ -105,7 +112,8 @@ static std::string get_account_key(const std::string& account_name) {
       }
     }
   }
-  
+
+  AZ_AUTH_ERROR("Retrieved account key via CLI");
   return account_key;
 }
 
@@ -134,6 +142,7 @@ static std::string get_blob_endpoint(const std::string& endpoint,
       az_blob_endpoint = "";
     }
   }
+  AZ_AUTH_ERROR(std::string("Got Azure storage endpoint ")+az_blob_endpoint);
   return az_blob_endpoint;
 }
 
@@ -235,15 +244,13 @@ AzureBlob::AzureBlob(const std::string& home) {
       azure_account, cred, /* use_https */ true,
       get_blob_endpoint(path_uri.endpoint(), azure_account));
 
+  AZ_AUTH_ERROR(std::string("Successfully instantiated storage account for ")+home);
+
   auto num_threads = getenv("TILEDB_NUM_THREADS");
   if (num_threads) {
     num_threads_ = std::string(num_threads)=="0"?1:std::stoi(num_threads);
     if (!num_threads_) num_threads_ = 1;
   }
-
-#ifdef DEBUG
-  std::cerr << "*** Using threads=" << num_threads_ << " with azure SDK client" << std::endl;
-#endif
 
   std::string ca_certs_location = locate_ca_certs();
   if (ca_certs_location.empty()) {
@@ -251,16 +258,18 @@ AzureBlob::AzureBlob(const std::string& home) {
   } else {
     blob_client_ = std::make_shared<blob_client>(account, 1/*concurrency*/, ca_certs_location);
   }
+
+  AZ_AUTH_ERROR(std::string("Successfully instantiated blob client") + home);
   
   bc_wrapper_ = std::make_shared<blob_client_wrapper>(blob_client_);
   blob_client_wrapper_ = reinterpret_cast<blob_client_wrapper *>(bc_wrapper_.get());
 
-  /*
   if (!blob_client_wrapper_->container_exists(path_uri.container())) {
-      AZ_BLOB_ERROR("Container does not seem to exist", path_uri.container());
-      throw std::system_error(EIO, std::generic_category(), "AzureBlobFS only supports accessible and already existing containers");
+    AZ_BLOB_ERROR("Container does not seem to exist", path_uri.container());
+  } else {
+    AZ_AUTH_ERROR(std::string("Container exists : ") + path_uri.container());
   }
-  */
+
 
   account_name_ = azure_account;
   container_name_ = path_uri.container();
@@ -291,17 +300,22 @@ int AzureBlob::set_working_dir(const std::string& dir) {
 bool AzureBlob::path_exists(const std::string& path) {
   auto blob_property = blob_client_wrapper_->get_blob_property(container_name_, get_path(path));
   if (blob_property.valid()) {
+    AZ_AUTH_ERROR(std::string("path_exists blob_property is valid ") + path);
     if (blob_property.content_type.empty() && path.back() == '/') {
+      AZ_AUTH_ERROR(std::string("path_exists true and is dir ")+ path);
       return true;
     } else if (!blob_property.content_type.empty() && path.back() != '/') {
+      AZ_AUTH_ERROR(std::string("path_exists true and is file ")+ path);
       return true;
     }
   } else if (path.back() == '/') {
     // Check directories in non-hierarchical namespaces by checking for children as they are not explicitly
     // created as in hierarchical namespaces
     auto response = blob_client_wrapper_->list_blobs_segmented(container_name_, "/",  "", get_path(path), 1);
+    AZ_AUTH_ERROR(std::string("path_exists for dir checks response.blobs.size()>0 ")+ path);
     return response.blobs.size() > 0;
   }
+  AZ_AUTH_ERROR(std::string("PathExists blob_property not found ")+ path);
   return false;
 }
 
