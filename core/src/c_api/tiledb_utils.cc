@@ -470,6 +470,7 @@ int move_across_filesystems(const std::string& src, const std::string& dest)
   rc = write_file(tiledb_ctx, dest, buffer, size);
   rc |= close_file(tiledb_ctx, dest);
   finalize(tiledb_ctx);
+  free(buffer);
   return rc;
 }
 

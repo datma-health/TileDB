@@ -62,8 +62,10 @@ using namespace Catch::clara;
 #endif
 
 #include "tiledb_utils.h"
+#include "utils.h"
 
 #include "regex"
+#include <filesystem>
 
 #define CHECK_RC(rc, expected) CHECK(rc == expected)
 
@@ -78,6 +80,10 @@ class TempDir {
 
   ~TempDir() {
     TileDBUtils::delete_dir(get_temp_dir());
+    // Beware the following will delete the entire book_keeping cache after running tests
+    if (is_env_set("TILEDB_CACHE")) {
+      TileDBUtils::delete_dir(StorageFS::slashify(std::filesystem::temp_directory_path()) + "tiledb_bookkeeping");
+    }
 
     if (!delete_test_dir_in_destructor_.empty()) {
       TileDBUtils::delete_dir(delete_test_dir_in_destructor_);

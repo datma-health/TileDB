@@ -181,9 +181,9 @@ int StorageBuffer::finalize() {
     rc =  write_buffer();
   }
   rc = fs_->close_file(filename_) || rc;
+  free_buffer();
   if (rc) {
     // error is logged in write_buffer or close_file
-    free_buffer();
     return TILEDB_BF_ERR;
   } else {
     return TILEDB_BF_OK;

@@ -15,3 +15,10 @@ The use of these Environment Variables will alter the behavior of TileDB. These 
 
 * TILEDB_MAX_STREAM_SIZE
      For azure blob storage, use download_blob_to_stream to read lengths < TILEDB_MAX_STREAM_SIZE. If this is not set, the default is 1024 bytes defined in core/include/storage_manager/storage_azure_blob.h.
+
+
+* TILEDB_CACHE
+    Cache bookkeeping and other files as necessary
+
+* TILEDB_BOOKKEEPING_STATS
+    Print memory and time statistics for reading and loading bookkeeping files

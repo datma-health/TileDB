@@ -119,7 +119,8 @@ elif [[ $INSTALL_TYPE == azurite ]]; then
   $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob/$TEST" &&
   AZURE_STORAGE_ACCOUNT=$TEMP_VAR
   $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob/$TEST" &&
-  $GITHUB_WORKSPACE/examples/run_examples.sh "azb://test/$TEST?account=devstoreaccount1"
+  $GITHUB_WORKSPACE/examples/run_examples.sh "azb://test/$TEST?account=devstoreaccount1" &&
+  TILEDB_CACHE=1 $GITHUB_WORKSPACE/examples/run_examples.sh "az://test/$TEST?account=devstoreaccount1"
 
 elif [[ $INSTALL_TYPE == aws ]]; then
   TILEDB_BENCHMARK=1
