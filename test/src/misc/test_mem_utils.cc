@@ -37,4 +37,5 @@ TEST_CASE("Test mem_utils", "[mem_utils]") {
   print_memory_stats("Tracking memory usage START");
   sleep(1);
   print_memory_stats("Tracking memory usage END");
+  print_rusage("Test rusage");
 }

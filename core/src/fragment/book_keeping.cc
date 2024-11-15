@@ -360,11 +360,9 @@ int unlock_file(int fd) {
 
 std::string get_filename_from_path(const std::string& path) {
   size_t pos = path.find_last_of("\\/");
-  if (pos == std::string::npos) {
+  if (pos == std::string::npos || path.length() == pos++) {
     return path;
   } else {
-    pos++;
-    assert(pos < path.size());
     return path.substr(pos);
   }
 }

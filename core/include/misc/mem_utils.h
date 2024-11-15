@@ -33,6 +33,8 @@
 
 #pragma once
 
+void print_rusage(const std::string& msg);
+
 void print_memory_stats(const std::string& msg);
 
 void trim_memory();
