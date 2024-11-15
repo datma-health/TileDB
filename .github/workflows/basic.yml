@@ -159,7 +159,7 @@ jobs:
         make -j4
         make tests -j 4
         export TILEDB_BENCHMARK=1
-        time test/test_sparse_array_benchmark
+        time TILEDB_BOOKKEEPING_STATS=1 TILEDB_CACHE=1 test/test_sparse_array_benchmark
         export TILEDB_DISABLE_FILE_LOCKING=1
         time test/test_sparse_array_benchmark
         export TILEDB_KEEP_FILE_HANDLES_OPEN=1

@@ -405,7 +405,7 @@ int BookKeeping::load(StorageFS *fs) {
     auto cache = StorageFS::slashify(std::filesystem::temp_directory_path()) + "tiledb_bookkeeping/";
     std::string filename = cache + get_filename_from_path(fragment_name_);
     if (!posix_fs.is_file(filename)) {
-      std::cout << "Caching Bookkeeping file=" << filename << std::endl;
+      std::cerr << "*** Bookkeeping file for fragment=" << fragment_name_ << " cached at path=" << filename << std::endl;
       if (!posix_fs.is_dir(cache)) {
         if (posix_fs.create_dir(cache)) {
           BK_ERROR_WITH_PATH("Could not create directory in temp_directory_path", cache);
