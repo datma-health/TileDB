@@ -193,7 +193,6 @@ jobs:
         AWS_TAR: ${{secrets.AWS_TAR}}
 
     - name: Upload Report to CodeCov
-      if: startsWith(matrix.os,'ubuntu')
-      uses: codecov/codecov-action@v3
-      with:
-        gcov: true
+      uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
