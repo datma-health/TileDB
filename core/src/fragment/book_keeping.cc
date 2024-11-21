@@ -364,7 +364,6 @@ int BookKeeping::init(const void* non_empty_domain) {
  *     tile_var_sizes_attr#<attribute_num-1>_#2 (size_t) ...
  * last_tile_cell_num(int64_t)
  */
-#define RETURN_BK_ERROR do { delete buffer_; buffer_ = 0; return TILEDB_BK_ERR; } while(false)
 int BookKeeping::load(StorageFS *fs) {
   if (is_env_set("TILEDB_BOOKKEEPING_STATS")) {
     print_memory_stats("Before BookKeeping::load");
@@ -388,31 +387,31 @@ int BookKeeping::load(StorageFS *fs) {
   
   // Load non-empty domain
   if(load_non_empty_domain() != TILEDB_BK_OK)
-    RETURN_BK_ERROR;
+    return TILEDB_BK_ERR;
 
   // Load MBRs
   if(load_mbrs() != TILEDB_BK_OK)
-    RETURN_BK_ERROR;
+    return TILEDB_BK_ERR;
 
   // Load bounding coordinates
   if(load_bounding_coords() != TILEDB_BK_OK)
-    RETURN_BK_ERROR;
+    return TILEDB_BK_ERR;
 
   // Load tile offsets
   if(load_tile_offsets() != TILEDB_BK_OK)
-    RETURN_BK_ERROR;
+    return TILEDB_BK_ERR;
 
   // Load variable tile offsets
   if(load_tile_var_offsets() != TILEDB_BK_OK)
-    RETURN_BK_ERROR;
+    return TILEDB_BK_ERR;
 
   // Load variable tile sizes
   if(load_tile_var_sizes() != TILEDB_BK_OK)
-    RETURN_BK_ERROR;
+    return TILEDB_BK_ERR;
 
   // Load cell number of last tile
   if(load_last_tile_cell_num() != TILEDB_BK_OK)
-    RETURN_BK_ERROR;
+    return TILEDB_BK_ERR;
 
   // Free up StorageBuffer
   buffer_->finalize();
