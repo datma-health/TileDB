@@ -31,8 +31,11 @@
  */
 
 #include "tiledb.h"
+#include "tiledb_utils.h"
 #include <cstdio>
 #include <inttypes.h>
+
+bool is_env_set(const std::string& name);
 
 int main(int argc, char *argv[]) {
   // Initialize context with home dir if specified in command line, else
@@ -42,6 +45,11 @@ int main(int argc, char *argv[]) {
     TileDB_Config tiledb_config;
     tiledb_config.home_ = argv[1];
     tiledb_ctx_init(&tiledb_ctx, &tiledb_config);
+    std::string base_dir(argv[1]);
+    if (base_dir.back() != '/') base_dir += '/';
+    if (std::string(base_dir).find("://") != std::string::npos && is_env_set("TILEDB_CACHE")) {
+      TileDBUtils::cache_fragment_metadata(base_dir+"my_workspace", "sparse_arrays/my_array_B");
+    }
   } else {
     tiledb_ctx_init(&tiledb_ctx, NULL);
   }

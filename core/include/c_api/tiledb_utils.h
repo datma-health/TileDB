@@ -61,6 +61,8 @@ std::vector<std::string> get_array_names(const std::string& workspace);
 
 std::vector<std::string> get_fragment_names(const std::string& workspace);
 
+int cache_fragment_metadata(const std::string& workspace, const std::string& array_name);
+
 bool is_dir(const std::string& dirpath);
 
 std::string real_dir(const std::string& dirpath);

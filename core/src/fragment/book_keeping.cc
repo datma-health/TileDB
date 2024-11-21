@@ -40,20 +40,15 @@
 #include <cassert>
 #include <cstring>
 #include <fcntl.h>
-#include <filesystem>
-#include <functional>
 #include <iostream>
-#include <sys/file.h>
+
 
 
 /* ****************************** */
 /*             MACROS             */
 /* ****************************** */
 
-#define BK_ERROR(MSG) TILEDB_ERROR(TILEDB_BK_ERRMSG, MSG, tiledb_bk_errmsg)
-#define BK_ERROR_WITH_PATH(MSG, PATH) SYSTEM_ERROR(TILEDB_BK_ERRMSG, MSG, PATH, tiledb_bk_errmsg)
-#define BK_ERROR_FREE_BUFFER(MSG, PATH) free(buffer); SYSTEM_ERROR(TILEDB_BK_ERRMSG, MSG, PATH, tiledb_bk_errmsg)
-
+#define BK_ERROR(MSG) delete buffer_; buffer_ = 0; TILEDB_ERROR(TILEDB_BK_ERRMSG, MSG, tiledb_bk_errmsg)
 
 
 /* ****************************** */
@@ -343,30 +338,6 @@ int BookKeeping::init(const void* non_empty_domain) {
   return TILEDB_BK_OK;
 }
 
-int lock_file(const std::string& filename) {
-  int fd;
-  fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_CLOEXEC | O_SYNC, S_IRWXU);
-  if (fd > 0 && flock(fd, LOCK_EX)) {
-    BK_ERROR_WITH_PATH("Could not lock file", filename);
-    return TILEDB_BK_ERR;
-  }
-  return fd;
-}
-
-int unlock_file(int fd) {
-  flock(fd, LOCK_UN);
-  return close(fd);
-}
-
-std::string get_filename_from_path(const std::string& path) {
-  size_t pos = path.find_last_of("\\/");
-  if (pos == std::string::npos || path.length() == pos++) {
-    return path;
-  } else {
-    return path.substr(pos);
-  }
-}
-
 /* FORMAT:
  * non_empty_domain_size(size_t) non_empty_domain(void*)  
  * mbr_num(int64_t)
@@ -393,57 +364,23 @@ std::string get_filename_from_path(const std::string& path) {
  *     tile_var_sizes_attr#<attribute_num-1>_#2 (size_t) ...
  * last_tile_cell_num(int64_t)
  */
+#define RETURN_BK_ERROR do { delete buffer_; buffer_ = 0; return TILEDB_BK_ERR; } while(false)
 int BookKeeping::load(StorageFS *fs) {
   if (is_env_set("TILEDB_BOOKKEEPING_STATS")) {
     print_memory_stats("Before BookKeeping::load");
   }
+  // Cache the booking file in tmpdir for cloud paths
+  bool used_cache = false;
   PosixFS posix_fs;
-  // Hash and cache the booking file in tmpdir for cloud paths
   if (dynamic_cast<const StorageCloudFS *>(fs) != nullptr && is_env_set("TILEDB_CACHE")) {
-    auto cache = StorageFS::slashify(std::filesystem::temp_directory_path()) + "tiledb_bookkeeping/";
-    std::string filename = cache + get_filename_from_path(fragment_name_);
-    if (!posix_fs.is_file(filename)) {
-      std::cerr << "*** Bookkeeping file for fragment=" << fragment_name_ << " cached at path=" << filename << std::endl;
-      if (!posix_fs.is_dir(cache)) {
-        if (posix_fs.create_dir(cache)) {
-          BK_ERROR_WITH_PATH("Could not create directory in temp_directory_path", cache);
-          return TILEDB_BK_ERR;
-        }
-      }
-      int fd = lock_file(filename);
-      if (fd > 0) {
-        auto chunk = TILEDB_UT_MAX_WRITE_COUNT;
-        auto buffer = malloc(chunk);
-        auto size = fs->file_size(filename_);
-        if (size == TILEDB_FS_ERR) {
-          BK_ERROR_FREE_BUFFER("Could not get filesize", filename_);
-          return TILEDB_BK_ERR;
-        }
-        auto remaining = size;
-        size_t nbytes;
-        while (remaining > 0) {
-          nbytes = remaining<chunk?remaining:chunk;
-          if (fs->read_from_file(filename_, size-remaining, buffer, nbytes)) {
-            BK_ERROR_FREE_BUFFER("Could not read from file", filename_);
-            return TILEDB_BK_ERR;
-          }
-	  auto written = write(fd, buffer, nbytes);
-          if (written == -1 || (size_t)written != nbytes) {
-            BK_ERROR_FREE_BUFFER("Could not write to file", filename);
-            return TILEDB_BK_ERR;
-          }
-          remaining-=nbytes;
-        }
-        free(buffer);
-        unlock_file(fd);
-        assert(posix_fs.file_size(filename) == size);
-      }
+    std::string cached_filename = get_fragment_metadata_cache_dir() + get_filename_from_path(fragment_name_);
+    if (posix_fs.is_file(cached_filename)) {
+      buffer_ = new CompressedStorageBuffer(&posix_fs, cached_filename, download_compressed_size_, /*is_read*/ true,
+                                            TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
+      used_cache = true;
     }
-    filename_ = filename;
-    // Create StorageBuffer to deserialize book_keeping content
-    buffer_ = new CompressedStorageBuffer(&posix_fs, filename_, download_compressed_size_, /*is_read*/ true,
-                                          TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
-  } else {
+  }
+  if (!used_cache) {
     // Create StorageBuffer to deserialize book_keeping content
     buffer_ = new CompressedStorageBuffer(fs, filename_, download_compressed_size_, /*is_read*/ true,
                                           TILEDB_GZIP, TILEDB_COMPRESSION_LEVEL_GZIP);
@@ -451,31 +388,31 @@ int BookKeeping::load(StorageFS *fs) {
   
   // Load non-empty domain
   if(load_non_empty_domain() != TILEDB_BK_OK)
-    return TILEDB_BK_ERR;
+    RETURN_BK_ERROR;
 
   // Load MBRs
   if(load_mbrs() != TILEDB_BK_OK)
-    return TILEDB_BK_ERR;
+    RETURN_BK_ERROR;
 
   // Load bounding coordinates
   if(load_bounding_coords() != TILEDB_BK_OK)
-    return TILEDB_BK_ERR;
+    RETURN_BK_ERROR;
 
   // Load tile offsets
   if(load_tile_offsets() != TILEDB_BK_OK)
-    return TILEDB_BK_ERR;
+    RETURN_BK_ERROR;
 
   // Load variable tile offsets
   if(load_tile_var_offsets() != TILEDB_BK_OK)
-    return TILEDB_BK_ERR;
+    RETURN_BK_ERROR;
 
   // Load variable tile sizes
   if(load_tile_var_sizes() != TILEDB_BK_OK)
-    return TILEDB_BK_ERR;
+    RETURN_BK_ERROR;
 
   // Load cell number of last tile
   if(load_last_tile_cell_num() != TILEDB_BK_OK)
-    return TILEDB_BK_ERR;
+    RETURN_BK_ERROR;
 
   // Free up StorageBuffer
   buffer_->finalize();

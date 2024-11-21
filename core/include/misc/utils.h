@@ -247,6 +247,19 @@ bool is_hdfs_path(const std::string& pathURL);
 bool is_env_set(const std::string& name);
 
 /**
+ * Given a path, retrieve the last segment(filename)
+ * @param path to file
+ * @return last segment of path
+ */
+std::string get_filename_from_path(const std::string& path);
+
+/**
+ * Get the book-keeping cache, used with cloud paths generally
+ * @return the path to the book-keeping cache
+ */
+std::string get_fragment_metadata_cache_dir();
+
+/**
  * Creates a new directory.
  *
  * @param fs The storage filesystem type in use. e.g. posix, hdfs, etc.

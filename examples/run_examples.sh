@@ -96,7 +96,9 @@ sleep 5
 run_example ./tiledb_array_read_dense_1 $1 18
 run_example ./tiledb_array_write_sparse_1 $1 19
 sleep 5
+export TILEDB_CACHE=1
 run_example ./tiledb_array_read_sparse_1 $1 20
+unset TILEDB_CACHE
 run_example ./tiledb_array_read_sparse_filter_1 $1 21
 run_example ./tiledb_array_iterator_sparse $1 22
 run_example ./tiledb_array_iterator_sparse_filter $1 23

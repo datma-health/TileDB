@@ -39,6 +39,8 @@
 #include "codec.h"
 #include "tiledb_storage.h"
 #include "storage_fs.h"
+#include "storage_posixfs.h"
+#include "utils.h"
 
 #include <cstring>
 #include <error.h>
@@ -139,6 +141,26 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
     }                       \
   } while(false)
 
+#define RETURN_WITH_ERRMSG(MSG)                           \
+  TILEDB_ERROR(TILEDB_UT_ERRMSG, MSG, tiledb_ut_errmsg);  \
+  do {                                                    \
+    strcpy(tiledb_errmsg, tiledb_ut_errmsg.c_str());      \
+    if (tiledb_ctx) {                                     \
+      finalize(tiledb_ctx);                               \
+    }                                                     \
+    return TILEDB_ERR;                                    \
+  } while(false)
+
+#define RETURN_WITH_ERRMSG_PATH(MSG, PATH)                       \
+  SYSTEM_ERROR(TILEDB_UT_ERRMSG, MSG, PATH, tiledb_ut_errmsg);   \
+  do {                                                           \
+    strcpy(tiledb_errmsg, tiledb_ut_errmsg.c_str());             \
+    if (tiledb_ctx) {                                            \
+      finalize(tiledb_ctx);                                      \
+    }                                                            \
+    return TILEDB_ERR;                                           \
+  } while(false)
+
 int create_workspace(const std::string& workspace, bool replace)
 {
   TileDB_CTX *tiledb_ctx;
@@ -191,6 +213,85 @@ std::vector<std::string> get_array_names(const std::string& workspace)
   }
   finalize(tiledb_ctx);
   return array_names;
+}
+
+int lock_file(const std::string& filename) {
+  int fd;
+  fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_CLOEXEC | O_SYNC, S_IRWXU);
+  if (fd > 0 && flock(fd, LOCK_EX)) {
+    return TILEDB_ERR;
+  }
+  return fd;
+}
+
+int unlock_file(int fd) {
+  flock(fd, LOCK_UN);
+  return close(fd);
+}
+
+int cache_fragment_metadata(const std::string& workspace, const std::string& array_name)
+{
+  TileDB_CTX *tiledb_ctx;
+  if (setup(&tiledb_ctx, workspace)) {
+    FINALIZE;
+  }
+
+  std::vector<std::string> dirs = get_dirs(tiledb_ctx, StorageFS::slashify(workspace)+array_name);
+  for (std::vector<std::string>::iterator dir = dirs.begin() ; dir != dirs.end(); dir++) {
+    std::string fragment(*dir);
+    auto bookkeeping_path =  StorageFS::slashify(fragment)+TILEDB_BOOK_KEEPING_FILENAME+TILEDB_FILE_SUFFIX+TILEDB_GZIP_SUFFIX;
+    if (is_file(tiledb_ctx, bookkeeping_path)) {
+      size_t pos = fragment.find_last_of("\\/");
+      if (pos != std::string::npos) {
+        fragment = fragment.substr(pos+1);
+      }
+      auto cache = get_fragment_metadata_cache_dir();
+      auto cached_file = cache + fragment;
+      PosixFS posix_fs;
+      if (!posix_fs.is_file(cached_file)) {
+         if (!posix_fs.is_dir(cache)) {
+           if (posix_fs.create_dir(cache)) {
+             RETURN_WITH_ERRMSG_PATH("Could not create directory in temp_directory_path", cache);
+           }
+         }
+         int fd = lock_file(cached_file);
+         if (fd > 0) {
+           auto chunk = TILEDB_UT_MAX_WRITE_COUNT;
+           auto buffer = malloc(chunk);
+           if (!buffer) {
+             RETURN_WITH_ERRMSG("Out-of-memory exception while allocating memory");
+           }
+           auto size = file_size(tiledb_ctx, bookkeeping_path);
+           if (size == TILEDB_FS_ERR) {
+             free(buffer);
+             RETURN_WITH_ERRMSG_PATH("Could not get filesize", bookkeeping_path);
+           }
+           auto remaining = size;
+           size_t nbytes;
+           while (remaining > 0) {
+             nbytes = remaining<chunk?remaining:chunk;
+             if (read_file(tiledb_ctx, bookkeeping_path, size-remaining, buffer, nbytes)) {
+               free(buffer);
+               RETURN_WITH_ERRMSG_PATH("Could not read from file", bookkeeping_path);
+             }
+             auto written = write(fd, buffer, nbytes);
+             if (written == -1 || (size_t)written != nbytes) {
+               free(buffer);
+               RETURN_WITH_ERRMSG_PATH("Could not write to file", cached_file);
+             }
+             remaining-=nbytes;
+           }
+           free(buffer);
+           if (unlock_file(fd)) {
+             RETURN_WITH_ERRMSG_PATH("Could not close file",  bookkeeping_path);
+           }
+           assert(posix_fs.file_size(cached_file) == size);
+         }
+      }
+    }
+  }
+  finalize(tiledb_ctx);
+  return TILEDB_OK;
 }
 
 std::vector<std::string> get_fragment_names(const std::string& workspace)
