@@ -7,6 +7,7 @@
 #
 # Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
 # Copyright (c) 2019 Omics Data Automation Inc.
+# Copyright (c) 2024 dātma, inc™
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
