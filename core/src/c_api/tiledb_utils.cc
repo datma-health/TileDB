@@ -292,6 +292,9 @@ int cache_fragment_metadata(const std::string& workspace, const std::string& arr
            }
            free(buffer);
            if (unlock_file(fd)) {
+             if (posix_fs.is_file(bookkeeping_path)) {
+               posix_fs.delete_file(bookkeeping_path);
+             }
              RETURN_ERRMSG_PATH("Could not close file",  bookkeeping_path);
            }
            assert(posix_fs.file_size(cached_file) == size);
