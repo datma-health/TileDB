@@ -7,6 +7,7 @@
 #
 # Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
 # Copyright (c) 2019 Omics Data Automation Inc.
+# Copyright (c) 2024 dātma, inc™
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -96,7 +97,9 @@ sleep 5
 run_example ./tiledb_array_read_dense_1 $1 18
 run_example ./tiledb_array_write_sparse_1 $1 19
 sleep 5
+export TILEDB_CACHE=1
 run_example ./tiledb_array_read_sparse_1 $1 20
+unset TILEDB_CACHE
 run_example ./tiledb_array_read_sparse_filter_1 $1 21
 run_example ./tiledb_array_iterator_sparse $1 22
 run_example ./tiledb_array_iterator_sparse_filter $1 23

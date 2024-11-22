@@ -7,7 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2018-2019, 2021 Omics Data Automation, Inc.
- * @copyright Copyright (c) 2023 dātma, inc™
+ * @copyright Copyright (c) 2023-2024 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,7 @@
 #include <cstdio>
 #include <dirent.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <iostream>
 #include <netdb.h>
 #include <set>
@@ -283,6 +284,19 @@ bool is_env_set(const std::string& name) {
   } else {
     return false;
   }
+}
+
+std::string get_filename_from_path(const std::string& path) {
+  size_t pos = path.find_last_of("\\/");
+  if (pos == std::string::npos || path.length() == pos++) {
+    return path;
+  } else {
+    return path.substr(pos);
+  }
+}
+
+std::string get_fragment_metadata_cache_dir() {
+  return StorageFS::slashify(std::filesystem::temp_directory_path()) + "tiledb_bookkeeping/";
 }
 
 int create_dir(StorageFS *fs, const std::string& dir) {
