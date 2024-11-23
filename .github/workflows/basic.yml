@@ -51,24 +51,19 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
         # All supported types
-        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
+        # type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
+        type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, aws]
         include:
-          - os: macos-11
+          - os: macos-13
             type: basic
             openssl-version: 1.1
-          - os: macos-11
-            type: basic
-            openssl-version: 3
-          - os: macos-12
-            type: basic
-            openssl-version: 1.1
-          - os: macos-12
+          - os: macos-13
             type: basic
             openssl-version: 3
           - os: ubuntu-22.04
             type: basic
-          - os: ubuntu-22.04
-            type: azurite
+            #- os: ubuntu-22.04
+            #type: azurite
           - os: ubuntu-22.04
             type: aws
           - os: ubuntu-22.04
@@ -79,7 +74,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Create Build Environment
       shell: bash
@@ -90,27 +85,27 @@ jobs:
         mkdir -p /usr/local/share/vcpkg/ports
 
     - name: Cache AWS SDK
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/awssdk-install
         key: awssdk-${{env.AWSSDK_VER}}-${{matrix.os}}-openssl-${{matrix.openssl-version}}-v1
 
     - name: Cache GCS SDK
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/gcssdk-install
         key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-${{matrix.openssl-version}}-v1
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/catch2-install
         key: catch2-${{env.CATCH2_VER}}-v0-${{matrix.os}}
         
     - name: Cache Distributed FileSystems
       if: matrix.type == 'hdfs' || matrix.type == 'gcs'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{runner.workspace}}/hadoop-${{env.HADOOP_VER}}
         key: dfs-${{env.HADOOP_VER}}-v1-${{matrix.os}}-openssl-v1
@@ -164,7 +159,7 @@ jobs:
         make -j4
         make tests -j 4
         export TILEDB_BENCHMARK=1
-        time test/test_sparse_array_benchmark
+        time TILEDB_BOOKKEEPING_STATS=1 TILEDB_CACHE=1 test/test_sparse_array_benchmark
         export TILEDB_DISABLE_FILE_LOCKING=1
         time test/test_sparse_array_benchmark
         export TILEDB_KEEP_FILE_HANDLES_OPEN=1
@@ -198,6 +193,6 @@ jobs:
         AWS_TAR: ${{secrets.AWS_TAR}}
 
     - name: Upload Report to CodeCov
-      uses: codecov/codecov-action@v3
-      with:
-        gcov: true
+      uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}

@@ -6,7 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2019-2021 Omics Data Automation, Inc.
- * @copyright Copyright (c) 2023 dātma, inc™
+ * @copyright Copyright (c) 2023-2024 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -188,7 +188,18 @@ TEST_CASE_METHOD(TempDir, "Test get fragment names", "[get_fragment_names]") {
   // No fragments
   CHECK(TileDBUtils::get_fragment_names(input_ws).size() == 0);
 
-  // TODO: Add input with one fragment
+  // Check caching of bookkeeping files
+  std::string genomicsdb_ws = std::string(TILEDB_TEST_DIR)+"/inputs/genomicsdb_ws";
+  std::string array("1$1$249250621");
+  auto fragment_names = TileDBUtils::get_fragment_names(genomicsdb_ws);
+  CHECK(fragment_names.size() == 1);
+  CHECK(TileDBUtils::cache_fragment_metadata(genomicsdb_ws, array) == TILEDB_OK);
+  auto cached_path = StorageFS::slashify(get_fragment_metadata_cache_dir()) + get_filename_from_path(fragment_names[0]);
+  CHECK(TileDBUtils::is_file(cached_path));
+  auto actual_bk_file = StorageFS::slashify(genomicsdb_ws)+StorageFS::slashify(array)
+      +StorageFS::slashify(fragment_names[0])+TILEDB_BOOK_KEEPING_FILENAME+TILEDB_FILE_SUFFIX+TILEDB_GZIP_SUFFIX;
+  CHECK(TileDBUtils::file_size(cached_path) == TileDBUtils::file_size(actual_bk_file));
+  CHECK(TileDBUtils::delete_file(cached_path) == TILEDB_OK);
 }
 
 TEST_CASE_METHOD(TempDir, "Test multithreaded file utils", "[file_utils_multi_threads]") {

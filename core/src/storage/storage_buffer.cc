@@ -6,6 +6,7 @@
  * The MIT License
  *
  * @copyright Copyright (c) 2020-2022 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2024 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -181,9 +182,9 @@ int StorageBuffer::finalize() {
     rc =  write_buffer();
   }
   rc = fs_->close_file(filename_) || rc;
+  free_buffer();
   if (rc) {
     // error is logged in write_buffer or close_file
-    free_buffer();
     return TILEDB_BF_ERR;
   } else {
     return TILEDB_BF_OK;

@@ -6,6 +6,7 @@
  * The MIT License
  * 
  * @copyright Copyright (c) 2022 Omics Data Automation, Inc.
+ * @copyright Copyright (c) 2024 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +38,9 @@
 #include <string>
 #include <vector>
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #ifdef __linux
 #include <malloc.h>
 #endif
@@ -48,7 +52,7 @@ typedef struct statm_t{
 void print_time() {
   time_t track_time = time(NULL);
   tm* current = localtime(&track_time);
-  char buffer[32];
+  char buffer[40];
   // Format %c(locale dependent) e.g. Fri Mar 18 16:13:48 2022 for EN_US
   std::strftime(buffer, sizeof(buffer), "%c ", current);
   std::cerr << buffer;
@@ -68,6 +72,21 @@ std::string readable_size(size_t size) {
     }
   }
   return std::to_string(size);
+}
+
+void print_rusage(const std::string& msg) {
+  rusage usage;
+  int result = getrusage(RUSAGE_SELF, &usage);
+  std::cerr << msg << std::endl;
+  if (result == 0) {
+    std::cerr << "\tuser cpu time=" << usage.ru_utime.tv_sec << "seconds " << usage.ru_utime.tv_usec << "microseconds" << std::endl;
+    std::cerr << "\tsys cpu time=" << usage.ru_stime.tv_sec << "seconds " << usage.ru_stime.tv_usec << "microseconds" << std::endl;
+#ifdef __linux
+    std::cerr << "\tmaximum resident set size: " << usage.ru_maxrss << "KB" << std::endl;
+#else
+    std::cerr << "\tmaximum resident set size: " << usage.ru_maxrss << "B" << std::endl;
+#endif
+  }
 }
     
 void print_memory_stats(const std::string& msg) {
@@ -95,7 +114,7 @@ void print_memory_stats(const std::string& msg) {
             << " data=" << readable_size(result.data) << " dt=" << readable_size(result.dt) << std::endl;
 #else
   print_time();
-  std::cerr << "TBD: Memory stats " << msg << std::endl;
+  print_rusage(msg);
 #endif
 }
 

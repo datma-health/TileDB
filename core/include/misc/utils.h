@@ -7,6 +7,7 @@
  *
  * @copyright Copyright (c) 2016 MIT and Intel Corporation
  * @copyright Copyright (c) 2021 Omics Data Automation Inc.
+ * @copyright Copyright (c) 2024 dātma, inc™
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -245,6 +246,19 @@ bool is_hdfs_path(const std::string& pathURL);
  * @return true if enviroment variable exists and is set to true or "1"
  */
 bool is_env_set(const std::string& name);
+
+/**
+ * Given a path, retrieve the last segment(filename)
+ * @param path to file
+ * @return last segment of path
+ */
+std::string get_filename_from_path(const std::string& path);
+
+/**
+ * Get the book-keeping cache, used with cloud paths generally
+ * @return the path to the book-keeping cache
+ */
+std::string get_fragment_metadata_cache_dir();
 
 /**
  * Creates a new directory.

@@ -53,7 +53,7 @@ run_azure_tests() {
     echo "az schema storage buffer test" &&
     $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema examples" &&
-    time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
+    TILEDB_CACHE=1 time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema small size storage test" &&
     (TILEDB_MAX_STREAM_SIZE=32 $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" [read-write-small] || echo "az schema small size storage test failed") &&
     echo "Running with $1 DONE" &&
@@ -119,7 +119,8 @@ elif [[ $INSTALL_TYPE == azurite ]]; then
   $CMAKE_BUILD_DIR/test/test_storage_buffer --test-dir "az://test@devstoreaccount1.blob/$TEST" &&
   AZURE_STORAGE_ACCOUNT=$TEMP_VAR
   $GITHUB_WORKSPACE/examples/run_examples.sh "az://test@devstoreaccount1.blob/$TEST" &&
-  $GITHUB_WORKSPACE/examples/run_examples.sh "azb://test/$TEST?account=devstoreaccount1"
+  $GITHUB_WORKSPACE/examples/run_examples.sh "azb://test/$TEST?account=devstoreaccount1" &&
+  TILEDB_CACHE=1 $GITHUB_WORKSPACE/examples/run_examples.sh "az://test/$TEST?account=devstoreaccount1"
 
 elif [[ $INSTALL_TYPE == aws ]]; then
   TILEDB_BENCHMARK=1
