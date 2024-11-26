@@ -26,7 +26,7 @@
 # THE SOFTWARE.
 #
 
-source $(dirname $0)/run_examples_base.sh
+source $(dirname $0)/run_examples_base.sh "$@"
 
 run_example ./tiledb_array_parallel_write_dense_1 $1 1
 run_example ./tiledb_array_parallel_write_dense_2 $1 2

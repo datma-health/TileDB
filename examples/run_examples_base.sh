@@ -38,13 +38,16 @@ check_rc() {
 }
 
 log_filename() {
-  if [[ $# -eq 3 ]]
+  echo Number of args = $#
+  echo $0
+  echo $1
+  if [[ $# -ge 1 ]]
   then
     if [[ $(basename $0) == "run_examples_parallel.sh" ]]
     then
-      export LOGFILENAME=`basename $2`.parallel.log
+      export LOGFILENAME=`basename $1`.parallel.log
     else
-      export LOGFILENAME=`basename $2`.log
+      export LOGFILENAME=`basename $1`.log
     fi
   else
     if [[ $(basename $0) == "run_examples_parallel.sh" ]]
@@ -72,5 +75,5 @@ run_example() {
   fi
 }
 
-log_filename
+log_filename $@
 rm -f $LOGFILENAME

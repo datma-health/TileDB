@@ -39,7 +39,7 @@
 #    e.g for ./run_examples.sh gs://my_bucket/my_dir/my_test, expect results in test.log
 # Check the log file against the <install>/examples/expected_results file.
 
-source $(dirname $0)/run_examples_base.sh
+source $(dirname $0)/run_examples_base.sh "$@"
 
 run_example ./tiledb_workspace_group_create $1 1
 run_example ./tiledb_ls_workspaces $1 2
