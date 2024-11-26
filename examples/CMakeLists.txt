@@ -6,7 +6,7 @@
 #
 # Copyright (c) 2016 MIT and Intel Corporation
 # Copyright (c) 2018-2019 Omics Data Automation, Inc.
-# Copyright (c) 2023 dātma, inc™
+# Copyright (c) 2023-2024 dātma, inc™
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -61,7 +61,8 @@ add_dependencies(examples ${EXAMPLE_BINS})
 if(NOT TILEDB_DISABLE_TESTING)
   set(CI_TESTS ${CMAKE_SOURCE_DIR}/examples/run_examples.sh &&
     echo "Running diff with expected_results" &&
-    diff log ${CMAKE_SOURCE_DIR}/examples/expected_results)
+    diff log ${CMAKE_SOURCE_DIR}/examples/expected_results &&
+    ${CMAKE_SOURCE_DIR}/examples/run_examples_parallel.sh)
   add_test(NAME ci_tests COMMAND ${CI_TESTS})
   add_custom_target(ci_tests COMMAND ${CI_TESTS} DEPENDS examples)
   add_dependencies(tests ci_tests)
