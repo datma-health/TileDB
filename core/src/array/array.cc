@@ -615,6 +615,7 @@ int Array::finalize() {
   }
 
   if (consolidate_mode()) {
+    free_array_schema();
     return fg_error?TILEDB_AR_ERR:TILEDB_AR_OK;
   }
 

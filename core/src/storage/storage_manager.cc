@@ -1468,11 +1468,7 @@ int StorageManager::array_open(
              open_array->array_schema_) != TILEDB_SM_OK)
         return TILEDB_SM_ERR;
     }
-  }
 
-  if (!array_consolidate_mode(mode)) {
-    // Load the book-keeping for each fragment. For consolidate mode, each fragment will be opened
-    // separately
     if(array_load_book_keeping(
            open_array->array_schema_,
            open_array->fragment_names_,

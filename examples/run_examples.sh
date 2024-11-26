@@ -126,3 +126,12 @@ run_example ./tiledb_array_read_dense_2 $1 40
 run_example ./tiledb_array_read_sparse_2 $1 41
 sleep 5
 run_example ./tiledb_array_3d $1 42
+sleep 5
+run_example ./tiledb_array_parallel_write_dense_1 $1 43
+run_example ./tiledb_array_parallel_write_dense_2 $1 44
+run_example ./tiledb_array_parallel_write_sparse_1 $1 45
+run_example ./tiledb_array_parallel_write_sparse_2 $1 46
+run_example ./tiledb_array_parallel_read_dense_1 $1 47
+run_example ./tiledb_array_parallel_read_dense_2 $1 48
+run_example ./tiledb_array_parallel_read_sparse_1 $1 49
+run_example ./tiledb_array_parallel_read_sparse_2 $1 50

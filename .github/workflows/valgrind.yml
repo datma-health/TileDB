@@ -1,0 +1,90 @@
+#
+# valgrind.yml
+#
+# The MIT License
+#
+# Copyright (c) 2024 dātma, inc™
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+
+name: valgrind
+
+on:
+  push:
+    #branches: [ master, develop ]
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    #branches: [ master, develop ]
+    paths-ignore:
+      - '**/*.md'
+
+env:
+  CMAKE_BUILD_DIR: ${{github.workspace}}/build
+  AWSSDK_VER: 1.8.x
+  GCSSDK_VER: v1.24.0
+  
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update -q
+        sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
+        sudo apt-get -y install valgrind
+
+    - name: Cache AWS SDK
+      uses: actions/cache@v4
+      with:
+        path: ~/awssdk-install
+        key: awssdk-${{env.AWSSDK_VER}}-${{ImageOS}}-${{ImageVersion}}-openssl-3-v1
+
+    - name: Cache GCS SDK
+      uses: actions/cache@v4
+      with:
+        path: ~/gcssdk-install
+        key: gcssdk-${{env.GCSSDK_VER}}-${{ImageOS}}-${{ImageVersion}}-openssl-3-v1
+        
+    - name: Run valgrind
+      working-directory: ${{env.CMAKE_BUILD_DIR}}
+      run: |
+        cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_HDFS=0 -DUSE_OPENMP=0 $GITHUB_WORKSPACE
+        make -j4
+        make examples
+        export VALGRIND="valgrind --leak-check=full"
+        $VALGRIND ./tiledb_workspace_group_create
+        $VALGRIND ./tiledb_array_create_sparse
+        $VALGRIND ./tiledb_array_write_sparse_1
+        $VALGRIND ./tiledb_array_write_sparse_2
+        $VALGRIND ./tiledb_array_read_sparse_1
+        $VALGRIND ./tiledb_array_read_sparse_2
+        $VALGRIND ./tiledb_array_read_sparse_filter
+        $VALGRIND ./tiledb_array_iterator_sparse
+        $VALGRIND ./tiledb_array_iterator_sparse_filter
+        $VALGRIND ./tiledb_array_parallel_write_sparse_1
+        $VALGRIND ./tiledb_array_parallel_write_sparse_2
+        $VALGRIND ./tiledb_array_parallel_read_sparse_1
+        $VALGRIND ./tiledb_array_parallel_read_sparse_2
+        $VALGRIND ./tiledb_array_parallel_consolidate_sparse
+        
