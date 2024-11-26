@@ -7,7 +7,6 @@
 #
 # Copyright (c) 2018 Omics Data Automation Inc. and Intel Corporation
 # Copyright (c) 2019 Omics Data Automation Inc.
-# Copyright (c) 2024 dātma, inc™
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -97,9 +96,7 @@ sleep 5
 run_example ./tiledb_array_read_dense_1 $1 18
 run_example ./tiledb_array_write_sparse_1 $1 19
 sleep 5
-export TILEDB_CACHE=1
 run_example ./tiledb_array_read_sparse_1 $1 20
-unset TILEDB_CACHE
 run_example ./tiledb_array_read_sparse_filter_1 $1 21
 run_example ./tiledb_array_iterator_sparse $1 22
 run_example ./tiledb_array_iterator_sparse_filter $1 23
@@ -126,12 +123,3 @@ run_example ./tiledb_array_read_dense_2 $1 40
 run_example ./tiledb_array_read_sparse_2 $1 41
 sleep 5
 run_example ./tiledb_array_3d $1 42
-sleep 5
-run_example ./tiledb_array_parallel_write_dense_1 $1 43
-run_example ./tiledb_array_parallel_write_dense_2 $1 44
-run_example ./tiledb_array_parallel_write_sparse_1 $1 45
-run_example ./tiledb_array_parallel_write_sparse_2 $1 46
-run_example ./tiledb_array_parallel_read_dense_1 $1 47
-run_example ./tiledb_array_parallel_read_dense_2 $1 48
-run_example ./tiledb_array_parallel_read_sparse_1 $1 49
-run_example ./tiledb_array_parallel_read_sparse_2 $1 50
