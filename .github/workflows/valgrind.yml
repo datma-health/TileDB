@@ -75,6 +75,7 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Debug -DTILEDB_DISABLE_TESTING=1 -DUSE_HDFS=0 -DUSE_OPENMP=0 $GITHUB_WORKSPACE
         make -j4
         make examples
+        cd examples
         export VALGRIND="valgrind --leak-check=full"
         $VALGRIND ./tiledb_workspace_group_create
         $VALGRIND ./tiledb_array_create_sparse
