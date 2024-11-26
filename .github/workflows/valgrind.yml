@@ -58,13 +58,13 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/awssdk-install
-        key: awssdk-${{env.AWSSDK_VER}}-${{ImageOS}}-${{ImageVersion}}-openssl-3-v1
+        key: awssdk-${{env.AWSSDK_VER}}-${{env.ImageOS}}-${{env.ImageVersion}}-openssl-3-v1
 
     - name: Cache GCS SDK
       uses: actions/cache@v4
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{ImageOS}}-${{ImageVersion}}-openssl-3-v1
+        key: gcssdk-${{env.GCSSDK_VER}}-${{env.ImageOS}}-${{env.ImageVersion}}-openssl-3-v1
         
     - name: Run valgrind
       working-directory: ${{env.CMAKE_BUILD_DIR}}
