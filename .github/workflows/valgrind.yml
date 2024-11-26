@@ -53,6 +53,7 @@ jobs:
         sudo apt-get update -q
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         sudo apt-get -y install valgrind
+        sudo apt-get -y install catch2
 
     - name: Cache AWS SDK
       uses: actions/cache@v4
