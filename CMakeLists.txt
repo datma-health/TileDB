@@ -258,7 +258,7 @@ endif()
 add_subdirectory(core)
 
 # Enable testing
-if(NOT TILEDB_DISABLE_TESTING)
+if(NOT TILEDB_DISABLE_TESTS)
   enable_testing()
   add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND} -V)
 

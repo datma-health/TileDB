@@ -71,7 +71,7 @@ jobs:
       run: |
         mkdir -p $CMAKE_BUILD_DIR
         cd  $CMAKE_BUILD_DIR
-        cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_HDFS=0 -DUSE_OPENMP=0 $GITHUB_WORKSPACE
+        cmake -DCMAKE_BUILD_TYPE=Debug -DTILEDB_DISABLE_TESTING=1 -DUSE_HDFS=0 -DUSE_OPENMP=0 $GITHUB_WORKSPACE
         make -j4
         make examples
         export VALGRIND="valgrind --leak-check=full"
