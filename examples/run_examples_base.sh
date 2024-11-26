@@ -38,9 +38,6 @@ check_rc() {
 }
 
 log_filename() {
-  echo Number of args = $#
-  echo $0
-  echo $1
   if [[ $# -ge 1 ]]
   then
     if [[ $(basename $0) == "run_examples_parallel.sh" ]]

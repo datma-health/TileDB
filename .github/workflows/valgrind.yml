@@ -87,8 +87,10 @@ jobs:
         $VALGRIND ./tiledb_array_iterator_sparse
         $VALGRIND ./tiledb_array_iterator_sparse_filter
         $VALGRIND ./tiledb_array_parallel_write_sparse_1
-        $VALGRIND ./tiledb_array_parallel_write_sparse_2
+        # tiledb_array_parallel_write_sparse_2 requires OpenMP
+        # $VALGRIND ./tiledb_array_parallel_write_sparse_2
         $VALGRIND ./tiledb_array_parallel_read_sparse_1
-        $VALGRIND ./tiledb_array_parallel_read_sparse_2
+        # tiledb_array_parallel_read_sparse_2 requires OpenMP
+        # $VALGRIND ./tiledb_array_parallel_read_sparse_2
         $VALGRIND ./tiledb_array_parallel_consolidate_sparse
         
