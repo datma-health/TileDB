@@ -67,8 +67,10 @@ jobs:
         key: gcssdk-${{env.GCSSDK_VER}}-${{env.ImageOS}}-${{env.ImageVersion}}-openssl-3-v1
         
     - name: Run valgrind
-      working-directory: ${{env.CMAKE_BUILD_DIR}}
+      shell: bash
       run: |
+        mkdir -p $CMAKE_BUILD_DIR
+        cd  $CMAKE_BUILD_DIR
         cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_HDFS=0 -DUSE_OPENMP=0 $GITHUB_WORKSPACE
         make -j4
         make examples
