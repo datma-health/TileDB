@@ -1,0 +1,42 @@
+Example 1: Running ./tiledb_array_parallel_write_dense_1...
+Example 1: Done running ./tiledb_array_parallel_write_dense_1
+Example 2: Running ./tiledb_array_parallel_write_dense_2...
+Example 2: Done running ./tiledb_array_parallel_write_dense_2
+Example 3: Running ./tiledb_array_parallel_write_sparse_1...
+Example 3: Done running ./tiledb_array_parallel_write_sparse_1
+Example 4: Running ./tiledb_array_parallel_write_sparse_2...
+Example 4: Done running ./tiledb_array_parallel_write_sparse_2
+Example 5: Running ./tiledb_array_parallel_read_dense_1...
+Number of a1 values greater than 10: 5 
+Example 5: Done running ./tiledb_array_parallel_read_dense_1
+Example 6: Running ./tiledb_array_parallel_read_dense_2...
+Number of a1 values greater than 10: 5 
+Example 6: Done running ./tiledb_array_parallel_read_dense_2
+Example 7: Running ./tiledb_array_parallel_read_sparse_1...
+Number of a1 values greater than 5: 4 
+Example 7: Done running ./tiledb_array_parallel_read_sparse_1
+Example 8: Running ./tiledb_array_parallel_read_sparse_2...
+Number of a1 values greater than 5: 2 
+Example 8: Done running ./tiledb_array_parallel_read_sparse_2
+Example 9: Running ./tiledb_array_parallel_consolidate_dense...
+Started consolidation
+Started reading
+Finished reading
+Started reading
+Started reading
+Finished reading
+Finished reading
+Started reading
+Finished reading
+Finished consolidation
+Number of a1 values greater than 10: 5 
+Example 9: Done running ./tiledb_array_parallel_consolidate_dense
+Example 10: Running ./tiledb_array_parallel_consolidate_sparse...
+Started consolidation
+Started reading
+Started reading
+Finished reading
+Finished reading
+Finished consolidation
+Number of a1 values greater than 5: 4 
+Example 10: Done running ./tiledb_array_parallel_consolidate_sparse

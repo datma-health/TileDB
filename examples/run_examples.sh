@@ -39,38 +39,7 @@
 #    e.g for ./run_examples.sh gs://my_bucket/my_dir/my_test, expect results in test.log
 # Check the log file against the <install>/examples/expected_results file.
 
-check_rc() {
-  if [[ $# -eq 1 ]]; then
-    if [[ $1 -ne 0 ]]; then
-      echo
-      echo "Exit Status=$1. Quitting execution of run_examples.sh"
-      exit $1
-    fi
-  fi
-}
-
-run_example() {
-  if [[ $# -eq 3 ]]
-  then
-    logfile=`basename $2`.log
-    echo "Example $3: Running $1..." | tee -a ${logfile}
-    $1 $2 | tee -a ${logfile}
-    check_rc ${PIPESTATUS[0]}
-    echo "Example $3: Done running $1" | tee -a ${logfile}
-  else
-    echo "Example $2: Running $1..." | tee -a log
-    $1 | tee -a log
-    check_rc ${PIPESTATUS[0]}
-    echo "Example $2: Done running $1" | tee -a log
-  fi
-}
-
-if [[ -n $1 ]]
-then
-  rm -fr `basename $1`.log
-else
-  rm -fr log
-fi
+source $(dirname $0)/run_examples_base.sh "$@"
 
 run_example ./tiledb_workspace_group_create $1 1
 run_example ./tiledb_ls_workspaces $1 2
