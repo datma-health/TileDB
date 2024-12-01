@@ -428,6 +428,7 @@ int Array::consolidate(
 
     new_fragment = new Fragment(this);
     if(new_fragment->init(new_fragment_name, TILEDB_ARRAY_WRITE, subarray_) != TILEDB_FG_OK) {
+      delete new_fragment;
       tiledb_ar_errmsg = tiledb_fg_errmsg;
       return TILEDB_AR_ERR;
     }
@@ -482,6 +483,7 @@ int Array::consolidate(
       new_fragment->finalize();
       last_batch_fragment_name = new_fragment->fragment_name();
       old_fragment_names.push_back(last_batch_fragment_name);
+      delete new_fragment;
       new_fragment = NULL;
     }
 
