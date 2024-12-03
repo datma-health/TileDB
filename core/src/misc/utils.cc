@@ -297,11 +297,11 @@ std::string get_filename_from_path(const std::string& path) {
 std::string get_fragment_metadata_cache_dir() {
   // std::filesystem is C++17, but not available with CentOS 6 gcc
   // return StorageFS::slashify(std::filesystem::temp_directory_path()) + "tiledb_bookkeeping/";
-  std::string tmp_dir(getenv("TMPDIR"));
-  if (tmp_dir.empty()) {
+  const char *tmp_dir = getenv("TMPDIR");
+  if (tmp_dir == NULL) {
     tmp_dir = P_tmpdir; // defined in stdio
   }
-  return StorageFS::slashify(tmp_dir) + "tiledb_bookkeeping/";
+  return StorageFS::slashify(std::string(tmp_dir)) + "tiledb_bookkeeping/";
 }
 
 int create_dir(StorageFS *fs, const std::string& dir) {
