@@ -55,7 +55,8 @@ download_gcs_connector() {
 }
 
 download_hadoop() {
-  retry wget -nv --trust-server-names https://archive.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz
+  echo "download_hadoop from https://archive.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz..." &&
+  retry wget -nv --trust-server-names https://archive.apache.org/dist/hadoop/common/$HADOOP/$HADOOP.tar.gz &&
   tar -xzf $HADOOP.tar.gz --directory $INSTALL_DIR &&
   download_gcs_connector &&
   echo "download_hadoop successful"
