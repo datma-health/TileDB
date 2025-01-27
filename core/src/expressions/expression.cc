@@ -83,9 +83,13 @@ int Expression::init(const std::vector<int>& attribute_ids, const ArraySchema* a
       // TODO: Move this block to GenomicsDB as they are GenomicsDB aliases!
       if (array_schema_->dim_num() == 2 && array_schema_->cell_order() == TILEDB_COL_MAJOR) {
         //muparserx does not have a unary negation operator, so use regex to replace !IS* aliases
-        std::regex alias("(ROW)|(POS)|(!ISHOMREF)|(!ISHOMALT)|(!ISHET)|(ISHOMREF)|(ISHOMALT)|(ISHET)");
+        std::regex alias("(ROW)|(POS)|(!ISHOMREF)|(!ISHOMALT)|(!ISHET)|(ISHOMREF)|(ISHOMALT)|(ISHET)|(!ISCALL)|(ISCALL)");
         for (std::smatch match; std::regex_search(expression_, match, alias); ) {
-          if (match[0] == "ROW") {
+          if (match[0] == "ISCALL") {
+            expression_ = match.prefix().str() + "GT[0] >= 0" +  match.suffix().str();
+          } else if (match[0] == "!ISCALL") {
+            expression_ = match.prefix().str() + "GT[0] < 0" +  match.suffix().str();
+          } else if (match[0] == "ROW") {
             expression_ = match.prefix().str() +  "__coords[0]" + match.suffix().str();
           } else if (match[0] == "POS") {
             expression_ = match.prefix().str() +  "__coords[1]" + match.suffix().str();

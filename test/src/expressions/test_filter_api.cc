@@ -41,14 +41,16 @@ int num_attributes = 4;
 const char* attributes[] = { "REF", "ALT", "GT", TILEDB_COORDS };
 
 // Sizes to be used for buffers
-size_t sizes[5] = { 1024, 40, 512, 4096, 4096 };
+size_t sizes[7] = { 1024, 40, 512, 4096, 4096, 4096, 4096 };
 
 // filter expression that results in just one match for genomicsdb_ws
-std::string filters[5] = { "POS >= 0 && ROW >=0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
+std::string filters[7] = { "POS >= 0 && ROW >=0 && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
   "ISHOMALT && !ISHOMREF && REF == \"G\" && GT[0]==1 && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
   "!ISHET && !ISHOMALT == false && REF == \"G\" && splitcompare(ALT, 124, \"T\") && resolve(GT, REF, ALT) &= \"T/T\"",
   "ISHOMREF == false && ISHET == false && REF == \"G\" && ALT |= \"T\" && resolve(GT, REF,  ALT) &= \"T\"",
-  "POS==17384 && REF == \"G\" && ALT |= \"T\" && resolve(GT, REF, ALT) &= \"T/T\""};
+  "POS==17384 && REF == \"G\" && ALT |= \"T\" && resolve(GT, REF, ALT) &= \"T/T\"",
+  "POS==17384 && ISCALL && resolve(GT, REF, ALT) &= \"T/T\"",
+  "!ISCALL"};
 
 // Only match expected for the following test cases
 char expected_REF = 'G';
@@ -57,7 +59,7 @@ int expected_GT_values[3] = { 1, 0, 1 };
 int64_t expected_coords[2] = { 1, 17384 };
 
 TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_iterator]") {
-  for (auto i=0; i<5; i++) {
+  for (auto i=0; i<7; i++) {
     SECTION("Test filter expressions for iteration " + std::to_string(i)) {
       // Initialize tiledb context
       TileDB_CTX* tiledb_ctx;
@@ -88,8 +90,15 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
           buffer_sizes,                                     // buffer_sizes
           filters[i].c_str());
 
-      
-      CHECK_RC(rc,TILEDB_OK);
+      CHECK_RC(rc, TILEDB_OK);
+
+      if (filters[i].find("!ISCALL") == std::string::npos) {
+        CHECK_RC(tiledb_array_iterator_end(tiledb_array_it), TILEDB_OK);
+      } else {
+        // Nothing to report as the test genomicsdb_ws has all positions with calls
+        CHECK_RC(tiledb_array_iterator_end(tiledb_array_it), 1);
+        continue;
+      }
 
       int* GT_val = NULL;
       size_t GT_size = 0;
@@ -97,7 +106,6 @@ TEST_CASE("Test genomicsdb_ws filter with iterator api", "[genomicsdb_ws_filter_
       int64_t* coords = NULL;
       size_t coords_size = 0;
 
-      CHECK_RC(tiledb_array_iterator_end(tiledb_array_it), TILEDB_OK);
 
       // Get values
       char* REF_val;
