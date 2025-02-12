@@ -138,21 +138,20 @@ static std::string get_blob_endpoint(const std::string& endpoint,
 }
 
 static std::string get_access_token(const std::string& account_name,
-                                    const std::string& path) {
+                                    const std::string& endpoint) {
   // Invoke `az account get-access-token --resource
-  // https://<account>.blob.core.windows.net -o tsv --query accessToken` Can
-  // probably use `az account get-access-token --resource
-  // https://storage.azure.com/ -o tsv --query accessToken` too
-  std::string endpoint = path;
-  std::size_t scheme_pos = endpoint.find("://");
+  // https://<account>.blob.core.windows.net -o tsv --query accessToken`
   std::string resource_url = "https://";
-  if (scheme_pos != std::string::npos) {
-    resource_url.append(endpoint.substr(scheme_pos + 3));
-  } else {
+  if (endpoint.empty()) {
     resource_url.append(account_name + ".blob.core.windows.net");
+  } else {
+    resource_url.append(endpoint);
   }
   std::string command = "az account get-access-token --resource " +
                         resource_url + " -o tsv --query accessToken";
+  if (is_env_set("TILEDB_PRINT_GET_ACCESS_TOKEN_COMMAND")) {
+    std::cerr << "Running command: " + command << std::endl;
+  }
   return run_command(command);
 }
 
@@ -219,7 +218,7 @@ AzureBlob::AzureBlob(const std::string& home) {
       // Last ditch effort, try getting an access token directly from CLI.
       AZ_BLOB_ERROR("Could not authenticate via AZURE_STORAGE_KEY or AZURE_STORAGE_SAS_TOKEN env vars. " +
                "Trying to get access token directly via CLI", home);
-      std::string token = get_access_token(azure_account, home);
+      std::string token = get_access_token(azure_account, get_blob_endpoint(path_uri.endpoint(), azure_account));
       if (token.size() > 0) {
         cred = std::make_shared<token_credential>(token);
       }

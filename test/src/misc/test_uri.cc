@@ -53,3 +53,21 @@ TEST_CASE("Test uri parsing", "[uri]") {
     {"firstQuery","this is a field"},{"secondquery","was it clear (already)?"}});
 }
 
+void test_azure_uri(const std::string path_uri_str, const std::string account, const std::string container, const std::string endpoint) {
+  azure_uri path_uri(path_uri_str);
+
+  INFO("AZURE URI=" << path_uri_str);
+  CHECK_THAT(path_uri.account(), Equals(account));
+  CHECK_THAT(path_uri.container(), Equals(container));
+  CHECK_THAT(path_uri.endpoint(), Equals(endpoint));
+}
+
+TEST_CASE("Test azure uri parsing", "[azure_uri]") {
+  test_azure_uri("az://my_container/path_to/file", "", "my_container", "");
+  test_azure_uri("az://my_container@my_account.blob.windows.core.net/path_to/file", "my_account", "my_container", "my_account.blob.windows.core.net");
+  test_azure_uri("az://my_container@my_account.blob/path_to/file", "my_account", "my_container", "my_account.blob");
+  test_azure_uri("azb://my_container/path_to_file", "", "my_container", "");
+  test_azure_uri("azb://my_container/path_to_file?account=my_account", "my_account", "my_container", "");
+  test_azure_uri("azb://my_container/path_to_file?account=my_account&endpoint=my_account.special.blob.core.windows.net", "my_account", "my_container", "my_account.special.blob.core.windows.net");
+}
+
