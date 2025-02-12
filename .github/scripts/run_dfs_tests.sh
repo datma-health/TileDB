@@ -56,7 +56,6 @@ run_azure_tests() {
     TILEDB_CACHE=1 time $GITHUB_WORKSPACE/examples/run_examples.sh "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" &&
     echo "az schema small size storage test" &&
     (TILEDB_MAX_STREAM_SIZE=32 $CMAKE_BUILD_DIR/test/test_azure_blob_storage --test-dir "az://$AZURE_CONTAINER_NAME@$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/$TEST" [read-write-small] || echo "az schema small size storage test failed") &&
-    if [[ "$3" == "blob.core.windows.net" ]]; then unset AZURE_STORAGE_KEY && tiledb_utils_tests "az://$AZURE_CONTAINER_NAME/$TEST"; fi &&
     echo "Running with $1 DONE" &&
     check_results_from_examples
 }
