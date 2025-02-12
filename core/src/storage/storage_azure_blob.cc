@@ -141,12 +141,11 @@ static std::string get_access_token(const std::string& account_name,
                                     const std::string& endpoint) {
   // Invoke `az account get-access-token --resource
   // https://<account>.blob.core.windows.net -o tsv --query accessToken`
-  std::size_t scheme_pos = endpoint.find("://");
   std::string resource_url = "https://";
   if (endpoint.empty()) {
     resource_url.append(account_name + ".blob.core.windows.net");
   } else {
-    resource_url.append(account_name + "." + endpoint);
+    resource_url.append(endpoint);
   }
   std::string command = "az account get-access-token --resource " +
                         resource_url + " -o tsv --query accessToken";
