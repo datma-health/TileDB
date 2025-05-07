@@ -30,6 +30,8 @@
  * Tests for the GCS storage class
  */
 
+
+
 #include "catch.h"
 #include "storage_gcs.h"
 #include "uri.h"
