@@ -49,7 +49,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         # All supported types
         # type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, aws]
@@ -60,16 +60,6 @@ jobs:
           - os: macos-13
             type: basic
             openssl-version: 3
-          - os: ubuntu-22.04
-            type: basic
-            #- os: ubuntu-22.04
-            #type: azurite
-          - os: ubuntu-22.04
-            type: aws
-          - os: ubuntu-22.04
-            type: gcs
-          - os: ubuntu-22.04
-            type: azure 
 
     runs-on: ${{ matrix.os }}
 
@@ -168,7 +158,7 @@ jobs:
         test/test_print_book_keeping $GITHUB_WORKSPACE/test/inputs/examples_ws/sparse_arrays/my_array_B/__4FECD19A-4F7D-4D21-B170-A2D111C8FCC44550772224_1652300381620
         
     - name: Build and Test - Distributed FileSystems
-      if: startsWith(matrix.type, 'basic') != true
+      if: github.repository_owner == 'GenomicsDB' && startsWith(matrix.type, 'basic') != true
       shell: bash
       working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
@@ -193,6 +183,7 @@ jobs:
         AWS_TAR: ${{secrets.AWS_TAR}}
 
     - name: Upload Report to CodeCov
+      if: github.repository_owner == 'GenomicsDB'
       uses: codecov/codecov-action@v4
       env:
         CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
