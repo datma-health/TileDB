@@ -1,0 +1,12 @@
+diff -Naur abseil-build.old/absl/copts/AbseilConfigureCopts.cmake abseil-build/absl/copts/AbseilConfigureCopts.cmake > ~/GenomicsDB/dependencies/TileDB/cmake/patches/gcssdk/absl_config.patch
+--- abseil-build.old/absl/copts/AbseilConfigureCopts.cmake	2023-09-18 07:40:01
++++ abseil-build/absl/copts/AbseilConfigureCopts.cmake	2025-05-19 14:17:11
+@@ -42,7 +42,7 @@
+     string(TOUPPER "${_arch}" _arch_uppercase)
+     string(REPLACE "X86_64" "X64" _arch_uppercase ${_arch_uppercase})
+     foreach(_flag IN LISTS ABSL_RANDOM_HWAES_${_arch_uppercase}_FLAGS)
+-      list(APPEND ABSL_RANDOM_RANDEN_COPTS "-Xarch_${_arch}" "${_flag}")
++      list(APPEND ABSL_RANDOM_RANDEN_COPTS "-Xarch_${_arch} ${_flag}")
+     endforeach()
+   endforeach()
+   # If a compiler happens to deal with an argument for a currently unused

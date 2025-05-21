@@ -90,7 +90,7 @@ elseif(NOT GCSSDK_FOUND)
   ExternalProject_Add(abseil-build
     PREFIX ${GCSSDK_PREFIX}
     URL "https://github.com/abseil/abseil-cpp/archive/20230802.1.zip"
-#    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/absl.patch
+    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/absl_config.patch
     CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
         -DABSL_PROPAGATE_CXX_STD=ON
         -DCMAKE_CXX_STANDARD=17)
