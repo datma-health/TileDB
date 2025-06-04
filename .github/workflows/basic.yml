@@ -190,7 +190,9 @@ jobs:
         R_TAR: ${{secrets.R_NEW_TAR}}
         AZ_TAR: ${{secrets.AZ_TAR}}
         AZURITE_TAR: ${{secrets.AZURITE_TAR}}
-        AWS_TAR: ${{secrets.AWS_TAR}}
+        AWS_DEFAULT_REGION: ${{vars.AWS_DEFAULT_REGION}}
+        AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
 
     - name: Upload Report to CodeCov
       uses: codecov/codecov-action@v4
