@@ -49,7 +49,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         # All supported types
         # type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, aws]
@@ -60,16 +60,6 @@ jobs:
           - os: macos-13
             type: basic
             openssl-version: 3
-          - os: ubuntu-22.04
-            type: basic
-            #- os: ubuntu-22.04
-            #type: azurite
-          - os: ubuntu-22.04
-            type: aws
-          - os: ubuntu-22.04
-            type: gcs
-          - os: ubuntu-22.04
-            type: azure 
 
     runs-on: ${{ matrix.os }}
 
