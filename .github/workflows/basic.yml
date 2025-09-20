@@ -28,6 +28,7 @@ name: build
 
 on:
   push:
+    branches: [ master, develop ]
     paths-ignore:
       - '**/*.md'
   pull_request:
@@ -49,7 +50,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         # All supported types
         # type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, aws]
@@ -60,16 +61,6 @@ jobs:
           - os: macos-13
             type: basic
             openssl-version: 3
-          - os: ubuntu-22.04
-            type: basic
-            #- os: ubuntu-22.04
-            #type: azurite
-          - os: ubuntu-22.04
-            type: aws
-          - os: ubuntu-22.04
-            type: gcs
-          - os: ubuntu-22.04
-            type: azure 
 
     runs-on: ${{ matrix.os }}
 
@@ -139,11 +130,26 @@ jobs:
       shell: bash
       working-directory: ${{env.CMAKE_BUILD_DIR}}
       run: |
-        brew list cmake &>/dev/null || brew install cmake
         brew list lcov &>/dev/null || brew install lcov
         brew list openssl@${{matrix.openssl-version}} &>/dev/null || brew install openssl@${{matrix.openssl-version}}
         brew list ossp-uuid &>/dev/null || brew install ossp-uuid
         brew list catch2  &>/dev/null || brew install catch2
+        # taken from https://github.com/actions/runner-images/pull/12791/files
+        # Pin cmake to 3.31.6 because 4.x is not backward compatible
+        brew uninstall cmake &>/dev/null || true
+        cmake_commit="b4e46db74e74a8c1650b38b1da222284ce1ec5ce"
+        tap_name="local/pinned"
+        echo "Creating local tap (no git)..."
+        brew tap-new --no-git "$tap_name" >/dev/null
+        cmake_formula_dir="$(brew --repo "$tap_name")/Formula"
+        mkdir -p "$cmake_formula_dir"
+        cmake_rb_link="https://raw.githubusercontent.com/Homebrew/homebrew-core/$cmake_commit/Formula/c/cmake.rb"
+        cmake_rb_path="$cmake_formula_dir/cmake.rb"
+        echo "Downloading cmake.rb from $cmake_rb_link"
+        curl -fsSL --retry 3 --retry-delay 5 "$cmake_rb_link" -o "$cmake_rb_path"
+        echo "Installing cmake 3.31.6 from custom tap..."
+        brew install "$tap_name/cmake"
+
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
               -DGCSSDK_VERSION=$GCSSDK_VER
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
@@ -190,7 +196,9 @@ jobs:
         R_TAR: ${{secrets.R_NEW_TAR}}
         AZ_TAR: ${{secrets.AZ_TAR}}
         AZURITE_TAR: ${{secrets.AZURITE_TAR}}
-        AWS_TAR: ${{secrets.AWS_TAR}}
+        AWS_DEFAULT_REGION: ${{vars.AWS_DEFAULT_REGION}}
+        AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
 
     - name: Upload Report to CodeCov
       uses: codecov/codecov-action@v4
